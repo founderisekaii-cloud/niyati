@@ -13,11 +13,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Chapter } from '@/lib/types';
 import Image from 'next/image';
-import { useFormState } from 'react-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useMemo, useEffect, useState } from 'react';
+import { useMemo, useEffect, useState, useActionState } from 'react';
 import { differenceInDays } from 'date-fns';
 import { handlePaymentVerification, type PaymentState } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
@@ -46,7 +45,7 @@ const FormSchema = z.object({
 export default function PaymentModal({ isOpen, onClose, chapter }: PaymentModalProps) {
   const { toast } = useToast();
   const [pending, setPending] = useState(false);
-  const [formState, formAction] = useFormState<PaymentState, FormData>(handlePaymentVerification, {
+  const [formState, formAction] = useActionState<PaymentState, FormData>(handlePaymentVerification, {
     message: '',
   });
 
