@@ -77,7 +77,7 @@ export const author = {
     'Before turning to fiction, Vikas worked across multiple disciplines — from engineering and teaching to software design and entrepreneurship — giving him a unique ability to weave technical precision into spiritual storytelling.',
     'He calls his method “Divine Realism” — the art of showing how the unseen forces of the universe operate through everyday lives.'
   ],
-  imageUrl: 'https://storage.googleapis.com/static.aifire.co/founderisekaii-cloud/1721051566896.jpg',
+  imageUrl: 'https://drive.google.com/uc?export=view&id=1YplOowoSYVVmH6EHUWwNdUQ4Dr42eM5i',
   imageHint: 'author portrait'
 };
 
