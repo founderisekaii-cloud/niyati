@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Menu, X, LogOut, User as UserIcon, Loader2 } from 'lucide-react';
+import { Menu, X, LogOut, User as UserIcon, Loader2, Globe } from 'lucide-react';
 import { useState } from 'react';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
@@ -10,7 +10,7 @@ import { useAuth } from '@/hooks/useAuth';
 
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { NiyatiVerseLogo } from '@/components/icons';
+import { NiyatiVerseLogo, Languages } from '@/components/icons';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,6 +18,8 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -35,6 +37,8 @@ export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, loading } = useAuth();
   const { isAdmin } = useAdmin();
+  const [language, setLanguage] = useState('en');
+
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -83,6 +87,24 @@ export default function Header() {
           </nav>
         </div>
         <div className="flex flex-1 items-center justify-end gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <Languages className="h-[1.2rem] w-[1.2rem]" />
+                <span className="sr-only">Change language</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Select Language</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuRadioGroup value={language} onValueChange={setLanguage}>
+                <DropdownMenuRadioItem value="en">English</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="hi">हिन्दी (Hindi)</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="mr">मराठी (Marathi)</DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           <ThemeToggle />
           {loading ? (
             <Loader2 className="h-5 w-5 animate-spin" />
