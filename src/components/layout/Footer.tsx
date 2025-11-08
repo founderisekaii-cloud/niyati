@@ -7,7 +7,7 @@ export default function Footer() {
   const phone = '8850970654';
 
   return (
-    <footer className="z-10 relative border-t border-border/40">
+    <footer className="z-10 relative border-t border-border/40 bg-background/70 backdrop-blur-xl">
       <div className="container flex flex-col items-center justify-center gap-4 py-6 sm:flex-row sm:justify-between">
         <p className="text-sm text-foreground/60">
           © {new Date().getFullYear()} NiyatiVerse. All rights reserved.

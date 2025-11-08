@@ -1,9 +1,11 @@
 'use client';
 
 import React, { useRef, useEffect } from 'react';
+import { useTheme } from 'next-themes';
 
 const ParticleBackground = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const { theme } = useTheme();
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -14,6 +16,7 @@ const ParticleBackground = () => {
 
     let width = (canvas.width = window.innerWidth);
     let height = (canvas.height = window.innerHeight);
+    let animationFrameId: number;
 
     window.addEventListener('resize', () => {
       width = canvas.width = window.innerWidth;
@@ -29,33 +32,57 @@ const ParticleBackground = () => {
       vx: number;
       vy: number;
       size: number;
+      color: string;
+      initialY: number;
 
       constructor() {
         this.x = Math.random() * width;
         this.y = Math.random() * height;
-        this.vx = Math.random() * 0.4 - 0.2;
-        this.vy = Math.random() * 0.4 - 0.2;
-        this.size = Math.random() * 1.5 + 0.5;
+        this.initialY = this.y;
+
+        if (theme === 'dark') {
+          // Drifting stars
+          this.vx = Math.random() * 0.4 - 0.2;
+          this.vy = Math.random() * 0.4 - 0.2;
+          this.size = Math.random() * 1.5 + 0.5;
+          this.color = 'hsla(45, 100%, 90%, 0.8)';
+        } else {
+          // Rising embers
+          this.vx = Math.random() * 0.2 - 0.1;
+          this.vy = -(Math.random() * 1.5 + 0.5);
+          this.size = Math.random() * 2 + 1;
+          this.color = `hsla(${Math.random() * 30 + 15}, 100%, 50%, ${Math.random() * 0.5 + 0.3})`;
+        }
       }
 
       update() {
-        this.x += this.vx;
-        this.y += this.vy;
+        if (theme === 'dark') {
+          this.x += this.vx;
+          this.y += this.vy;
 
-        if (this.x < 0 || this.x > width) this.vx *= -1;
-        if (this.y < 0 || this.y > height) this.vy *= -1;
+          if (this.x < 0 || this.x > width) this.vx *= -1;
+          if (this.y < 0 || this.y > height) this.vy *= -1;
+        } else {
+            this.x += this.vx;
+            this.y += this.vy;
+            if (this.y < -this.size) {
+                this.y = height + this.size;
+                this.x = Math.random() * width;
+            }
+        }
       }
 
       draw() {
         if (!ctx) return;
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-        ctx.fillStyle = 'hsla(45, 100%, 50%, 0.5)';
+        ctx.fillStyle = this.color;
         ctx.fill();
       }
     }
 
     function init() {
+      particles.length = 0; // Clear existing particles
       for (let i = 0; i < particleCount; i++) {
         particles.push(new Particle());
       }
@@ -68,13 +95,17 @@ const ParticleBackground = () => {
         p.update();
         p.draw();
       });
-      requestAnimationFrame(animate);
+      animationFrameId = requestAnimationFrame(animate);
     }
 
     init();
     animate();
+    
+    return () => {
+        window.cancelAnimationFrame(animationFrameId);
+    }
 
-  }, []);
+  }, [theme]); // Rerun effect when theme changes
 
   return (
     <canvas
@@ -84,8 +115,8 @@ const ParticleBackground = () => {
         top: 0,
         left: 0,
         zIndex: 0,
-        opacity: 0.3,
-        backgroundColor: 'hsla(var(--background), 0.8)',
+        opacity: theme === 'dark' ? 0.7 : 1,
+        transition: 'opacity 0.5s ease-in-out',
       }}
     />
   );

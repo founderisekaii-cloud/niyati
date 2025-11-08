@@ -8,7 +8,7 @@
     --background: 232 38% 14%;
     --foreground: 232 20% 85%;
 
-    --card: 232 38% 17%;
+    --card: 232 38% 17% / 0.7;
     --card-foreground: 232 20% 85%;
 
     --popover: 232 38% 12%;
@@ -23,7 +23,7 @@
     --muted: 232 20% 25%;
     --muted-foreground: 232 20% 65%;
 
-    --accent: 43 89% 38%;
+    --accent: 43 89% 38% / 0.7;
     --accent-foreground: 45 100% 95%;
 
     --destructive: 0 72% 51%;
@@ -41,12 +41,14 @@
     --sidebar-accent-foreground: 45 100% 50%;
     --sidebar-border: 232 20% 25%;
     --sidebar-ring: 45 100% 50%;
+
+    --bg-image: url('https://images.unsplash.com/photo-1534796636912-3b95b3ab5986?q=80&w=2071&auto=format&fit=crop');
   }
 
   .light {
     --background: 0 0% 100%;
     --foreground: 240 10% 3.9%;
-    --card: 0 0% 100%;
+    --card: 0 0% 100% / 0.6;
     --card-foreground: 240 10% 3.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 3.9%;
@@ -56,7 +58,7 @@
     --secondary-foreground: 240 5.9% 10%;
     --muted: 240 4.8% 95.9%;
     --muted-foreground: 240 3.8% 46.1%;
-    --accent: 240 4.8% 95.9%;
+    --accent: 240 4.8% 95.9% / 0.6;
     --accent-foreground: 240 5.9% 10%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
@@ -73,6 +75,8 @@
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 240 5.9% 90%;
     --sidebar-ring: 240 5.9% 10%;
+    
+    --bg-image: url('https://images.unsplash.com/photo-1614027164847-1b28accfbdfd?q=80&w=1974&auto=format&fit=crop');
   }
 
   :root {
@@ -116,7 +120,7 @@
   body {
     @apply text-foreground;
     background-color: hsl(var(--background));
-    background-image: url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop');
+    background-image: var(--bg-image);
     background-size: cover;
     background-position: center;
     background-attachment: fixed;
@@ -135,5 +139,3 @@
     animation-delay: 0.6s;
   }
 }
-
-    
