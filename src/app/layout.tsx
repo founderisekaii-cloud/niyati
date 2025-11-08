@@ -1,4 +1,6 @@
 
+'use client';
+
 import type { Metadata } from 'next';
 import './globals.css';
 import { cn } from '@/lib/utils';
@@ -8,12 +10,42 @@ import Footer from '@/components/layout/Footer';
 import ParticleBackground from '@/components/particles/ParticleBackground';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
+import { createContext, useContext, useState, ReactNode } from 'react';
 
-export const metadata: Metadata = {
-  title: 'NiyatiVerse',
-  description: 'An online reading platform for the serialized story Niyati by Vikas A Dubey. Explore spiritual sci-fi, karma system stories, and Hindu mythology meets technology.',
-  keywords: 'Vikas A Dubey, Niyati Universe, Indian author, spiritual sci-fi, karma system stories, destiny fiction, Hindu mythology meets technology, Indian fantasy writer, divine realism',
-};
+// --- Language Context Logic ---
+type Language = 'en' | 'hi' | 'mr';
+
+interface LanguageContextType {
+  language: Language;
+  setLanguage: (language: Language) => void;
+}
+
+export const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
+
+export function useLanguage() {
+  const context = useContext(LanguageContext);
+  if (context === undefined) {
+    throw new Error('useLanguage must be used within a LanguageProvider');
+  }
+  return context;
+}
+
+function LanguageProvider({ children }: { children: ReactNode }) {
+  const [language, setLanguage] = useState<Language>('en');
+  return (
+    <LanguageContext.Provider value={{ language, setLanguage }}>
+      {children}
+    </LanguageContext.Provider>
+  );
+}
+// --- End Language Context Logic ---
+
+
+// export const metadata: Metadata = {
+//   title: 'NiyatiVerse',
+//   description: 'An online reading platform for the serialized story Niyati by Vikas A Dubey. Explore spiritual sci-fi, karma system stories, and Hindu mythology meets technology.',
+//   keywords: 'Vikas A Dubey, Niyati Universe, Indian author, spiritual sci-fi, karma system stories, destiny fiction, Hindu mythology meets technology, Indian fantasy writer, divine realism',
+// };
 
 export default function RootLayout({
   children,
@@ -23,6 +55,8 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <title>NiyatiVerse</title>
+        <meta name="description" content="An online reading platform for the serialized story Niyati by Vikas A Dubey. Explore spiritual sci-fi, karma system stories, and Hindu mythology meets technology." />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
@@ -33,10 +67,11 @@ export default function RootLayout({
       <body className={cn('font-body antialiased min-h-screen flex flex-col')}>
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
+          defaultTheme="dark"
           enableSystem
           disableTransitionOnChange
         >
+          <LanguageProvider>
             <ParticleBackground />
             <div className="relative z-10 flex flex-col min-h-screen">
               <Header />
@@ -47,6 +82,7 @@ export default function RootLayout({
             </div>
             <Toaster />
             <FirebaseErrorListener />
+          </LanguageProvider>
         </ThemeProvider>
       </body>
     </html>

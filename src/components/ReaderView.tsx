@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react';
 import type { Chapter } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { Download, Sun, Moon, Book } from 'lucide-react';
+import { Download, Sun, Moon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
+import { useLanguage } from '@/app/layout';
 
 type ReaderViewProps = {
   chapter: Chapter;
@@ -16,6 +17,7 @@ type Theme = 'dark' | 'sepia';
 export default function ReaderView({ chapter }: ReaderViewProps) {
   const [theme, setTheme] = useState<Theme>('dark');
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const { language } = useLanguage();
 
   useEffect(() => {
     // Simulate fetching a logged-in user's email
@@ -27,6 +29,18 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
     document.addEventListener('contextmenu', handleContextmenu);
     return () => document.removeEventListener('contextmenu', handleContextmenu);
   }, []);
+
+  const getContent = () => {
+    switch (language) {
+      case 'hi':
+        return chapter.content_hi || chapter.content;
+      case 'mr':
+        return chapter.content_mr || chapter.content;
+      default:
+        return chapter.content_en || chapter.content;
+    }
+  };
+
 
   return (
     <div
@@ -64,7 +78,7 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
 
         <article
           className="prose prose-lg max-w-none"
-          dangerouslySetInnerHTML={{ __html: chapter.content }}
+          dangerouslySetInnerHTML={{ __html: getContent() }}
           style={{
              color: 'inherit',
             // @ts-ignore

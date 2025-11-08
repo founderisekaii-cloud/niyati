@@ -28,6 +28,9 @@ async function getChapter(id: string): Promise<Chapter | null> {
       releaseDate: docData.releaseDate.toDate().toISOString(),
       basePrice: docData.basePrice,
       content: docData.content,
+      content_en: docData.content_en || docData.content,
+      content_hi: docData.content_hi,
+      content_mr: docData.content_mr,
     };
 }
 
