@@ -34,18 +34,22 @@ const ParticleBackground = () => {
       size: number;
       color: string;
       initialY: number;
+      opacity: number;
+      opacityDirection: number;
 
       constructor() {
         this.x = Math.random() * width;
         this.y = Math.random() * height;
         this.initialY = this.y;
+        this.opacity = Math.random();
+        this.opacityDirection = Math.random() < 0.5 ? -1 : 1;
 
         if (theme === 'dark') {
-          // Drifting stars
+          // Drifting, twinkling stars
           this.vx = Math.random() * 0.4 - 0.2;
           this.vy = Math.random() * 0.4 - 0.2;
           this.size = Math.random() * 1.5 + 0.5;
-          this.color = 'hsla(45, 100%, 90%, 0.8)';
+          this.color = `hsla(45, 100%, 90%, ${this.opacity})`;
         } else {
           // Rising embers
           this.vx = Math.random() * 0.2 - 0.1;
@@ -59,9 +63,19 @@ const ParticleBackground = () => {
         if (theme === 'dark') {
           this.x += this.vx;
           this.y += this.vy;
+          
+          this.opacity += 0.01 * this.opacityDirection;
+          if (this.opacity > 1 || this.opacity < 0) {
+            this.opacityDirection *= -1;
+          }
+          this.color = `hsla(45, 100%, 90%, ${Math.max(0, this.opacity)})`;
 
-          if (this.x < 0 || this.x > width) this.vx *= -1;
-          if (this.y < 0 || this.y > height) this.vy *= -1;
+
+          if (this.x < -this.size) this.x = width + this.size;
+          if (this.x > width + this.size) this.x = -this.size;
+          if (this.y < -this.size) this.y = height + this.size;
+          if (this.y > height + this.size) this.y = -this.size;
+
         } else {
             this.x += this.vx;
             this.y += this.vy;
