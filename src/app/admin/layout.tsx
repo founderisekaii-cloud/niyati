@@ -1,14 +1,13 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { useAuth } from '@/hooks/useAuth';
 import {
-  Home,
   BookOpen,
   CreditCard,
   Settings,
-  PanelLeft,
   LayoutDashboard,
 } from 'lucide-react';
 import {
@@ -23,7 +22,7 @@ import {
   SidebarTrigger,
 } from '@/components/ui/sidebar';
 import { NiyatiVerseLogo } from '@/components/icons';
-import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const menuItems = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -38,6 +37,25 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.replace('/login');
+    }
+  }, [user, loading, router]);
+
+  if (loading || !user) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+            <NiyatiVerseLogo className="size-12 text-primary animate-pulse" />
+            <p className="text-muted-foreground">Verifying access...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <SidebarProvider>
