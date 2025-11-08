@@ -12,14 +12,17 @@ export function useAdmin() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (authLoading) return;
-    if (!user) {
-      setIsAdmin(false);
-      setLoading(false);
-      return;
-    }
+    async function checkAdminRole() {
+      if (authLoading) {
+        return;
+      }
 
-    const checkAdminRole = async () => {
+      if (!user) {
+        setIsAdmin(false);
+        setLoading(false);
+        return;
+      }
+
       try {
         const userDoc = await getDoc(doc(db, 'users', user.uid));
         if (userDoc.exists() && userDoc.data().role === 'admin') {
@@ -33,7 +36,7 @@ export function useAdmin() {
       } finally {
         setLoading(false);
       }
-    };
+    }
 
     checkAdminRole();
   }, [user, authLoading]);
