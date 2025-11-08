@@ -24,7 +24,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useAdmin } from '@/hooks/useAdmin';
-import { LanguageProvider, useLanguage } from '@/hooks/useTranslation';
+import { useLanguage } from '@/hooks/useTranslation';
 import T from '@/components/T';
 
 
@@ -34,7 +34,7 @@ const navLinks = [
   { href: '/lore', label: 'Universe Lore' },
 ];
 
-function HeaderContent() {
+export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -187,13 +187,4 @@ function HeaderContent() {
       )}
     </header>
   );
-}
-
-
-export default function Header() {
-    return (
-        <LanguageProvider>
-            <HeaderContent />
-        </LanguageProvider>
-    )
 }

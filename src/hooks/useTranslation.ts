@@ -12,9 +12,8 @@ interface LanguageContextType {
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
-export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguage] = useState<Language>('en');
-
   const value = useMemo(() => ({ language, setLanguage }), [language]);
 
   return (
@@ -22,7 +21,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       {children}
     </LanguageContext.Provider>
   );
-};
+}
 
 export const useLanguage = () => {
   const context = useContext(LanguageContext);
@@ -31,7 +30,6 @@ export const useLanguage = () => {
   }
   return context;
 };
-
 
 // Main translation hook
 export const useTranslation = () => {
