@@ -71,15 +71,25 @@ export default function AdminLayout({
     }
 
     const checkAdminRole = async () => {
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
-      if (userDoc.exists() && userDoc.data().role === 'admin') {
-        setIsAdmin(true);
-      } else {
+      try {
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        if (userDoc.exists() && userDoc.data().role === 'admin') {
+          setIsAdmin(true);
+        } else {
+          setIsAdmin(false);
+          toast({
+              title: 'Access Denied',
+              description: 'You do not have permission to access the admin panel.',
+              variant: 'destructive'
+          });
+        }
+      } catch (error) {
+        console.error("Error checking admin role:", error);
         setIsAdmin(false);
         toast({
-            title: 'Access Denied',
-            description: 'You do not have permission to access the admin panel.',
-            variant: 'destructive'
+          title: 'Error',
+          description: 'Could not verify your user role.',
+          variant: 'destructive'
         });
       }
     };

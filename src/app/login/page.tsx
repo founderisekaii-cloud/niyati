@@ -54,7 +54,6 @@ export default function LoginPage() {
         description: err.message,
         variant: 'destructive',
       });
-    } finally {
       setLoading(false);
     }
   };
@@ -82,7 +81,6 @@ export default function LoginPage() {
         description: err.message,
         variant: 'destructive',
       });
-    } finally {
       setLoading(false);
     }
   };

@@ -68,7 +68,6 @@ export default function SignupPage() {
         description: err.message,
         variant: 'destructive',
       });
-    } finally {
       setLoading(false);
     }
   };
@@ -111,7 +110,6 @@ export default function SignupPage() {
         description: err.message,
         variant: 'destructive',
       });
-    } finally {
       setLoading(false);
     }
   };
