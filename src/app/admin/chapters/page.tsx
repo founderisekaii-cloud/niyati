@@ -39,6 +39,8 @@ import { db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import type { Chapter } from '@/lib/types';
 import Link from 'next/link';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 const chapterSchema = z.object({
   title: z.string().min(1, 'Title is required.'),
@@ -104,28 +106,34 @@ export default function ChaptersAdminPage() {
 
   const onSubmit = async (data: ChapterFormData) => {
     setLoading(true);
-    try {
-      await addDoc(collection(db, 'chapters'), {
+    const newChapterData = {
         ...data,
         id: data.title.toLowerCase().replace(/\s+/g, '-'),
         releaseDate: serverTimestamp(),
-      });
-      toast({
-        title: 'Success!',
-        description: 'New chapter has been added.',
-      });
-      reset();
-      setIsOpen(false);
-    } catch (error: any) {
-      console.error(error);
-      toast({
-        title: 'Error',
-        description: 'Failed to add chapter. ' + error.message,
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
+    };
+    
+    addDoc(collection(db, 'chapters'), newChapterData)
+    .then(() => {
+        toast({
+            title: 'Success!',
+            description: 'New chapter has been added.',
+        });
+        reset();
+        setIsOpen(false);
+        setLoading(false);
+    })
+    .catch(async (serverError: any) => {
+        const permissionError = new FirestorePermissionError({
+            path: 'chapters',
+            operation: 'create',
+            requestResourceData: newChapterData,
+        });
+
+        errorEmitter.emit('permission-error', permissionError);
+
+        // We don't show a toast here because the FirebaseErrorListener will show the overlay.
+        setLoading(false);
+    });
   };
 
   const handleDelete = async (chapterId: string) => {

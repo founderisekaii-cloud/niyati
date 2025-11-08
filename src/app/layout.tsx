@@ -6,6 +6,7 @@ import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import ParticleBackground from '@/components/particles/ParticleBackground';
 import { ThemeProvider } from '@/components/ThemeProvider';
+import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 
 export const metadata: Metadata = {
   title: 'NiyatiVerse',
@@ -31,8 +32,8 @@ export default function RootLayout({
       <body className={cn('font-body antialiased min-h-screen flex flex-col')}>
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
-          enableSystem
+          defaultTheme="dark"
+          enableSystem={false}
           disableTransitionOnChange
         >
           <ParticleBackground />
@@ -42,6 +43,7 @@ export default function RootLayout({
           </main>
           <Footer />
           <Toaster />
+          <FirebaseErrorListener />
         </ThemeProvider>
       </body>
     </html>
