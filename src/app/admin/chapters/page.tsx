@@ -104,53 +104,54 @@ export default function ChaptersAdminPage() {
     return () => unsubscribe();
   }, [toast]);
 
-  const onSubmit = async (data: ChapterFormData) => {
+  const onSubmit = (data: ChapterFormData) => {
     setLoading(true);
     const newChapterData = {
-        ...data,
-        id: data.title.toLowerCase().replace(/\s+/g, '-'),
-        releaseDate: serverTimestamp(),
+      ...data,
+      id: data.title.toLowerCase().replace(/\s+/g, '-'),
+      releaseDate: serverTimestamp(),
     };
-    
+
     addDoc(collection(db, 'chapters'), newChapterData)
-    .then(() => {
+      .then(() => {
         toast({
-            title: 'Success!',
-            description: 'New chapter has been added.',
+          title: 'Success!',
+          description: 'New chapter has been added.',
         });
         reset();
         setIsOpen(false);
-        setLoading(false);
-    })
-    .catch(async (serverError: any) => {
+      })
+      .catch(async (serverError: any) => {
         const permissionError = new FirestorePermissionError({
-            path: 'chapters',
-            operation: 'create',
-            requestResourceData: newChapterData,
+          path: 'chapters',
+          operation: 'create',
+          requestResourceData: newChapterData,
         });
 
         errorEmitter.emit('permission-error', permissionError);
-
-        // We don't show a toast here because the FirebaseErrorListener will show the overlay.
+      })
+      .finally(() => {
         setLoading(false);
-    });
+      });
   };
 
   const handleDelete = async (chapterId: string) => {
     if (window.confirm('Are you sure you want to delete this chapter?')) {
-      try {
-        await deleteDoc(doc(db, 'chapters', chapterId));
-        toast({
-          title: 'Success!',
-          description: 'Chapter deleted.',
+      const chapterRef = doc(db, 'chapters', chapterId);
+      deleteDoc(chapterRef)
+        .then(() => {
+            toast({
+              title: 'Success!',
+              description: 'Chapter deleted.',
+            });
+        })
+        .catch(async (serverError: any) => {
+            const permissionError = new FirestorePermissionError({
+                path: chapterRef.path,
+                operation: 'delete',
+            });
+            errorEmitter.emit('permission-error', permissionError);
         });
-      } catch (error: any) {
-         toast({
-          title: 'Error',
-          description: 'Failed to delete chapter. ' + error.message,
-          variant: 'destructive',
-        });
-      }
     }
   };
 
