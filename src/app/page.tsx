@@ -3,12 +3,12 @@
 
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowRight, BookOpen, ChevronsDown, Dna, Feather, Heart } from 'lucide-react';
+import { ArrowRight, BookOpen, ChevronsDown, Feather, Heart } from 'lucide-react';
 import React from 'react';
 import Image from 'next/image';
-import { NiyatiVerseLogo } from '@/components/icons';
 import { author } from '@/lib/data';
 import { cn } from '@/lib/utils';
+import T from '@/components/T';
 
 const Section = ({ children, className }: { children: React.ReactNode; className?: string }) => (
   <section className={cn('py-20 sm:py-32 text-center', className)}>
@@ -48,18 +48,18 @@ export default function Home() {
                 NiyatiVerse
             </h1>
             <p className="mt-6 max-w-2xl text-xl md:text-2xl text-foreground/80 animate-fade-in-up animation-delay-300 italic">
-                “When destiny became code — humanity had to evolve.”
+                <T>“When destiny became code — humanity had to evolve.”</T>
             </p>
             <div className="mt-10 flex flex-col sm:flex-row gap-4 animate-fade-in-up animation-delay-600">
                 <Button asChild size="lg">
                     <Link href="/chapters">
-                        Start Reading
+                        <T>Start Reading</T>
                         <ArrowRight className="ml-2 h-5 w-5" />
                     </Link>
                 </Button>
                  <Button asChild size="lg" variant="outline">
                     <Link href="/lore">
-                        Explore the Lore
+                        <T>Explore the Lore</T>
                     </Link>
                 </Button>
             </div>
@@ -71,20 +71,20 @@ export default function Home() {
         {/* 2. Introduction Scroll Section */}
         <Section>
             <SectionText>
-                Destiny is no longer a story told by gods. It is a system — self-aware, self-evolving, and watching every soul. Welcome to the NiyatiVerse, where every choice alters the code of reality.
+                <T>Destiny is no longer a story told by gods. It is a system — self-aware, self-evolving, and watching every soul. Welcome to the NiyatiVerse, where every choice alters the code of reality.</T>
             </SectionText>
         </Section>
         
         {/* 3. Featured Chapters Section (Placeholder) */}
         <Section>
-            <SectionTitle>Begin Your Journey</SectionTitle>
+            <SectionTitle><T>Begin Your Journey</T></SectionTitle>
              <SectionText>
-               Start your journey through the first worlds of Niyati.
+               <T>Start your journey through the first worlds of Niyati.</T>
             </SectionText>
             <div className="mt-8 animate-fade-in-up animation-delay-600">
                 <Button asChild size="lg">
                     <Link href="/chapters">
-                        <BookOpen className="mr-2"/> See All Chapters
+                        <BookOpen className="mr-2"/> <T>See All Chapters</T>
                     </Link>
                 </Button>
             </div>
@@ -92,7 +92,7 @@ export default function Home() {
 
         {/* 4. About the Author */}
         <Section>
-             <SectionTitle>The Mind Behind Niyati</SectionTitle>
+             <SectionTitle><T>The Mind Behind Niyati</T></SectionTitle>
              <div className="flex flex-col md:flex-row items-center gap-8 animate-fade-in-up animation-delay-300">
                 <Image 
                     src={author.imageUrl} 
@@ -103,30 +103,30 @@ export default function Home() {
                     data-ai-hint={author.imageHint}
                 />
                 <p className="text-lg text-foreground/80 max-w-xl text-center md:text-left leading-relaxed">
-                     Vikas A. Dubey is an Indian author, educator, and creator of the Niyati Universe — a world where science meets spirituality, and destiny is rewritten through conscious choice. His stories blend divine myth and modern code into a single philosophy of evolution.
+                     <T>Vikas A. Dubey is an Indian author, educator, and creator of the Niyati Universe — a world where science meets spirituality, and destiny is rewritten through conscious choice. His stories blend divine myth and modern code into a single philosophy of evolution.</T>
                 </p>
              </div>
-             <SectionButton href="/about">Read More</SectionButton>
+             <SectionButton href="/about"><T>Read More</T></SectionButton>
         </Section>
 
         {/* 5. Lore Teaser */}
         <Section>
-            <SectionTitle>The Law Behind Destiny</SectionTitle>
+            <SectionTitle><T>The Law Behind Destiny</T></SectionTitle>
             <SectionText>
-                Beneath the worlds you see lies a System you cannot name. It balances, corrects, and waits for those who learn to listen. Step inside the Lore and see how fate became a program.
+                <T>Beneath the worlds you see lies a System you cannot name. It balances, corrects, and waits for those who learn to listen. Step inside the Lore and see how fate became a program.</T>
             </SectionText>
-            <SectionButton href="/lore">Explore The Lore</SectionButton>
+            <SectionButton href="/lore"><T>Explore The Lore</T></SectionButton>
         </Section>
         
         {/* 6. Support the Author */}
         <Section>
-             <SectionTitle>Support the Niyati Journey</SectionTitle>
+             <SectionTitle><T>Support the Niyati Journey</T></SectionTitle>
              <SectionText>
-                Each chapter is a fragment of a universe built with devotion and time. You can keep the code alive — support the creator directly.
+                <T>Each chapter is a fragment of a universe built with devotion and time. You can keep the code alive — support the creator directly.</T>
             </SectionText>
              <div className="mt-8 animate-fade-in-up animation-delay-600">
                 <Button size="lg" disabled>
-                    <Heart className="mr-2"/> Contribute
+                    <Heart className="mr-2"/> <T>Contribute</T>
                 </Button>
              </div>
         </Section>

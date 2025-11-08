@@ -25,6 +25,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useAdmin } from '@/hooks/useAdmin';
 import { LanguageProvider, useLanguage } from '@/hooks/useTranslation';
+import T from '@/components/T';
+
 
 const navLinks = [
   { href: '/chapters', label: 'Chapters' },
@@ -71,7 +73,7 @@ function HeaderContent() {
                     : 'text-foreground/60'
                 )}
               >
-                {link.label}
+                <T>{link.label}</T>
               </Link>
             ))}
              {user && (
@@ -82,7 +84,7 @@ function HeaderContent() {
                     pathname?.startsWith('/dashboard') ? 'text-foreground' : 'text-foreground/60'
                     )}
                 >
-                    Dashboard
+                    <T>Dashboard</T>
                 </Link>
             )}
           </nav>
@@ -96,7 +98,7 @@ function HeaderContent() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Select Language</DropdownMenuLabel>
+              <DropdownMenuLabel><T>Select Language</T></DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuRadioGroup value={language} onValueChange={(value) => setLanguage(value as 'en' | 'hi' | 'mr')}>
                 <DropdownMenuRadioItem value="en">English</DropdownMenuRadioItem>
@@ -131,23 +133,23 @@ function HeaderContent() {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => router.push('/dashboard')}>
                   <UserIcon className="mr-2" />
-                  <span>Dashboard</span>
+                  <span><T>Dashboard</T></span>
                 </DropdownMenuItem>
                 {isAdmin && (
                    <DropdownMenuItem onClick={() => router.push('/admin/dashboard')}>
                     <UserIcon className="mr-2" />
-                    <span>Admin Panel</span>
+                    <span><T>Admin Panel</T></span>
                    </DropdownMenuItem>
                 )}
                 <DropdownMenuItem onClick={handleLogout}>
                   <LogOut className="mr-2" />
-                  <span>Log out</span>
+                  <span><T>Log out</T></span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
             <Button asChild size="sm">
-              <Link href="/login">Login</Link>
+              <Link href="/login"><T>Login</T></Link>
             </Button>
           )}
 
@@ -177,7 +179,7 @@ function HeaderContent() {
                     : 'text-foreground/80'
                 )}
               >
-                {link.label}
+                <T>{link.label}</T>
               </Link>
             ))}
           </nav>

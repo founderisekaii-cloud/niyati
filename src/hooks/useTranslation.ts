@@ -1,4 +1,3 @@
-
 'use client';
 
 import { translateText } from '@/ai/flows/translate-text';
@@ -80,4 +79,3 @@ export const useTranslation = () => {
 
   return { t, currentLanguage: language, isTranslating: Object.values(isTranslating).some(v => v) };
 };
-
