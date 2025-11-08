@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { useAdmin } from '@/hooks/useAdmin';
 
 const navLinks = [
   { href: '/chapters', label: 'Chapters' },
@@ -33,6 +34,7 @@ export default function Header() {
   const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, loading } = useAuth();
+  const { isAdmin } = useAdmin();
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -69,13 +71,13 @@ export default function Header() {
             ))}
              {user && (
                 <Link
-                    href="/admin/dashboard"
+                    href="/dashboard"
                     className={cn(
                     'transition-colors hover:text-foreground/80',
-                    pathname?.startsWith('/admin') ? 'text-foreground' : 'text-foreground/60'
+                    pathname?.startsWith('/dashboard') ? 'text-foreground' : 'text-foreground/60'
                     )}
                 >
-                    Admin
+                    Dashboard
                 </Link>
             )}
           </nav>
@@ -104,10 +106,16 @@ export default function Header() {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => router.push('/admin/dashboard')}>
+                <DropdownMenuItem onClick={() => router.push('/dashboard')}>
                   <UserIcon className="mr-2" />
                   <span>Dashboard</span>
                 </DropdownMenuItem>
+                {isAdmin && (
+                   <DropdownMenuItem onClick={() => router.push('/admin/dashboard')}>
+                    <UserIcon className="mr-2" />
+                    <span>Admin Panel</span>
+                   </DropdownMenuItem>
+                )}
                 <DropdownMenuItem onClick={handleLogout}>
                   <LogOut className="mr-2" />
                   <span>Log out</span>
@@ -134,7 +142,7 @@ export default function Header() {
       {isMenuOpen && (
         <div className="md:hidden">
           <nav className="flex flex-col items-start gap-4 p-4">
-            {[...navLinks, ...(user ? [{href: '/admin/dashboard', label: 'Admin'}] : [])].map((link) => (
+            {[...navLinks, ...(user ? [{href: '/dashboard', label: 'Dashboard'}] : [])].map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
