@@ -8,7 +8,8 @@ import ParticleBackground from '@/components/particles/ParticleBackground';
 
 export const metadata: Metadata = {
   title: 'NiyatiVerse',
-  description: 'An online reading platform for the serialized story Niyati by Vikas A Dubey.',
+  description: 'An online reading platform for the serialized story Niyati by Vikas A Dubey. Explore spiritual sci-fi, karma system stories, and Hindu mythology meets technology.',
+  keywords: 'Vikas A Dubey, Niyati Universe, Indian author, spiritual sci-fi, karma system stories, destiny fiction, Hindu mythology meets technology, Indian fantasy writer, divine realism',
 };
 
 export default function RootLayout({

@@ -69,11 +69,45 @@ export const chapters: Chapter[] = [
 ];
 
 export const author = {
-  name: 'Vikas A Dubey',
-  bio: 'Vikas A Dubey is a storyteller who explores the intersection of technology, philosophy, and the human spirit. With a background in software engineering and a passion for ancient mythologies, he weaves narratives that question the nature of reality, destiny, and consciousness in the digital age. "Niyati" is his debut serialized novel, born from a fascination with the concept of fate in a world increasingly governed by algorithms.',
-  imageUrl: 'https://picsum.photos/seed/author/400/400',
+  name: 'Vikas A. Dubey',
+  bio: 'Vikas A. Dubey is an Indian author, educator, and full-stack creator whose work bridges the line between science, philosophy, and spirituality. Over the last decade, he has taught technology, mentored students, and explored the deepest questions of destiny and consciousness — experiences that eventually gave birth to his flagship creation, Niyati.',
+  detailedBio: [
+    'A believer in the balance between logic and faith, Vikas writes stories that merge divine myth, cosmic law, and human emotion into one continuous universe. His characters don’t just fight battles outside; they confront the karmic systems within.',
+    'Each chapter of Niyati reflects the eternal equation between body, mind, and soul — told through cinematic narration, philosophical insight, and emotional realism.',
+    'Before turning to fiction, Vikas worked across multiple disciplines — from engineering and teaching to software design and entrepreneurship — giving him a unique ability to weave technical precision into spiritual storytelling.',
+    'He calls his method “Divine Realism” — the art of showing how the unseen forces of the universe operate through everyday lives.'
+  ],
+  imageUrl: 'https://storage.googleapis.com/static.aifire.co/founderisekaii-cloud/1721051566896.jpg',
   imageHint: 'author portrait'
 };
+
+export const niyatiUniverse = {
+  title: 'About Niyati Universe',
+  intro: 'Niyati (which means Destiny) is not just a story — it’s a living mythos. Set across multiple timelines and planes of existence, it explores the hidden mechanisms that govern life, karma, and consciousness. Every soul in this universe carries three evolving forces: HP (Health Points), MP (Mental Points), and SP (Soul Points) — thresholds that rise or fall through pain, sacrifice, and divine grace.',
+  seriesInfo: [
+    'The series begins with Season 0, where ordinary lives collide with cosmic systems, and a simple choice can rewrite the laws of creation.',
+    'Across each season, Niyati expands into science, metaphysics, and devotion — revealing that destiny is not pre-written, but self-programmed through awareness.',
+    'From the haunting revenge of Rani’s Story to the mysterious journey of Rohan, and the divine-tech revelations of Niyati Season 6, Vikas’s stories form one interconnected universe of souls, systems, and truths — a fusion of Indian spirituality and futuristic imagination.'
+  ]
+};
+
+export const vision = {
+  title: 'Vision',
+  quote: '“The purpose of storytelling is not escape — it is evolution. Every reader who understands the pain of a character begins to heal their own.”',
+  author: 'Vikas A. Dubey',
+  statement: 'Through Niyati Universe, Vikas aims to inspire readers to look beyond entertainment — to explore the unseen layers of their own existence, to understand destiny not as punishment or reward, but as a code written by their own consciousness.'
+};
+
+export const joinTheJourney = {
+  title: '✨ Join the Journey',
+  steps: [
+    'Read the chapters.',
+    'Decode destiny.',
+    'Become part of the Universe.'
+  ],
+  callToAction: 'Follow the latest chapters of Niyati, Rani, Rohan, and upcoming mythic stories on this official platform. New chapters release every week — where destiny evolves, one decision at a time.'
+};
+
 
 export const lore = {
   title: 'The Universe of Niyati',
