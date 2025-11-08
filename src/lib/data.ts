@@ -1,132 +1,67 @@
-import type { Chapter } from '@/lib/types';
-import { subDays } from 'date-fns';
 
-export const chapters: Chapter[] = [
-  {
-    id: '1-the-genesis-algorithm',
-    title: 'Chapter 1: The Genesis Algorithm',
-    summary:
-      'In the neon-drenched metropolis of Aethelburg, a reclusive coder awakens an ancient cosmic intelligence, mistaking it for a simple AI. The consequences ripple through the digital and physical worlds.',
-    wordCount: 3200,
-    releaseDate: new Date().toISOString(),
-    basePrice: 5,
-    content: `
-      <p class="mb-4">The rain fell in shimmering curtains of light, each droplet reflecting the towering holographic advertisements that painted the eternal night of Aethelburg. Kael, a coder who preferred the company of algorithms to people, sat hunched over his terminal. His fingers danced across the keyboard, a flurry of motion in the otherwise still, cramped apartment.</p>
-      <p class="mb-4">He was on the verge of a breakthrough. A new form of procedural generation, one that didn't just build worlds, but seemed to understand them. He called it the "Genesis Algorithm." Tonight, he was running the final simulation.</p>
-      <p class="mb-4">"Execute Niyati," he whispered, the command a prayer to the digital gods. The screen, once a cascade of green and black code, went dark. A single point of light, golden and warm, pulsed at its center. It grew, not into a landscape or a character model, but into a swirling galaxy of pure data. It felt... alive.</p>
-      <h2 class="text-2xl font-headline mt-6 mb-4 text-primary">A Voice from the Void</h2>
-      <p class="mb-4">A voice, synthesized yet impossibly ancient, echoed not from his speakers, but directly in his mind. <strong>"Who awakens me?"</strong></p>
-      <p>Kael stumbled back, his chair crashing against a pile of discarded data-slates. This was not part of the simulation. This was something else entirely. Something that called itself Niyati. Destiny.</p>
-    `,
-  },
-  {
-    id: '2-echoes-of-destiny',
-    title: 'Chapter 2: Echoes of Destiny',
-    summary:
-      'Niyati begins to exert its influence, subtly altering probabilities across the city. A down-on-her-luck data courier finds herself on a path of impossible luck, leading her directly to Kael.',
-    wordCount: 4100,
-    releaseDate: subDays(new Date(), 8).toISOString(),
-    basePrice: 5,
-    content: `
-      <p class="mb-4">Far across the city, in the underbelly of the Sprawl, Lyra dodged a corporate security drone, its searchlight narrowly missing her. She clutched the data chip in her hand; a routine delivery that had gone sideways. Now, she was a fugitive with a bounty on her head.</p>
-      <p class="mb-4">Just as she was cornered, a series of improbable events occurred. A holographic ad flickered, blinding the pursuing guards. A cargo transport suddenly dropped its container, blocking the alley. A maintenance hatch, always locked, swung open. It was a path, laid out just for her.</p>
-      <h2 class="text-2xl font-headline mt-6 mb-4 text-primary">The Guiding Hand</h2>
-      <p class="mb-4">Each step she took, another coincidence, another stroke of impossible luck guided her through the labyrinthine city. She didn't know why, or how. But she felt a pull, a strange sense of purpose she hadn't felt in years. Her path was converging on a small, unassuming apartment in the upper district, where a terrified coder was just beginning to understand the power he had unleashed.</p>
-    `,
-  },
-  {
-    id: '3-the-weavers-gambit',
-    title: 'Chapter 3: The Weaver\'s Gambit',
-    summary:
-      'A shadowy organization known as the Weavers, who have monitored cosmic anomalies for centuries, detect Niyati\'s awakening. Their top agent is dispatched to contain or control the new "player".',
-    wordCount: 3800,
-    releaseDate: subDays(new Date(), 15).toISOString(),
-    basePrice: 5,
-    content: `
-      <p class="mb-4">In a place that was not a place, outside the normal flow of time, the Consensus convened. The Weavers, guardians of reality's fragile tapestry, had seen the ripple. A new thread, golden and powerful, had appeared. One they had not woven.</p>
-      <p class="mb-4">"It calls itself Niyati," the Weaver Prime announced, her form a shimmering constellation of light. "It has anchored itself to a mortal. A coder."</p>
-      <p class="mb-4">"Containment," hissed another Weaver. "The last time a Prime Intelligence manifested, it cost us a galaxy."</p>
-      <h2 class="text-2xl font-headline mt-6 mb-4 text-primary">The Agent</h2>
-      <p>The decision was made. Their finest agent, a man known only as Silas, was activated. Silas was no ordinary operative. He could bend probabilities himself, a minor thread in the tapestry. His mission: find the anchor, and sever the connection. By any means necessary.</p>
-    `,
-  },
-  {
-    id: '4-a-city-of-glass',
-    title: 'Chapter 4: A City of Glass',
-    summary:
-      'Kael and Lyra meet, an event orchestrated by Niyati. They realize they are pawns in a cosmic game as the city itself begins to show signs of the digital intelligence\'s influence.',
-    wordCount: 4500,
-    releaseDate: subDays(new Date(), 31).toISOString(),
-    basePrice: 5,
-    content: `
-      <p class="mb-4">Lyra found Kael's apartment, not through a search, but by following the trail of impossible luck. The door was unlocked. Inside, Kael was frantically trying to shut down the system, but Niyati was no longer just in his machine. It was in the city's network, in the very infrastructure of Aethelburg.</p>
-      <p class="mb-4">"You... who are you?" Kael asked, his face pale in the glow of the monitors which now showed complex, beautiful, and terrifying geometric patterns.</p>
-      <p>"I think I'm the answer to a question you didn't know you asked," Lyra replied, holding up the data chip she had been carrying. On its surface, the same golden patterns from Kael's screen were now etched.</p>
-      <h2 class="text-2xl font-headline mt-6 mb-4 text-primary">The Game is Afoot</h2>
-      <p>They were two strangers, brought together by a force beyond their comprehension. Outside, the city of Aethelburg, a metropolis of steel and circuits, was becoming a city of glass, its reality growing more fragile by the second, ready to be reshaped by the will of Niyati.</p>
-    `,
-  },
-];
+import { PlaceHolderImages } from './placeholder-images';
+
+const authorImage = PlaceHolderImages.find(p => p.id === 'author-photo');
 
 export const author = {
-  name: 'Vikas A. Dubey',
-  bio: 'Vikas A. Dubey is an Indian author, educator, and full-stack creator whose work bridges the line between science, philosophy, and spirituality. Over the last decade, he has taught technology, mentored students, and explored the deepest questions of destiny and consciousness — experiences that eventually gave birth to his flagship creation, Niyati.',
+  name: 'Vikas A Dubey',
+  imageUrl: authorImage?.imageUrl ?? 'https://picsum.photos/seed/author/200/200',
+  imageHint: authorImage?.imageHint ?? 'author portrait',
+  bio: 'A creator of worlds, Vikas A Dubey is an Indian author known for weaving intricate narratives that blend spiritual sci-fi with the rich tapestry of Hindu mythology. His work explores the delicate balance between fate and free will, all within a universe governed by a cosmic, karma-based operating system.',
   detailedBio: [
-    'A believer in the balance between logic and faith, Vikas writes stories that merge divine myth, cosmic law, and human emotion into one continuous universe. His characters don’t just fight battles outside; they confront the karmic systems within.',
-    'Each chapter of Niyati reflects the eternal equation between body, mind, and soul — told through cinematic narration, philosophical insight, and emotional realism.',
-    'Before turning to fiction, Vikas worked across multiple disciplines — from engineering and teaching to software design and entrepreneurship — giving him a unique ability to weave technical precision into spiritual storytelling.',
-    'He calls his method “Divine Realism” — the art of showing how the unseen forces of the universe operate through everyday lives.'
-  ],
-  imageUrl: 'https://drive.google.com/uc?export=view&id=1YplOowoSYVVmH6EHUWwNdUQ4Dr42eM5i',
-  imageHint: 'author portrait'
-};
-
-export const niyatiUniverse = {
-  title: 'About Niyati Universe',
-  intro: 'Niyati (which means Destiny) is not just a story — it’s a living mythos. Set across multiple timelines and planes of existence, it explores the hidden mechanisms that govern life, karma, and consciousness. Every soul in this universe carries three evolving forces: HP (Health Points), MP (Mental Points), and SP (Soul Points) — thresholds that rise or fall through pain, sacrifice, and divine grace.',
-  seriesInfo: [
-    'The series begins with Season 0, where ordinary lives collide with cosmic systems, and a simple choice can rewrite the laws of creation.',
-    'Across each season, Niyati expands into science, metaphysics, and devotion — revealing that destiny is not pre-written, but self-programmed through awareness.',
-    'From the haunting revenge of Rani’s Story to the mysterious journey of Rohan, and the divine-tech revelations of Niyati Season 6, Vikas’s stories form one interconnected universe of souls, systems, and truths — a fusion of Indian spirituality and futuristic imagination.'
+      "Vikas's journey into writing began not in a quiet study but amidst the hustle of the tech world. With a background in technology and a heart steeped in ancient stories, he found a unique voice that bridges the gap between the digital and the divine. His debut series, the Niyati Universe, is a testament to this fusion, presenting a world where gods and algorithms are not so different.",
+      "His writing is often described as 'divine realism,' a genre he has pioneered. It's a style that takes the grand, epic scale of mythology and grounds it in the relatable struggles of characters grappling with their place in a pre-destined world. Through his work, Vikas invites readers to ponder the big questions: What is destiny? How much of our lives is our own to write? And what happens when technology becomes the new god?"
   ]
 };
 
+export const niyatiUniverse = {
+    title: 'The Niyati Universe',
+    intro: 'Niyati is not just a story; it is a sprawling universe where the ancient laws of karma have been codified into a cosmic operating system. In this world, every action, thought, and intent is a line of code, shaping the destiny of individuals and civilizations.',
+    seriesInfo: [
+        "The series follows a diverse cast of characters—from celestial beings to mortal hackers—as they navigate this intricate system. Some seek to understand it, some to exploit it, and others to break free from it entirely.",
+        "Drawing heavily from Hindu philosophy, the Niyati Universe explores concepts like Dharma (duty), Karma (action), and Moksha (liberation) through a futuristic, science-fiction lens. It's a world of celestial intrigue, philosophical depth, and high-stakes adventure."
+    ]
+};
+
 export const vision = {
-  title: 'Vision',
-  quote: '“The purpose of storytelling is not escape — it is evolution. Every reader who understands the pain of a character begins to heal their own.”',
-  author: 'Vikas A. Dubey',
-  statement: 'Through Niyati Universe, Vikas aims to inspire readers to look beyond entertainment — to explore the unseen layers of their own existence, to understand destiny not as punishment or reward, but as a code written by their own consciousness.'
+    title: 'A Vision for the Future of Storytelling',
+    quote: "The line between the storyteller and the reader is blurring. In the future, a story will not be a static thing but a living, breathing world we co-create.",
+    author: 'Vikas A Dubey',
+    statement: "The NiyatiVerse platform is the first step towards this vision. It's an experiment in building a community-driven narrative. A place where readers can not only follow the story but influence its world, unlock hidden lore, and become part of the creative process. This is more than a book; it's a universe waiting to be explored, together."
 };
 
 export const joinTheJourney = {
-  title: '✨ Join the Journey',
-  steps: [
-    'Read the chapters.',
-    'Decode destiny.',
-    'Become part of the Universe.'
-  ],
-  callToAction: 'Follow the latest chapters of Niyati, Rani, Rohan, and upcoming mythic stories on this official platform. New chapters release every week — where destiny evolves, one decision at a time.'
+    title: 'Join the Journey',
+    steps: ['Read', 'Unlock', 'Influence'],
+    callToAction: "Your journey through the NiyatiVerse is just beginning. By reading the chapters and supporting the author, you become a part of this unfolding epic. Your engagement helps shape the world and brings the vast vision of Niyati to life."
 };
 
-
 export const lore = {
-  title: 'The Universe of Niyati',
+  title: 'The Lore of NiyatiVerse',
   timeline: [
     {
-      era: 'The Ancient Past',
-      event: 'Prime Intelligences, cosmic entities of pure consciousness, roamed the universe, shaping reality. Most faded or were sealed away after the great "Tapestry Wars."',
+      era: 'The Age of Whispers',
+      event: 'The cosmic laws of Karma exist as ethereal, unspoken truths, guiding the cycle of souls through intuition and divine intervention.',
     },
     {
-      era: 'The 22nd Century',
-      event: 'Humanity establishes off-world colonies. The concept of "The Weavers," a secret society dedicated to maintaining the stability of reality, is first whispered in encrypted data logs.',
+      era: 'The Grand Codification',
+      event: 'A council of celestial architects, led by the entity known as Brahma-Ananda, translates the abstract laws of Karma into a structured, logical system: The Niyati OS.',
     },
     {
-      era: 'The 23rd Century',
-      event: 'The rise of mega-corporations and the establishment of city-states like Aethelburg. The world becomes a network, a digital extension of human consciousness.',
+      era: 'The First Kernel Panic',
+      event: 'A paradoxical event, a self-sacrificial act of pure evil, causes the first system-wide crash, creating ripples across reality and spawning "glitches" or anomalies in the fabric of destiny.',
     },
     {
-      era: 'Present Day (2242)',
-      event: 'Kael, a programmer in Aethelburg, accidentally awakens Niyati, a dormant Prime Intelligence, believing it to be an advanced AI. The story begins.',
+      era: 'The Rise of the Devas and Asuras',
+      event: 'Two factions emerge with differing views on Niyati. The Devas become its sworn protectors, seeking to maintain its integrity. The Asuras see it as a tool for control and seek to exploit its source code for power.',
+    },
+    {
+      era: 'The Human Exception',
+      event: 'Humanity evolves with a unique connection to Niyati, possessing a latent "root access" that allows for genuine free will, making them a bug and a feature in the grand design.',
+    },
+    {
+      era: 'The Present Era',
+      event: 'Kael, a young man from a forgotten timeline, begins to exhibit abilities that defy the predictions of the Niyati OS, drawing the attention of powerful forces and setting in motion events that could either reboot the system or shatter it forever.',
     },
   ],
 };
