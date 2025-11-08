@@ -83,7 +83,7 @@ export default function ChaptersAdminPage() {
           title: doc.data().title,
           summary: doc.data().summary,
           wordCount: doc.data().wordCount,
-          releaseDate: doc.data().releaseDate.toDate().toISOString(),
+          releaseDate: doc.data().releaseDate?.toDate().toISOString() || new Date().toISOString(),
           basePrice: doc.data().basePrice,
           content: doc.data().content,
         }));
