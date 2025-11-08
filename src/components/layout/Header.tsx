@@ -1,9 +1,10 @@
+
 'use client';
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Menu, X, LogOut, User as UserIcon, Loader2, Globe } from 'lucide-react';
-import { useState, createContext, useContext } from 'react';
+import { Menu, X, LogOut, User as UserIcon, Loader2 } from 'lucide-react';
+import { useState } from 'react';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
