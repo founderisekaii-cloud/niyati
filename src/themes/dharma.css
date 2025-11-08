@@ -1,12 +1,5 @@
-@import './themes/niyati.css';
-@import './themes/dharma.css';
-
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
 @layer base {
-  :root {
+  .light {
     --background: 0 0% 100%;
     --foreground: 240 10% 3.9%;
     --card: 0 0% 100%;
@@ -28,12 +21,6 @@
     --ring: 240 5.9% 10%;
     --radius: 0.5rem;
 
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
-
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 10% 3.9%;
     --sidebar-primary: 221 83% 53%;
@@ -42,25 +29,5 @@
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 240 5.9% 90%;
     --sidebar-ring: 240 5.9% 10%;
-  }
-}
-
-
-@layer base {
-  body {
-    @apply bg-background text-foreground;
-  }
-  
-  * {
-    @apply border-border;
-  }
-}
-
-@layer utilities {
-  .animation-delay-300 {
-    animation-delay: 0.3s;
-  }
-  .animation-delay-600 {
-    animation-delay: 0.6s;
   }
 }

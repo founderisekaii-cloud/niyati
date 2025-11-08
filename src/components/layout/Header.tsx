@@ -20,6 +20,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 const navLinks = [
   { href: '/chapters', label: 'Chapters' },
@@ -80,6 +81,7 @@ export default function Header() {
           </nav>
         </div>
         <div className="flex flex-1 items-center justify-end gap-2">
+          <ThemeToggle />
           {loading ? (
             <Loader2 className="h-5 w-5 animate-spin" />
           ) : user ? (
