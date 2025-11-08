@@ -5,13 +5,31 @@ import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Book, User } from 'lucide-react';
 import { NiyatiVerseLogo } from '@/components/icons';
+import { useTranslation } from '@/hooks/useTranslation';
+import { useEffect, useState } from 'react';
 
 export default function DashboardPage() {
     const { user } = useAuth();
+    const { t, currentLanguage } = useTranslation();
+    const [welcomeText, setWelcomeText] = useState('Welcome');
+
+    useEffect(() => {
+        if(currentLanguage === 'en') {
+            setWelcomeText('Welcome');
+            return;
+        }
+
+        const translateWelcome = async () => {
+            const translated = await t('Welcome');
+            setWelcomeText(translated);
+        }
+        translateWelcome();
+    }, [currentLanguage, t]);
+
 
     return (
         <div className="space-y-6">
-            <h1 className="text-3xl font-bold font-headline">Welcome, {user?.displayName || 'Reader'}</h1>
+            <h1 className="text-3xl font-bold font-headline">{welcomeText}, {user?.displayName || 'Reader'}</h1>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

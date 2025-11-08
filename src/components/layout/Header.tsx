@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Menu, X, LogOut, User as UserIcon, Loader2, Globe } from 'lucide-react';
-import { useState } from 'react';
+import { useState, createContext, useContext } from 'react';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
@@ -24,6 +24,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useAdmin } from '@/hooks/useAdmin';
+import { LanguageProvider, useLanguage } from '@/hooks/useTranslation';
 
 const navLinks = [
   { href: '/chapters', label: 'Chapters' },
@@ -31,13 +32,13 @@ const navLinks = [
   { href: '/lore', label: 'Universe Lore' },
 ];
 
-export default function Header() {
+function HeaderContent() {
   const pathname = usePathname();
   const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, loading } = useAuth();
   const { isAdmin } = useAdmin();
-  const [language, setLanguage] = useState('en');
+  const { language, setLanguage } = useLanguage();
 
 
   const handleLogout = async () => {
@@ -97,7 +98,7 @@ export default function Header() {
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Select Language</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuRadioGroup value={language} onValueChange={setLanguage}>
+              <DropdownMenuRadioGroup value={language} onValueChange={(value) => setLanguage(value as 'en' | 'hi' | 'mr')}>
                 <DropdownMenuRadioItem value="en">English</DropdownMenuRadioItem>
                 <DropdownMenuRadioItem value="hi">हिन्दी (Hindi)</DropdownMenuRadioItem>
                 <DropdownMenuRadioItem value="mr">मराठी (Marathi)</DropdownMenuRadioItem>
@@ -184,4 +185,13 @@ export default function Header() {
       )}
     </header>
   );
+}
+
+
+export default function Header() {
+    return (
+        <LanguageProvider>
+            <HeaderContent />
+        </LanguageProvider>
+    )
 }
