@@ -8,7 +8,6 @@ import Footer from '@/components/layout/Footer';
 import ParticleBackground from '@/components/particles/ParticleBackground';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
-import { LanguageProvider } from '@/hooks/useTranslation';
 
 export const metadata: Metadata = {
   title: 'NiyatiVerse',
@@ -38,7 +37,6 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <LanguageProvider>
             <ParticleBackground />
             <div className="relative z-10 flex flex-col min-h-screen">
               <Header />
@@ -49,7 +47,6 @@ export default function RootLayout({
             </div>
             <Toaster />
             <FirebaseErrorListener />
-          </LanguageProvider>
         </ThemeProvider>
       </body>
     </html>

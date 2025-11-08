@@ -11,7 +11,7 @@ import { useAuth } from '@/hooks/useAuth';
 
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { NiyatiVerseLogo, Languages } from '@/components/icons';
+import { NiyatiVerseLogo } from '@/components/icons';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,14 +19,10 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useAdmin } from '@/hooks/useAdmin';
-import { useLanguage } from '@/hooks/useTranslation';
-import T from '@/components/T';
 
 
 const navLinks = [
@@ -41,7 +37,6 @@ export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, loading } = useAuth();
   const { isAdmin } = useAdmin();
-  const { language, setLanguage } = useLanguage();
 
 
   const handleLogout = async () => {
@@ -74,7 +69,7 @@ export default function Header() {
                     : 'text-foreground/60'
                 )}
               >
-                <T>{link.label}</T>
+                {link.label}
               </Link>
             ))}
              {user && (
@@ -85,30 +80,12 @@ export default function Header() {
                     pathname?.startsWith('/dashboard') ? 'text-foreground' : 'text-foreground/60'
                     )}
                 >
-                    <T>Dashboard</T>
+                    Dashboard
                 </Link>
             )}
           </nav>
         </div>
         <div className="flex flex-1 items-center justify-end gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <Languages className="h-[1.2rem] w-[1.2rem]" />
-                <span className="sr-only">Change language</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel><T>Select Language</T></DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuRadioGroup value={language} onValueChange={(value) => setLanguage(value as 'en' | 'hi' | 'mr')}>
-                <DropdownMenuRadioItem value="en">English</DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="hi">हिन्दी (Hindi)</DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="mr">मराठी (Marathi)</DropdownMenuRadioItem>
-              </DropdownMenuRadioGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
           <ThemeToggle />
           {loading ? (
             <Loader2 className="h-5 w-5 animate-spin" />
@@ -134,23 +111,23 @@ export default function Header() {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => router.push('/dashboard')}>
                   <UserIcon className="mr-2" />
-                  <span><T>Dashboard</T></span>
+                  <span>Dashboard</span>
                 </DropdownMenuItem>
                 {isAdmin && (
                    <DropdownMenuItem onClick={() => router.push('/admin/dashboard')}>
                     <UserIcon className="mr-2" />
-                    <span><T>Admin Panel</T></span>
+                    <span>Admin Panel</span>
                    </DropdownMenuItem>
                 )}
                 <DropdownMenuItem onClick={handleLogout}>
                   <LogOut className="mr-2" />
-                  <span><T>Log out</T></span>
+                  <span>Log out</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
             <Button asChild size="sm">
-              <Link href="/login"><T>Login</T></Link>
+              <Link href="/login">Login</Link>
             </Button>
           )}
 
@@ -180,7 +157,7 @@ export default function Header() {
                     : 'text-foreground/80'
                 )}
               >
-                <T>{link.label}</T>
+                {link.label}
               </Link>
             ))}
           </nav>
