@@ -9,7 +9,7 @@ import {
   GoogleAuthProvider,
   updateProfile,
 } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import {
@@ -23,13 +23,12 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Chrome } from 'lucide-react';
+import { Chrome, Loader2 } from 'lucide-react';
 
 export default function SignupPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
@@ -37,7 +36,6 @@ export default function SignupPage() {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError(null);
     try {
       const userCredential = await createUserWithEmailAndPassword(
         auth,
@@ -46,20 +44,25 @@ export default function SignupPage() {
       );
       const user = userCredential.user;
       await updateProfile(user, { displayName: name });
+
+      const role = email === 'satyafromniyati@gmail.com' ? 'admin' : 'reader';
+      
       await setDoc(doc(db, 'users', user.uid), {
         uid: user.uid,
         displayName: name,
         email: user.email,
         photoURL: user.photoURL,
         providerId: user.providerId,
+        role: role,
       });
+
       toast({
-        title: 'Signup successful!',
-        description: 'Redirecting to your dashboard...',
+        title: 'Account created successfully!',
+        description: 'Please log in to continue.',
       });
-      router.push('/admin/dashboard');
+      router.push('/login');
+
     } catch (err: any) {
-      setError(err.message);
       toast({
         title: 'Signup Failed',
         description: err.message,
@@ -72,22 +75,37 @@ export default function SignupPage() {
 
   const handleGoogleSignIn = async () => {
     setLoading(true);
-    setError(null);
     const provider = new GoogleAuthProvider();
     try {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
-      await setDoc(doc(db, 'users', user.uid), {
-        uid: user.uid,
-        displayName: user.displayName,
-        email: user.email,
-        photoURL: user.photoURL,
-        providerId: user.providerId,
-      });
+      
+      const userDocRef = doc(db, 'users', user.uid);
+      const userDoc = await getDoc(userDocRef);
+
+      if (!userDoc.exists()) {
+        const role = user.email === 'satyafromniyati@gmail.com' ? 'admin' : 'reader';
+        await setDoc(userDocRef, {
+          uid: user.uid,
+          displayName: user.displayName,
+          email: user.email,
+          photoURL: user.photoURL,
+          providerId: user.providerId,
+          role: role,
+        });
+      }
+      
+      const role = userDoc.exists() ? userDoc.data().role : (user.email === 'satyafromniyati@gmail.com' ? 'admin' : 'reader');
+
       toast({ title: 'Login successful!', description: 'Redirecting...' });
-      router.push('/admin/dashboard');
+
+      if (role === 'admin') {
+         router.push('/admin/dashboard');
+      } else {
+         router.push('/chapters');
+      }
+
     } catch (err: any) {
-      setError(err.message);
       toast({
         title: 'Login Failed',
         description: err.message,
@@ -144,9 +162,8 @@ export default function SignupPage() {
                 onChange={e => setPassword(e.target.value)}
               />
             </div>
-            {error && <p className="text-sm text-destructive">{error}</p>}
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Creating Account...' : 'Sign Up'}
+              {loading ? <Loader2 className="animate-spin"/> : 'Sign Up'}
             </Button>
           </form>
           <div className="relative my-4">
@@ -165,8 +182,7 @@ export default function SignupPage() {
             onClick={handleGoogleSignIn}
             disabled={loading}
           >
-            <Chrome className="mr-2" />
-            Google
+            {loading ? <Loader2 className="animate-spin" /> : <><Chrome className="mr-2" /> Google</>}
           </Button>
         </CardContent>
         <CardFooter className="justify-center">

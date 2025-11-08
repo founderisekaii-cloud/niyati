@@ -1,14 +1,17 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import {
   BookOpen,
   CreditCard,
   Settings,
   LayoutDashboard,
+  ShieldAlert,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -22,7 +25,7 @@ import {
   SidebarTrigger,
 } from '@/components/ui/sidebar';
 import { NiyatiVerseLogo } from '@/components/icons';
-import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
 
 const menuItems = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -30,6 +33,23 @@ const menuItems = [
   { href: '/admin/payments', label: 'Payments', icon: CreditCard },
   { href: '/admin/settings', label: 'Settings', icon: Settings },
 ];
+
+function AdminAccessDenied() {
+    return (
+        <div className="flex h-screen w-full items-center justify-center bg-background">
+            <div className="flex flex-col items-center gap-4 text-center">
+                <ShieldAlert className="size-16 text-destructive" />
+                <h1 className="text-3xl font-bold font-headline">Access Denied</h1>
+                <p className="text-muted-foreground max-w-sm">
+                    You do not have permission to view this page. This area is restricted to administrators only.
+                </p>
+                <Link href="/chapters" className="mt-4 text-primary hover:underline">
+                    Return to Chapters
+                </Link>
+            </div>
+        </div>
+    );
+}
 
 export default function AdminLayout({
   children,
@@ -39,22 +59,47 @@ export default function AdminLayout({
   const pathname = usePathname();
   const { user, loading } = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.replace('/login');
-    }
-  }, [user, loading, router]);
+    if (loading) return;
 
-  if (loading || !user) {
+    if (!user) {
+      router.replace('/login');
+      return;
+    }
+
+    const checkAdminRole = async () => {
+      const userDoc = await getDoc(doc(db, 'users', user.uid));
+      if (userDoc.exists() && userDoc.data().role === 'admin') {
+        setIsAdmin(true);
+      } else {
+        setIsAdmin(false);
+        toast({
+            title: 'Access Denied',
+            description: 'You do not have permission to access the admin panel.',
+            variant: 'destructive'
+        });
+      }
+    };
+
+    checkAdminRole();
+  }, [user, loading, router, toast]);
+
+  if (loading || isAdmin === null) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-            <NiyatiVerseLogo className="size-12 text-primary animate-pulse" />
-            <p className="text-muted-foreground">Verifying access...</p>
+          <NiyatiVerseLogo className="size-12 text-primary animate-pulse" />
+          <p className="text-muted-foreground">Verifying access...</p>
         </div>
       </div>
     );
+  }
+
+  if (!isAdmin) {
+      return <AdminAccessDenied />;
   }
 
   return (

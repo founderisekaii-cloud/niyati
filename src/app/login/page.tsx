@@ -8,7 +8,7 @@ import {
   signInWithPopup,
   GoogleAuthProvider,
 } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -21,12 +21,12 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Chrome } from 'lucide-react';
+import { Chrome, Loader2 } from 'lucide-react';
+import { doc, getDoc } from 'firebase/firestore';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
@@ -34,13 +34,21 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError(null);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      
+      const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
+      const userData = userDoc.data();
+      
       toast({ title: 'Login successful!', description: 'Redirecting...' });
-      router.push('/admin/dashboard');
+
+      if (userData?.role === 'admin') {
+        router.push('/admin/dashboard');
+      } else {
+        router.push('/chapters');
+      }
+
     } catch (err: any) {
-      setError(err.message);
       toast({
         title: 'Login Failed',
         description: err.message,
@@ -53,14 +61,22 @@ export default function LoginPage() {
 
   const handleGoogleSignIn = async () => {
     setLoading(true);
-    setError(null);
     const provider = new GoogleAuthProvider();
     try {
-      await signInWithPopup(auth, provider);
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+
+      const userDoc = await getDoc(doc(db, 'users', user.uid));
+      
       toast({ title: 'Login successful!', description: 'Redirecting...' });
-      router.push('/admin/dashboard');
+
+      if (userDoc.exists() && userDoc.data().role === 'admin') {
+         router.push('/admin/dashboard');
+      } else {
+         router.push('/chapters');
+      }
+
     } catch (err: any) {
-      setError(err.message);
       toast({
         title: 'Login Failed',
         description: err.message,
@@ -105,9 +121,8 @@ export default function LoginPage() {
                 onChange={e => setPassword(e.target.value)}
               />
             </div>
-            {error && <p className="text-sm text-destructive">{error}</p>}
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Logging in...' : 'Log In'}
+              {loading ? <Loader2 className="animate-spin" /> : 'Log In'}
             </Button>
           </form>
           <div className="relative my-4">
@@ -126,8 +141,7 @@ export default function LoginPage() {
             onClick={handleGoogleSignIn}
             disabled={loading}
           >
-            <Chrome className="mr-2" />
-            Google
+            {loading ? <Loader2 className="animate-spin" /> : <><Chrome className="mr-2" /> Google</>}
           </Button>
         </CardContent>
         <CardFooter className="justify-center">
