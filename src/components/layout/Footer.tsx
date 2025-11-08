@@ -1,12 +1,10 @@
 import React from 'react';
 import Link from 'next/link';
-import { Mail, Phone, FolderKanban } from 'lucide-react';
+import { Mail, Phone } from 'lucide-react';
 
 export default function Footer() {
   const email = 'satyafromniyati@gmail.com';
   const phone = '8850970654';
-  const gdriveLink =
-    'https://drive.google.com/drive/folders/1RQuOGp60kWYoWXKC5FaaHMCb4s15ZsJv?usp=drive_link';
 
   return (
     <footer className="z-10 relative border-t border-border/40">
@@ -30,15 +28,6 @@ export default function Footer() {
           >
             <Phone className="h-4 w-4" />
              <span className="hidden sm:inline">WhatsApp</span>
-          </Link>
-          <Link
-            href={gdriveLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 text-foreground/60 transition-colors hover:text-primary"
-          >
-            <FolderKanban className="h-4 w-4" />
-             <span className="hidden sm:inline">Resources</span>
           </Link>
         </div>
       </div>
