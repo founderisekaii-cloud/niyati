@@ -1,9 +1,9 @@
-@import './themes/niyati.css';
-@import './themes/dharma.css';
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@import '../themes/niyati.css';
+@import '../themes/dharma.css';
 
 @layer base {
   :root {
