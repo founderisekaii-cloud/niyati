@@ -76,10 +76,10 @@ export default function AdminLayout({
           <header className="flex h-14 items-center gap-4 border-b bg-background/95 px-6 sticky top-0 z-40 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <SidebarTrigger asChild>
               <Button size="icon" variant="outline" className="md:hidden">
-                <>
+                <div>
                   <PanelLeft className="h-5 w-5" />
                   <span className="sr-only">Toggle Menu</span>
-                </>
+                </div>
               </Button>
             </SidebarTrigger>
             <h1 className="flex-1 text-xl font-semibold">Admin Panel</h1>
