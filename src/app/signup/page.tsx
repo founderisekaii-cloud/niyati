@@ -82,8 +82,9 @@ export default function SignupPage() {
       const userDocRef = doc(db, 'users', user.uid);
       const userDoc = await getDoc(userDocRef);
 
+      let role = 'reader';
       if (!userDoc.exists()) {
-        const role = user.email === 'satyafromniyati@gmail.com' ? 'admin' : 'reader';
+        role = user.email === 'satyafromniyati@gmail.com' ? 'admin' : 'reader';
         await setDoc(userDocRef, {
           uid: user.uid,
           displayName: user.displayName,
@@ -92,10 +93,10 @@ export default function SignupPage() {
           providerId: user.providerId,
           role: role,
         });
+      } else {
+        role = userDoc.data().role;
       }
       
-      const role = userDoc.exists() ? userDoc.data().role : (user.email === 'satyafromniyati@gmail.com' ? 'admin' : 'reader');
-
       toast({ title: 'Login successful!', description: 'Redirecting...' });
 
       if (role === 'admin') {
