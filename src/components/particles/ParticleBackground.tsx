@@ -56,7 +56,7 @@ const ParticleBackground = () => {
     }
 
     function init() {
-      for (let i = 0; i < particleCount; i++) {
+      for (let i = 0; i_ < particleCount; i_++) {
         particles.push(new Particle());
       }
     }
@@ -84,10 +84,13 @@ const ParticleBackground = () => {
         top: 0,
         left: 0,
         zIndex: 0,
-        opacity: 0.5,
+        opacity: 0.3,
+        backgroundColor: 'hsla(var(--background), 0.8)',
       }}
     />
   );
 };
 
 export default ParticleBackground;
+
+    

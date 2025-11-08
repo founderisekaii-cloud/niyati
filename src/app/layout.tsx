@@ -37,11 +37,13 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <ParticleBackground />
-          <Header />
-          <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8 z-10 relative">
-            {children}
-          </main>
-          <Footer />
+          <div className="relative z-10 flex flex-col min-h-screen">
+            <Header />
+            <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+              {children}
+            </main>
+            <Footer />
+          </div>
           <Toaster />
           <FirebaseErrorListener />
         </ThemeProvider>
@@ -49,3 +51,5 @@ export default function RootLayout({
     </html>
   );
 }
+
+    
