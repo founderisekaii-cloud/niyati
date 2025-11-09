@@ -47,7 +47,7 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
     <div
       className={cn(
         'max-w-3xl mx-auto p-4 md:p-8 rounded-lg transition-colors duration-500 relative',
-        theme === 'dark' ? 'bg-[#121212] text-gray-200' : 'bg-[#fbf5e9] text-[#5b4636]'
+        theme === 'dark' ? 'bg-[#121212] text-white' : 'bg-[#fbf5e9] text-[#5b4636]'
       )}
     >
       {userEmail && (
