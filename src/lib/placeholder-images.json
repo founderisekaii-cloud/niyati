@@ -3,7 +3,7 @@
     {
       "id": "author-photo",
       "description": "A portrait of the author, Vikas A Dubey.",
-      "imageUrl": "/author.jpg",
+      "imageUrl": "/images/author.png",
       "imageHint": "author portrait headshot"
     }
   ]
