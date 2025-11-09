@@ -42,6 +42,11 @@
     --sidebar-border: 232 20% 25%;
     --sidebar-ring: 45 100% 50%;
 
+    /* Fix for ReaderView text color in dark mode */
+    .prose {
+      --tw-prose-body: #ffffff;
+      --tw-prose-bold: #ffffff;
+    }
   }
 
   .light {

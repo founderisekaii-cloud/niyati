@@ -112,24 +112,12 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
         <Separator className="my-8 bg-border/50" />
 
         {/* This is where the chapter's main text is displayed. */}
+        {/* The `prose` class from Tailwind automatically styles our raw HTML content to look good. */}
         <article
           className="prose prose-lg max-w-none"
           // This is a special property that tells React to render raw HTML content from your database.
           // It's used because your chapter content is stored as HTML.
           dangerouslySetInnerHTML={{ __html: getContent() }}
-           // This 'style' section is where we are **forcing** the text color.
-          // It directly tells the browser how to style the text inside this article.
-          style={{
-            // FIX 1: Set the direct color on the <article> element itself as a base.
-            color: theme === 'dark' ? 'white' : 'inherit',
-
-            // @ts-ignore - This is a way to set CSS variables for styling things like headings and body text.
-            // FIX 2: Explicitly set the '--tw-prose-body' variable to override the text color for all nested elements (p, li, etc.)
-            '--tw-prose-body': theme === 'dark' ? 'white' : 'inherit',
-            '--tw-prose-headings': theme === 'dark' ? 'hsl(var(--primary))' : '#8c6f5a',
-            '--tw-prose-bold': theme === 'dark' ? 'white' : 'inherit',
-            '--tw-prose-links': 'hsl(var(--primary))',
-          }}
         />
 
         {/* This container holds the floating buttons at the bottom-right. */}
