@@ -9,6 +9,7 @@ import { Download, Sun, Moon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { LanguageContext } from '@/app/layout';
+import { Card } from '@/components/ui/card';
 
 // This defines what information the ReaderView component needs to work.
 // In this case, it just needs the 'chapter' details.
@@ -69,62 +70,68 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
     // It changes the background color and text color based on the selected theme.
     <div
       className={cn(
-        'max-w-3xl mx-auto p-4 md:p-8 rounded-lg transition-colors duration-500 relative',
-        theme === 'dark' ? 'bg-[#121212]' : 'bg-[#fbf5e9] text-[#5b4636]'
+        'max-w-3xl mx-auto rounded-lg transition-colors duration-500 relative',
       )}
     >
-      {/* This section creates the subtle watermark effect. */}
-      {/* It only shows the watermark if we have the user's email. */}
-      {userEmail && (
-        <div className="absolute inset-0 grid grid-cols-2 sm:grid-cols-3 gap-8 sm:gap-16 pointer-events-none opacity-[0.03] overflow-hidden">
-          {/* This creates 12 watermark text elements and spreads them across the page. */}
-          {Array.from({ length: 12 }).map((_, i) => (
-            <div
-              key={i}
-              className="flex items-center justify-center transform -rotate-45"
-            >
-              <p className={cn(
-                "text-lg font-bold whitespace-nowrap",
-                // The watermark color also changes based on the theme to be less distracting.
-                theme === 'dark' ? 'text-gray-500' : 'text-[#9e8a78]'
-              )}>
-                {userEmail} - {new Date().toLocaleDateString()}
-              </p>
-            </div>
-          ))}
+      <Card className={cn(
+        'transition-colors duration-500',
+        theme === 'dark' ? 'bg-card/50' : 'bg-[#fbf5e9] text-[#5b4636]'
+      )}>
+        {/* This section creates the subtle watermark effect. */}
+        {/* It only shows the watermark if we have the user's email. */}
+        {userEmail && (
+          <div className="absolute inset-0 grid grid-cols-2 sm:grid-cols-3 gap-8 sm:gap-16 pointer-events-none opacity-[0.03] overflow-hidden p-4 md:p-8">
+            {/* This creates 12 watermark text elements and spreads them across the page. */}
+            {Array.from({ length: 12 }).map((_, i) => (
+              <div
+                key={i}
+                className="flex items-center justify-center transform -rotate-45"
+              >
+                <p className={cn(
+                  "text-lg font-bold whitespace-nowrap",
+                  // The watermark color also changes based on the theme to be less distracting.
+                  theme === 'dark' ? 'text-gray-500' : 'text-[#9e8a78]'
+                )}>
+                  {userEmail} - {new Date().toLocaleDateString()}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* This container holds the actual chapter content and sits on top of the watermark. */}
+        <div className="relative z-10 p-4 md:p-8">
+          <header className="mb-8 text-center">
+            {/* This displays the chapter title. */}
+            <h1 className="text-4xl md:text-5xl font-bold font-headline mb-2 text-primary">
+              {chapter.title}
+            </h1>
+            {/* This displays the word count. */}
+            <p className="text-sm text-muted-foreground">
+              {chapter.wordCount.toLocaleString()} words
+            </p>
+          </header>
+
+          {/* A simple decorative line. */}
+          <Separator className="my-8 bg-border/50" />
+
+          {/* This is where the chapter's main text is displayed. */}
+          {/* The `prose` class from Tailwind automatically styles our raw HTML content to look good. */}
+          {/* The text color is now handled globally in globals.css for dark mode. */}
+          <article
+            className={cn("prose prose-lg max-w-none", theme === 'dark' ? 'prose-invert' : '')}
+            // This is a special property that tells React to render raw HTML content from your database.
+            // It's used because your chapter content is stored as HTML.
+            dangerouslySetInnerHTML={{ __html: getContent() }}
+          />
+
+          
         </div>
-      )}
-
-      {/* This container holds the actual chapter content and sits on top of the watermark. */}
-      <div className="relative z-10">
-        <header className="mb-8 text-center">
-          {/* This displays the chapter title. */}
-          <h1 className="text-4xl md:text-5xl font-bold font-headline mb-2" style={{color: 'hsl(var(--primary))'}}>
-            {chapter.title}
-          </h1>
-          {/* This displays the word count. */}
-          <p className="text-sm text-muted-foreground">
-            {chapter.wordCount.toLocaleString()} words
-          </p>
-        </header>
-
-        {/* A simple decorative line. */}
-        <Separator className="my-8 bg-border/50" />
-
-        {/* This is where the chapter's main text is displayed. */}
-        {/* The `prose` class from Tailwind automatically styles our raw HTML content to look good. */}
-        {/* The text color is now handled globally in globals.css for dark mode. */}
-        <article
-          className="prose prose-lg max-w-none"
-          // This is a special property that tells React to render raw HTML content from your database.
-          // It's used because your chapter content is stored as HTML.
-          dangerouslySetInnerHTML={{ __html: getContent() }}
-        />
-
-        {/* This container holds the floating buttons at the bottom-right. */}
-        <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
-           {/* This button toggles the theme between 'dark' and 'sepia'. */}
-           <Button
+      </Card>
+       {/* This container holds the floating buttons at the bottom-right. */}
+       <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
+            {/* This button toggles the theme between 'dark' and 'sepia'. */}
+            <Button
             size="icon"
             variant="outline"
             onClick={() => setTheme(theme === 'dark' ? 'sepia' : 'dark')}
@@ -134,12 +141,11 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
             {/* It shows a Sun icon for dark mode and a Moon icon for sepia mode. */}
             {theme === 'dark' ? <Sun className="h-5 w-5"/> : <Moon className="h-5 w-5"/>}
           </Button>
-           {/* This is the download button. */}
-           <Button size="icon" variant="outline" title="Download (DRM Protected)" className="rounded-full bg-background/50 backdrop-blur">
+            {/* This is the download button. */}
+            <Button size="icon" variant="outline" title="Download (DRM Protected)" className="rounded-full bg-background/50 backdrop-blur">
             <Download className="h-5 w-5" />
           </Button>
         </div>
-      </div>
     </div>
   );
 }
