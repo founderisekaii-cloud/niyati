@@ -70,64 +70,60 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
     // It changes the background color and text color based on the selected theme.
     <div
       className={cn(
-        'max-w-3xl mx-auto rounded-lg transition-colors duration-500 relative',
+        'max-w-3xl mx-auto rounded-lg transition-colors duration-500 relative p-4 md:p-8',
+        theme === 'dark' ? 'bg-[#121212] text-white' : 'bg-[#fbf5e9] text-[#5b4636]'
       )}
     >
-      <Card className={cn(
-        'transition-colors duration-500',
-        theme === 'dark' ? 'bg-card/50' : 'bg-[#fbf5e9] text-[#5b4636]'
-      )}>
-        {/* This section creates the subtle watermark effect. */}
-        {/* It only shows the watermark if we have the user's email. */}
-        {userEmail && (
-          <div className="absolute inset-0 grid grid-cols-2 sm:grid-cols-3 gap-8 sm:gap-16 pointer-events-none opacity-[0.03] overflow-hidden p-4 md:p-8">
-            {/* This creates 12 watermark text elements and spreads them across the page. */}
-            {Array.from({ length: 12 }).map((_, i) => (
-              <div
-                key={i}
-                className="flex items-center justify-center transform -rotate-45"
-              >
-                <p className={cn(
-                  "text-lg font-bold whitespace-nowrap",
-                  // The watermark color also changes based on the theme to be less distracting.
-                  theme === 'dark' ? 'text-gray-500' : 'text-[#9e8a78]'
-                )}>
-                  {userEmail} - {new Date().toLocaleDateString()}
-                </p>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* This container holds the actual chapter content and sits on top of the watermark. */}
-        <div className="relative z-10 p-4 md:p-8">
-          <header className="mb-8 text-center">
-            {/* This displays the chapter title. */}
-            <h1 className="text-4xl md:text-5xl font-bold font-headline mb-2 text-primary">
-              {chapter.title}
-            </h1>
-            {/* This displays the word count. */}
-            <p className="text-sm text-foreground/70">
-              {chapter.wordCount.toLocaleString()} words
-            </p>
-          </header>
-
-          {/* A simple decorative line. */}
-          <Separator className="my-8 bg-border/50" />
-
-          {/* This is where the chapter's main text is displayed. */}
-          {/* The `prose` class from Tailwind automatically styles our raw HTML content to look good. */}
-          {/* The prose-invert class handles the dark mode styling for us. */}
-          <article
-            className={cn("prose prose-lg max-w-none", theme === 'dark' ? 'prose-invert' : '')}
-            // This is a special property that tells React to render raw HTML content from your database.
-            // It's used because your chapter content is stored as HTML.
-            dangerouslySetInnerHTML={{ __html: getContent() }}
-          />
-
-          
+      {/* This section creates the subtle watermark effect. */}
+      {/* It only shows the watermark if we have the user's email. */}
+      {userEmail && (
+        <div className="absolute inset-0 grid grid-cols-2 sm:grid-cols-3 gap-8 sm:gap-16 pointer-events-none opacity-[0.03] overflow-hidden p-4 md:p-8">
+          {/* This creates 12 watermark text elements and spreads them across the page. */}
+          {Array.from({ length: 12 }).map((_, i) => (
+            <div
+              key={i}
+              className="flex items-center justify-center transform -rotate-45"
+            >
+              <p className={cn(
+                "text-lg font-bold whitespace-nowrap",
+                // The watermark color also changes based on the theme to be less distracting.
+                theme === 'dark' ? 'text-gray-500' : 'text-[#9e8a78]'
+              )}>
+                {userEmail} - {new Date().toLocaleDateString()}
+              </p>
+            </div>
+          ))}
         </div>
-      </Card>
+      )}
+
+      {/* This container holds the actual chapter content and sits on top of the watermark. */}
+      <div className="relative z-10">
+        <header className="mb-8 text-center">
+          {/* This displays the chapter title. */}
+          <h1 className="text-4xl md:text-5xl font-bold font-headline mb-2 text-primary">
+            {chapter.title}
+          </h1>
+          {/* This displays the word count. */}
+          <p className="text-sm text-muted-foreground">
+            {chapter.wordCount.toLocaleString()} words
+          </p>
+        </header>
+
+        {/* A simple decorative line. */}
+        <Separator className="my-8 bg-border/50" />
+
+        {/* This is where the chapter's main text is displayed. */}
+        {/* The `prose` class from Tailwind automatically styles our raw HTML content to look good. */}
+        {/* The prose-invert class handles the dark mode styling for us. */}
+        <article
+          className={cn("prose prose-lg max-w-none", theme === 'dark' ? 'prose-invert' : '')}
+          // This is a special property that tells React to render raw HTML content from your database.
+          // It's used because your chapter content is stored as HTML.
+          dangerouslySetInnerHTML={{ __html: getContent() }}
+        />
+
+        
+      </div>
        {/* This container holds the floating buttons at the bottom-right. */}
        <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
             {/* This button toggles the theme between 'dark' and 'sepia'. */}

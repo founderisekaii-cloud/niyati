@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -9,7 +8,6 @@ import Image from 'next/image';
 import { author } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/hooks/useTranslation';
-import { Card } from '@/components/ui/card';
 
 const Section = ({ children, className }: { children: React.ReactNode; className?: string }) => (
   <section className={cn('py-20 sm:py-32 text-center', className)}>
@@ -73,75 +71,65 @@ export default function Home() {
 
         {/* 2. Introduction Scroll Section */}
         <Section>
-             <Card className="bg-card/50 p-6 md:p-8">
-                <SectionText>
-                    {t('home_intro')}
-                </SectionText>
-             </Card>
+            <SectionText>
+                {t('home_intro')}
+            </SectionText>
         </Section>
         
         {/* 3. Featured Chapters Section (Placeholder) */}
         <Section>
-            <Card className="bg-card/50 p-6 md:p-8">
-                <SectionTitle>{t('home_begin_journey_title')}</SectionTitle>
-                 <SectionText>
-                   {t('home_begin_journey_text')}
-                </SectionText>
-                <div className="mt-8 animate-fade-in-up animation-delay-600">
-                    <Button asChild size="lg">
-                        <Link href="/chapters">
-                            <BookOpen className="mr-2"/> {t('home_button_all_chapters')}
-                        </Link>
-                    </Button>
-                </div>
-            </Card>
+            <SectionTitle>{t('home_begin_journey_title')}</SectionTitle>
+             <SectionText>
+               {t('home_begin_journey_text')}
+            </SectionText>
+            <div className="mt-8 animate-fade-in-up animation-delay-600">
+                <Button asChild size="lg">
+                    <Link href="/chapters">
+                        <BookOpen className="mr-2"/> {t('home_button_all_chapters')}
+                    </Link>
+                </Button>
+            </div>
         </Section>
 
         {/* 4. About the Author */}
         <Section>
-            <Card className="bg-card/50 p-6 md:p-8">
-                 <SectionTitle>{t('home_author_title')}</SectionTitle>
-                 <div className="flex flex-col md:flex-row items-center gap-8 animate-fade-in-up animation-delay-300">
-                    <Image 
-                        src={author.imageUrl} 
-                        alt={author.name} 
-                        width={150} 
-                        height={150} 
-                        className="rounded-full object-cover aspect-square border-4 border-primary/50 shadow-lg"
-                        data-ai-hint={author.imageHint}
-                    />
-                    <p className="text-lg text-muted-foreground max-w-xl text-center md:text-left leading-relaxed">
-                         {t('home_author_bio')}
-                    </p>
-                 </div>
-                 <SectionButton href="/about">{t('home_button_read_more')}</SectionButton>
-            </Card>
+             <SectionTitle>{t('home_author_title')}</SectionTitle>
+             <div className="flex flex-col md:flex-row items-center gap-8 animate-fade-in-up animation-delay-300">
+                <Image 
+                    src={author.imageUrl} 
+                    alt={author.name} 
+                    width={150} 
+                    height={150} 
+                    className="rounded-full object-cover aspect-square border-4 border-primary/50 shadow-lg"
+                    data-ai-hint={author.imageHint}
+                />
+                <p className="text-lg text-muted-foreground max-w-xl text-center md:text-left leading-relaxed">
+                     {t('home_author_bio')}
+                </p>
+             </div>
+             <SectionButton href="/about">{t('home_button_read_more')}</SectionButton>
         </Section>
 
         {/* 5. Lore Teaser */}
         <Section>
-            <Card className="bg-card/50 p-6 md:p-8">
-                <SectionTitle>{t('home_lore_title')}</SectionTitle>
-                <SectionText>
-                    {t('home_lore_text')}
-                </SectionText>
-                <SectionButton href="/lore">{t('home_button_explore_lore')}</SectionButton>
-            </Card>
+            <SectionTitle>{t('home_lore_title')}</SectionTitle>
+            <SectionText>
+                {t('home_lore_text')}
+            </SectionText>
+            <SectionButton href="/lore">{t('home_button_explore_lore')}</SectionButton>
         </Section>
         
         {/* 6. Support the Author */}
         <Section>
-            <Card className="bg-card/50 p-6 md:p-8">
-                 <SectionTitle>{t('home_support_title')}</SectionTitle>
-                 <SectionText>
-                    {t('home_support_text')}
-                </SectionText>
-                 <div className="mt-8 animate-fade-in-up animation-delay-600">
-                    <Button size="lg" disabled>
-                        <Heart className="mr-2"/> {t('home_button_contribute')}
-                    </Button>
-                 </div>
-            </Card>
+             <SectionTitle>{t('home_support_title')}</SectionTitle>
+             <SectionText>
+                {t('home_support_text')}
+            </SectionText>
+             <div className="mt-8 animate-fade-in-up animation-delay-600">
+                <Button size="lg" disabled>
+                    <Heart className="mr-2"/> {t('home_button_contribute')}
+                </Button>
+             </div>
         </Section>
     </div>
   );

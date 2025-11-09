@@ -2,7 +2,6 @@ import { collection, getDocs, orderBy, query } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import ChapterList from '@/components/ChapterList';
 import type { Chapter } from '@/lib/types';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 async function getChapters(): Promise<Chapter[]> {
   const chaptersCol = collection(db, 'chapters');
@@ -35,11 +34,7 @@ export default async function ChaptersPage() {
           Follow the journey of Kael, Lyra, and the cosmic intelligence, Niyati.
         </p>
       </div>
-      <Card className="bg-card/50">
-        <CardContent className="p-6">
-          <ChapterList chapters={chapters} />
-        </CardContent>
-      </Card>
+      <ChapterList chapters={chapters} />
     </div>
   );
 }
