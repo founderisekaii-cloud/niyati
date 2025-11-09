@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,18 +24,18 @@ export default function AboutPage() {
   const { t } = useTranslation();
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-4xl mx-auto p-6 md:p-8">
       <header className="text-center mb-12">
         <h1 className="text-5xl font-bold font-headline text-primary mb-4">
             {t('about_title')}
         </h1>
-        <blockquote className="text-xl italic text-foreground/90 border-l-4 border-primary/50 pl-4 py-2 inline-block">
+        <blockquote className="text-xl italic text-muted-foreground border-l-4 border-primary/50 pl-4 py-2 inline-block">
             {t('about_quote')}
             <footer className="text-sm not-italic text-primary/80 mt-2">{t('about_quote_author')}</footer>
         </blockquote>
       </header>
     
-      <Card className="bg-card/50 p-6 md:p-8">
+      <div>
         <Section title={t('about_what_is_title')} emoji="🕉️">
             <p>{t('about_what_is_p1')}</p>
             <p>{t('about_what_is_p2')}</p>
@@ -76,7 +77,7 @@ export default function AboutPage() {
         <Separator className="my-8 bg-border/50" />
 
         <Section title={t('about_vision_title')} emoji="✨">
-             <blockquote className="text-xl italic text-foreground border-l-4 border-primary pl-4 py-2">
+             <blockquote className="text-xl italic text-muted-foreground border-l-4 border-primary pl-4 py-2">
                 {t('about_vision_quote')}
              </blockquote>
              <p className="mt-4">{t('about_vision_p1')}</p>
@@ -97,7 +98,7 @@ export default function AboutPage() {
                 </Button>
             </div>
         </Section>
-      </Card>
+      </div>
     </div>
   );
 }

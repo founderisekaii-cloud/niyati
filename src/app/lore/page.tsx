@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,18 +22,18 @@ export default function LorePage() {
   const { t } = useTranslation();
   
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-4xl mx-auto p-6 md:p-8">
       <header className="text-center mb-12">
         <h1 className="text-5xl font-bold font-headline text-primary mb-4">
             🌌 {t('lore_title')}
         </h1>
-        <blockquote className="text-xl italic text-foreground/90 border-l-4 border-primary/50 pl-4 py-2 inline-block">
+        <blockquote className="text-xl italic text-muted-foreground border-l-4 border-primary/50 pl-4 py-2 inline-block">
             {t('lore_quote')}
             <footer className="text-sm not-italic text-primary/80 mt-2">{t('lore_quote_author')}</footer>
         </blockquote>
       </header>
     
-      <Card className="bg-card/50 p-6 md:p-8">
+      <div>
         <Section title={t('lore_beginning_title')} emoji="🕉️">
             <p>{t('lore_beginning_p1')}</p>
             <p>{t('lore_beginning_p2')}</p>
@@ -90,7 +91,7 @@ export default function LorePage() {
         <Separator className="my-8 bg-border/50" />
 
         <Section title={t('lore_purpose_title')} emoji="🌌">
-            <p className="italic">{t('lore_purpose_p1')}</p>
+            <p className="italic text-muted-foreground">{t('lore_purpose_p1')}</p>
             <p>{t('lore_purpose_p2')}</p>
             <p className="font-bold text-primary">{t('lore_purpose_p3')}</p>
         </Section>
@@ -101,7 +102,7 @@ export default function LorePage() {
             <h3 className="text-2xl font-headline text-primary mb-2">✨ {t('lore_welcome')}</h3>
             <p className="text-muted-foreground">{t('lore_welcome_p1')}</p>
         </div>
-      </Card>
+      </div>
     </div>
   );
 }
