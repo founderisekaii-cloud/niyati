@@ -1,3 +1,4 @@
+
 'use client';
 
 // This section imports all the tools and components we need for this page.
@@ -119,11 +120,10 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
            // This 'style' section is where we are **forcing** the text color.
           // It directly tells the browser how to style the text inside this article.
           style={{
-            // If the theme is 'dark', the color is 'white'. Otherwise, it inherits the color from its parent.
-            color: theme === 'dark' ? 'white' : 'inherit',
-            // @ts-ignore - This is a way to set CSS variables for styling things like headings.
+            // @ts-ignore - This is a way to set CSS variables for styling things like headings and body text.
+            '--tw-prose-body': theme === 'dark' ? 'white' : 'inherit',
             '--tw-prose-headings': theme === 'dark' ? 'hsl(var(--primary))' : '#8c6f5a',
-            '--tw-prose-bold': 'inherit',
+            '--tw-prose-bold': theme === 'dark' ? 'white' : 'inherit',
             '--tw-prose-links': 'hsl(var(--primary))',
           }}
         />
