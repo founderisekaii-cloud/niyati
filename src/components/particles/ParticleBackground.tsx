@@ -44,8 +44,8 @@ const ParticleBackground = () => {
       scaleDirection: number;
 
       constructor() {
-        this.x = width * 0.25;
-        this.y = height * 0.4;
+        this.x = width * 0.75;
+        this.y = height * 0.25;
         this.radius = Math.max(120, Math.min(width, height) * 0.20);
         this.haloRadius = this.radius * 1.5;
         this.scale = 1;
