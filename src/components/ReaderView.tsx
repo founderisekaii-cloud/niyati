@@ -107,7 +107,7 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
               {chapter.title}
             </h1>
             {/* This displays the word count. */}
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-foreground/70">
               {chapter.wordCount.toLocaleString()} words
             </p>
           </header>
@@ -117,7 +117,7 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
 
           {/* This is where the chapter's main text is displayed. */}
           {/* The `prose` class from Tailwind automatically styles our raw HTML content to look good. */}
-          {/* The text color is now handled globally in globals.css for dark mode. */}
+          {/* The prose-invert class handles the dark mode styling for us. */}
           <article
             className={cn("prose prose-lg max-w-none", theme === 'dark' ? 'prose-invert' : '')}
             // This is a special property that tells React to render raw HTML content from your database.
