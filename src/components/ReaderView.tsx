@@ -113,6 +113,7 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
 
         {/* This is where the chapter's main text is displayed. */}
         {/* The `prose` class from Tailwind automatically styles our raw HTML content to look good. */}
+        {/* The text color is now handled globally in globals.css for dark mode. */}
         <article
           className="prose prose-lg max-w-none"
           // This is a special property that tells React to render raw HTML content from your database.
