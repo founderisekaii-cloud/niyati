@@ -9,7 +9,6 @@ import { Download, Sun, Moon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { LanguageContext } from '@/app/layout';
-import { Card } from '@/components/ui/card';
 
 // This defines what information the ReaderView component needs to work.
 // In this case, it just needs the 'chapter' details.
