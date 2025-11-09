@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Download, Sun, Moon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
-import { useLanguage } from '@/app/layout';
+import { LanguageContext } from '@/app/layout';
+import { useContext } from 'react';
 
 type ReaderViewProps = {
   chapter: Chapter;
@@ -17,7 +18,7 @@ type Theme = 'dark' | 'sepia';
 export default function ReaderView({ chapter }: ReaderViewProps) {
   const [theme, setTheme] = useState<Theme>('dark');
   const [userEmail, setUserEmail] = useState<string | null>(null);
-  const { language } = useLanguage();
+  const { language } = useContext(LanguageContext);
 
   useEffect(() => {
     // Simulate fetching a logged-in user's email
@@ -46,7 +47,7 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
     <div
       className={cn(
         'max-w-3xl mx-auto p-4 md:p-8 rounded-lg transition-colors duration-500 relative',
-        theme === 'dark' ? 'bg-[#121212] text-gray-300' : 'bg-[#fbf5e9] text-[#5b4636]'
+        theme === 'dark' ? 'bg-[#121212] text-gray-200' : 'bg-[#fbf5e9] text-[#5b4636]'
       )}
     >
       {userEmail && (
@@ -56,7 +57,10 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
               key={i}
               className="flex items-center justify-center transform -rotate-45"
             >
-              <p className="text-lg font-bold whitespace-nowrap">
+              <p className={cn(
+                "text-lg font-bold whitespace-nowrap",
+                theme === 'dark' ? 'text-gray-500' : 'text-[#9e8a78]'
+              )}>
                 {userEmail} - {new Date().toLocaleDateString()}
               </p>
             </div>
