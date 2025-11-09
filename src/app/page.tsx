@@ -24,7 +24,7 @@ const SectionTitle = ({ children }: { children: React.ReactNode }) => (
 );
 
 const SectionText = ({ children }: { children: React.ReactNode }) => (
-    <p className="text-lg md:text-xl text-foreground/70 max-w-2xl mx-auto leading-relaxed animate-fade-in-up animation-delay-300">
+    <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed animate-fade-in-up animation-delay-300">
         {children}
     </p>
 );
@@ -50,7 +50,7 @@ export default function Home() {
             <h1 className="font-headline text-6xl md:text-8xl lg:text-9xl font-bold text-primary animate-fade-in-up bg-clip-text text-transparent bg-gradient-to-b from-primary via-primary/80 to-primary">
                 {t('home_headline')}
             </h1>
-            <p className="mt-6 max-w-2xl text-xl md:text-2xl text-foreground/70 animate-fade-in-up animation-delay-300 italic">
+            <p className="mt-6 max-w-2xl text-xl md:text-2xl text-muted-foreground animate-fade-in-up animation-delay-300 italic">
                 {t('home_tagline')}
             </p>
             <div className="mt-10 flex flex-col sm:flex-row gap-4 animate-fade-in-up animation-delay-600">
@@ -110,7 +110,7 @@ export default function Home() {
                         className="rounded-full object-cover aspect-square border-4 border-primary/50 shadow-lg"
                         data-ai-hint={author.imageHint}
                     />
-                    <p className="text-lg text-foreground/70 max-w-xl text-center md:text-left leading-relaxed">
+                    <p className="text-lg text-muted-foreground max-w-xl text-center md:text-left leading-relaxed">
                          {t('home_author_bio')}
                     </p>
                  </div>

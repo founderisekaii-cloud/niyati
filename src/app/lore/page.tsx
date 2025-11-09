@@ -10,7 +10,7 @@ const Section = ({ title, children, emoji }: { title: React.ReactNode, children:
       {emoji && <span className="text-2xl">{emoji}</span>}
       {title}
     </h2>
-    <div className="space-y-4 text-foreground/80 leading-relaxed text-lg">
+    <div className="space-y-4 text-muted-foreground leading-relaxed text-lg">
         {children}
     </div>
   </section>
@@ -99,7 +99,7 @@ export default function LorePage() {
 
         <div className="text-center">
             <h3 className="text-2xl font-headline text-primary mb-2">✨ {t('lore_welcome')}</h3>
-            <p className="text-foreground/80">{t('lore_welcome_p1')}</p>
+            <p className="text-muted-foreground">{t('lore_welcome_p1')}</p>
         </div>
       </Card>
     </div>

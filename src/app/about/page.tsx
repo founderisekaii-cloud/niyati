@@ -12,7 +12,7 @@ const Section = ({ title, children, emoji }: { title: React.ReactNode, children:
       {emoji && <span className="text-2xl">{emoji}</span>}
       {title}
     </h2>
-    <div className="space-y-4 text-foreground/80 leading-relaxed text-lg">
+    <div className="space-y-4 text-muted-foreground leading-relaxed text-lg">
         {children}
     </div>
   </section>
