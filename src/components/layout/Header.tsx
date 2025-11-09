@@ -10,7 +10,7 @@ import {
   Loader2,
   Languages,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useContext } from 'react';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
@@ -31,13 +31,8 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useAdmin } from '@/hooks/useAdmin';
-import { useLanguage } from '@/app/layout';
-
-const navLinks = [
-  { href: '/chapters', label: 'Chapters' },
-  { href: '/about', label: 'About' },
-  { href: '/lore', label: 'Universe Lore' },
-];
+import { LanguageContext } from '@/app/layout';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function Header() {
   const pathname = usePathname();
@@ -45,7 +40,14 @@ export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, loading } = useAuth();
   const { isAdmin } = useAdmin();
-  const { language, setLanguage } = useLanguage();
+  const { language, setLanguage } = useContext(LanguageContext);
+  const { t } = useTranslation();
+
+  const navLinks = [
+    { href: '/chapters', label: t('nav_chapters') },
+    { href: '/about', label: t('nav_about') },
+    { href: '/lore', label: t('nav_lore') },
+  ];
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -95,7 +97,7 @@ export default function Header() {
                     : 'text-foreground/60'
                 )}
               >
-                Dashboard
+                {t('nav_dashboard')}
               </Link>
             )}
           </nav>
@@ -208,7 +210,7 @@ export default function Header() {
           <nav className="flex flex-col items-start gap-4 p-4">
             {[
               ...navLinks,
-              ...(user ? [{ href: '/dashboard', label: 'Dashboard' }] : []),
+              ...(user ? [{ href: '/dashboard', label: t('nav_dashboard') }] : []),
             ].map(link => (
               <Link
                 key={link.href}
