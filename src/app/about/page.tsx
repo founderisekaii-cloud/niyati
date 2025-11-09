@@ -6,6 +6,8 @@ import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { useTranslation } from '@/hooks/useTranslation';
+import Image from 'next/image';
+import { author } from '@/lib/data';
 
 const Section = ({ title, children, emoji }: { title: React.ReactNode, children: React.ReactNode, emoji?: string }) => (
   <section className="mb-8">
@@ -67,11 +69,23 @@ export default function AboutPage() {
         <Separator className="my-8 bg-border/50" />
 
         <Section title={t('about_creator_title')} emoji="🧘‍♂️">
-            <p>{t('about_creator_p1')}</p>
-            <p>{t('about_creator_p2')}</p>
-            <p>{t('about_creator_p3')}</p>
-            <p>{t('about_creator_p4')}</p>
-            <p>{t('about_creator_p5')}</p>
+            <div className="flex flex-col md:flex-row items-center gap-8">
+                 <Image 
+                    src={author.imageUrl} 
+                    alt={author.name} 
+                    width={150} 
+                    height={150} 
+                    className="rounded-full object-cover aspect-square border-4 border-primary/50 shadow-lg"
+                    data-ai-hint={author.imageHint}
+                />
+                <div className="space-y-4 text-muted-foreground text-lg text-center md:text-left">
+                    <p>{t('about_creator_p1')}</p>
+                    <p>{t('about_creator_p2')}</p>
+                    <p>{t('about_creator_p3')}</p>
+                    <p>{t('about_creator_p4')}</p>
+                    <p>{t('about_creator_p5')}</p>
+                </div>
+            </div>
         </Section>
 
         <Separator className="my-8 bg-border/50" />
