@@ -128,19 +128,32 @@ export async function generatePdf(chapterData: ChapterPdfData): Promise<string> 
             color: rgb(0.5, 0.5, 0.5),
         });
 
-        // Watermark
+        // Watermark - User Provided Code
+        // Assuming these variables are from your environment (e.g., pdf-lib)
+        // 1. Define Text and Styling
         const watermarkText = "CREATED BY VIKAS A DUBEY";
-        const watermarkSize = 60;
-        const textWidth = timesRomanBoldFont.widthOfTextAtSize(watermarkText, watermarkSize);
-        const textHeight = timesRomanBoldFont.heightAtSize(watermarkSize);
+        // Calculate the diagonal length of the page
+        const diagonalLength = Math.sqrt(pageWidth * pageWidth + pageHeight * pageHeight);
 
-        p.drawText(watermarkText, {
-            x: pageWidth / 2 - textWidth / 2,
-            y: pageHeight / 2 + textHeight / 4,
+        // 2. Find a size that spans the diagonal (you may need to experiment)
+        // A size of 100-150 is often required for single-line coverage on letter/A4
+        // You may need to repeat the text a few times to ensure coverage.
+        const repeatedWatermark = `${watermarkText} - ${watermarkText} - ${watermarkText}`; 
+        const targetWatermarkSize = 150; // Use a much larger size
+
+        const textWidth = timesRomanBoldFont.widthOfTextAtSize(repeatedWatermark, targetWatermarkSize);
+        // Use 45 degrees for rotation
+
+        p.drawText(repeatedWatermark, {
+            // 3. Set the starting point far below/left to ensure the text covers the top-right corner after rotation
+            // A simple starting point of negative coordinates for X and Y often works for full coverage when rotated -45 degrees.
+            x: -pageWidth, // Start far left
+            y: -pageHeight, // Start slightly AT BOTTOM (experiment with this value)
+            
             font: timesRomanBoldFont,
-            size: watermarkSize,
-            color: rgb(0, 0.5, 0), // Darker Green
-            opacity: 0.1,
+            size: targetWatermarkSize,
+            color: rgb(0.1, 0.4, 0.1), // Faint Green
+            opacity: 0.15, // Slightly less transparent
             rotate: degrees(-45),
         });
     }
