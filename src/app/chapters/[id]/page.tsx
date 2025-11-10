@@ -24,11 +24,10 @@ export default function ChapterPage({ params }: ChapterPageProps) {
 
   useEffect(() => {
     async function getChapter() {
-      const { id } = params;
-      if (!id) return;
+      if (!params.id) return;
       try {
         const chaptersCol = collection(db, 'chapters');
-        const q = query(chaptersCol, where('id', '==', id), limit(1));
+        const q = query(chaptersCol, where('id', '==', params.id), limit(1));
         const snapshot = await getDocs(q);
 
         if (snapshot.empty) {
@@ -63,7 +62,7 @@ export default function ChapterPage({ params }: ChapterPageProps) {
     }
 
     getChapter();
-  }, [params]);
+  }, [params.id]);
 
 
   if (loading || authLoading) {
