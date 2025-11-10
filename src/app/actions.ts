@@ -1,7 +1,11 @@
+
 'use server';
 
 import { autoApproveUpiPayment } from '@/ai/flows/auto-approve-upi-payments';
 import { z } from 'zod';
+import { PDFDocument, rgb, StandardFonts, degrees } from 'pdf-lib';
+import fs from 'fs/promises';
+import path from 'path';
 
 const paymentSchema = z.object({
   chapterId: z.string(),
@@ -78,4 +82,118 @@ export async function handlePaymentVerification(
       error: true,
     };
   }
+}
+
+
+type ChapterPdfData = {
+    title: string;
+    seasonNumber: number;
+    chapterNumber: number;
+    content: string;
+};
+
+export async function generatePdf(chapterData: ChapterPdfData): Promise<string> {
+    const pdfDoc = await PDFDocument.create();
+
+    // Load font files
+    const fontPath = path.resolve(process.cwd(), 'public/fonts/times.ttf');
+    const fontBytes = await fs.readFile(fontPath);
+    const timesRomanFont = await pdfDoc.embedFont(fontBytes);
+
+    const { title, seasonNumber, chapterNumber, content } = chapterData;
+
+    let page = pdfDoc.addPage();
+    const { width, height } = page.getSize();
+    const margin = 50;
+    let y = height - margin;
+
+    // Header
+    const headerText = "Visit our official website to read more content and more stories, don't copy it without author's permission.";
+    page.drawText(headerText, {
+        x: margin,
+        y: height - 30,
+        size: 8,
+        font: timesRomanFont,
+        color: rgb(0.5, 0.5, 0.5),
+    });
+
+    // Chapter Title
+    page.drawText(title, {
+        x: margin,
+        y,
+        font: timesRomanFont,
+        size: 18,
+        color: rgb(1, 0, 0), // Red
+    });
+    y -= 30;
+
+    // Season/Chapter Number
+    page.drawText(`Season ${seasonNumber} | Chapter ${chapterNumber}`, {
+        x: margin,
+        y,
+        font: timesRomanFont,
+        size: 16,
+        color: rgb(0, 0, 1), // Blue
+    });
+    y -= 40;
+
+    // Body Text
+    const bodySize = 12;
+    const bodyColor = rgb(0, 0, 0); // Black
+    const cleanContent = content.replace(/<[^>]*>?/gm, ''); // Strip HTML tags
+    const words = cleanContent.split(' ');
+    let line = '';
+    
+    const drawContentOnPage = () => {
+        // Footer
+        const footerText = "For latest reading latest release visit https://niyati-mu.vercel.app/ and sign in.";
+        page.drawText(footerText, {
+            x: margin,
+            y: 30,
+            size: 8,
+            font: timesRomanFont,
+            color: rgb(0.5, 0.5, 0.5),
+        });
+
+        // Watermark
+        const watermarkText = "CREATED BY VIKAS A DUBEY";
+        const watermarkSize = 50;
+        const textWidth = timesRomanFont.widthOfTextAtSize(watermarkText, watermarkSize);
+        const textHeight = timesRomanFont.heightAtSize(watermarkSize);
+        page.drawText(watermarkText, {
+            x: width / 2 - textWidth / 2,
+            y: height / 2 + textHeight / 2,
+            font: timesRomanFont,
+            size: watermarkSize,
+            color: rgb(0, 1, 0), // Green
+            opacity: 0.1,
+            rotate: degrees(-45),
+        });
+    }
+
+    drawContentOnPage();
+
+    for (const word of words) {
+        const testLine = line + word + ' ';
+        const lineWidth = timesRomanFont.widthOfTextAtSize(testLine, bodySize);
+        
+        if (y < margin + 30) { // Check if space for new line + footer
+            page = pdfDoc.addPage();
+            drawContentOnPage();
+            y = height - margin;
+        }
+
+        if (lineWidth < width - margin * 2) {
+            line = testLine;
+        } else {
+            page.drawText(line, { x: margin, y, font: timesRomanFont, size: bodySize, color: bodyColor });
+            y -= bodySize * 1.5;
+            line = word + ' ';
+        }
+    }
+    page.drawText(line, { x: margin, y, font: timesRomanFont, size: bodySize, color: bodyColor });
+
+
+    const pdfBytes = await pdfDoc.save();
+    return Buffer.from(pdfBytes).toString('base64');
 }

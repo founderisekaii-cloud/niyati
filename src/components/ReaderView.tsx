@@ -5,10 +5,13 @@
 import { useState, useEffect } from 'react';
 import type { Chapter } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { Download, Sun, Moon } from 'lucide-react';
+import { Download, Sun, Moon, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { useLanguage } from '@/context/LanguageContext';
+import { generatePdf } from '@/app/actions';
+import { useToast } from '@/hooks/use-toast';
+
 
 // This defines what information the ReaderView component needs to work.
 // In this case, it just needs the 'chapter' details.
@@ -27,6 +30,10 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
   
   // This creates a piece of state to hold the logged-in user's email for watermarking.
   const [userEmail, setUserEmail] = useState<string | null>(null);
+
+  // State for PDF download
+  const [isDownloading, setIsDownloading] = useState(false);
+  const { toast } = useToast();
 
   // This uses the LanguageContext to know which language ('en', 'hi', 'mr') is currently selected.
   const { language } = useLanguage();
@@ -54,11 +61,39 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
         // If Hindi is selected, try to use 'content_hi'. If it's not available, use the default content.
         return chapter.content_hi || chapter.content;
       case 'mr':
-        // If Marathi is selected, try to use 'content_mr'. If it's not available, use the default content.
+        // If Marathi is selected, try to use 'content_mr'. If it's not available, use the main 'content'.
         return chapter.content_mr || chapter.content;
       default:
         // By default (for English), use 'content_en'. If it's not available, use the main 'content'.
         return chapter.content_en || chapter.content;
+    }
+  };
+
+  const handleDownload = async () => {
+    setIsDownloading(true);
+    toast({ description: "Generating your secure PDF..." });
+    try {
+        const pdfData = await generatePdf({
+            title: chapter.title,
+            seasonNumber: chapter.seasonNumber,
+            chapterNumber: chapter.chapterNumber,
+            content: getContent()
+        });
+        const blob = new Blob([Buffer.from(pdfData, 'base64')], { type: 'application/pdf' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${chapter.id}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        a.remove();
+        toast({ title: "Download started!" });
+    } catch (error) {
+        console.error("PDF generation failed:", error);
+        toast({ title: "Error", description: "Could not generate PDF.", variant: "destructive" });
+    } finally {
+        setIsDownloading(false);
     }
   };
 
@@ -137,8 +172,15 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
             {theme === 'dark' ? <Sun className="h-5 w-5"/> : <Moon className="h-5 w-5"/>}
           </Button>
             {/* This is the download button. */}
-            <Button size="icon" variant="outline" title="Download (DRM Protected)" className="rounded-full bg-background/50 backdrop-blur">
-            <Download className="h-5 w-5" />
+            <Button 
+                size="icon" 
+                variant="outline" 
+                title="Download (DRM Protected)" 
+                className="rounded-full bg-background/50 backdrop-blur"
+                onClick={handleDownload}
+                disabled={isDownloading}
+            >
+            {isDownloading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Download className="h-5 w-5" />}
           </Button>
         </div>
     </div>
