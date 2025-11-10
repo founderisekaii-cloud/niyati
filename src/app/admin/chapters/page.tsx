@@ -189,20 +189,19 @@ export default function ChaptersAdminPage() {
   const handleDelete = async (chapterId: string) => {
     if (window.confirm('Are you sure you want to delete this chapter?')) {
       const chapterRef = doc(db, 'chapters', chapterId);
-      deleteDoc(chapterRef)
-        .then(() => {
-          toast({
-            title: 'Success!',
-            description: 'Chapter deleted.',
-          });
-        })
-        .catch(async (serverError: any) => {
-          const permissionError = new FirestorePermissionError({
+      try {
+        await deleteDoc(chapterRef);
+        toast({
+          title: 'Success!',
+          description: 'Chapter deleted.',
+        });
+      } catch (serverError: any) {
+        const permissionError = new FirestorePermissionError({
             path: chapterRef.path,
             operation: 'delete',
           });
-          errorEmitter.emit('permission-error', permissionError);
-        });
+        errorEmitter.emit('permission-error', permissionError);
+      }
     }
   };
 
@@ -348,7 +347,7 @@ export default function ChaptersAdminPage() {
                         <Book className="h-4 w-4" />
                       </Link>
                     </Button>
-                    <Button variant="ghost" size="icon" disabled>
+                    <Button variant="ghost" size="icon">
                       <Edit className="h-4 w-4" />
                     </Button>
                     <Button
