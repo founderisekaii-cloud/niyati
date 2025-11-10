@@ -2,13 +2,13 @@
 'use client';
 
 // This section imports all the tools and components we need for this page.
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect } from 'react';
 import type { Chapter } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Download, Sun, Moon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
-import { LanguageContext } from '@/app/layout';
+import { useLanguage } from '@/context/LanguageContext';
 
 // This defines what information the ReaderView component needs to work.
 // In this case, it just needs the 'chapter' details.
@@ -29,7 +29,7 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
   const [userEmail, setUserEmail] = useState<string | null>(null);
 
   // This uses the LanguageContext to know which language ('en', 'hi', 'mr') is currently selected.
-  const { language } = useContext(LanguageContext);
+  const { language } = useLanguage();
 
   // This 'useEffect' hook runs code only once when the component first loads on the screen.
   useEffect(() => {

@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -10,7 +11,7 @@ import {
   Loader2,
   Languages,
 } from 'lucide-react';
-import { useState, useContext } from 'react';
+import { useState } from 'react';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
@@ -31,7 +32,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useAdmin } from '@/hooks/useAdmin';
-import { LanguageContext } from '@/app/layout';
+import { useLanguage } from '@/context/LanguageContext';
 import { useTranslation } from '@/hooks/useTranslation';
 
 export default function Header() {
@@ -40,7 +41,7 @@ export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, loading } = useAuth();
   const { isAdmin } = useAdmin();
-  const { language, setLanguage } = useContext(LanguageContext);
+  const { language, setLanguage } = useLanguage();
   const { t } = useTranslation();
 
   const navLinks = [
