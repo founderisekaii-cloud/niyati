@@ -26,6 +26,7 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useTranslation } from '@/hooks/useTranslation';
 
 // This defines what information the ReaderView component needs to work.
 type ReaderViewProps = {
@@ -47,6 +48,7 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
   
   // Get user authentication state.
   const { user, loading: authLoading } = useAuth();
+  const { t } = useTranslation();
 
   // State for PDF generation and viewing
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
@@ -72,30 +74,14 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
 
   // This function decides which chapter content to show based on the selected language, and formats it.
   const getFormattedContent = () => {
-    let rawContent = '';
-    switch (language) {
-      case 'hi':
-        // If Hindi is selected, try to use 'content_hi'. If it's not available, use the default content.
-        rawContent = chapter.content_hi || chapter.content;
-        break;
-      case 'mr':
-        // If Marathi is selected, try to use 'content_mr'. If it's not available, use the main 'content'.
-        rawContent = chapter.content_mr || chapter.content;
-        break;
-      default:
-        // By default (for English), use 'content_en'. If it's not available, use the main 'content'.
-        rawContent = chapter.content_en || chapter.content;
-        break;
-    }
-    
-    // Split the raw text by newline characters, wrap each part in <p> tags, and join them back together.
-    return rawContent.split('\n').filter(p => p.trim() !== '').map(p => `<p>${p}</p>`).join('');
+    // Content is always in English from the database
+    return chapter.content.split('\n').filter(p => p.trim() !== '').map(p => `<p>${p}</p>`).join('');
   };
   
-  const getTranslated = (field: 'title' | 'summary') => {
-      const key = `${field}_${language}` as keyof Chapter;
-      const translated = chapter[key] as string | undefined;
-      return translated || chapter[field];
+  const getTranslatedTitle = () => {
+      // For now, we just return the english title as we don't have translations for it
+      // In a real scenario, you might use a translation key like `t(chapter.titleKey)`
+      return chapter.title;
   }
 
 
@@ -107,24 +93,11 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
     setIsGeneratingPdf(true);
     toast({ description: "Generating your secure PDF..." });
     try {
-        let contentForPdf = '';
-         switch (language) {
-          case 'hi':
-            contentForPdf = chapter.content_hi || chapter.content;
-            break;
-          case 'mr':
-            contentForPdf = chapter.content_mr || chapter.content;
-            break;
-          default:
-            contentForPdf = chapter.content_en || chapter.content;
-            break;
-        }
-
         const pdfData = await generatePdf({
-            title: getTranslated('title'),
+            title: chapter.title,
             seasonNumber: chapter.seasonNumber,
             chapterNumber: chapter.chapterNumber,
-            content: contentForPdf
+            content: chapter.content
         });
         const blob = new Blob([Buffer.from(pdfData, 'base64')], { type: 'application/pdf' });
         const url = URL.createObjectURL(blob);
@@ -160,23 +133,30 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
       }}
     >
       <style jsx global>{`
+        body {
+            color: hsl(var(--foreground));
+        }
+
         .dark-theme-override { background-color: #121212; color: #E0E0E0; }
         .sepia-theme-override { background-color: #fbf5e9; color: #5b4636; }
         
         .prose {
-          color: hsl(var(--foreground));
+          color: inherit;
         }
 
         .dark .dark-theme-override .prose { color: #E0E0E0; }
         
-        .dark-theme-override .prose-p, .dark-theme-override h1, .dark-theme-override h2, .dark-theme-override p,
+        .dark-theme-override .prose p, .dark-theme-override h1, .dark-theme-override h2,
         .dark-theme-override .prose-headings, .dark-theme-override .prose-body { color: #E0E0E0 !important; }
         
-        .sepia-theme-override .prose-p, .sepia-theme-override h1, .sepia-theme-override h2, .sepia-theme-override p,
+        .sepia-theme-override .prose p, .sepia-theme-override h1, .sepia-theme-override h2,
         .sepia-theme-override .prose-headings, .sepia-theme-override .prose-body { color: #5b4636 !important; }
 
-        .prose.font-serif-override {
+        .prose.font-serif {
             font-family: 'Alegreya', serif !important;
+        }
+        .prose.font-sans {
+            font-family: 'Inter', sans-serif !important;
         }
 
         .prose.prose-size-sm p { font-size: 0.8rem; line-height: 1.6; }
@@ -194,7 +174,7 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
              Season {chapter.seasonNumber} | Chapter {chapter.chapterNumber}
            </p>
           <h1 className={cn("text-4xl font-bold font-headline", theme === 'system' ? 'text-green-600 dark:text-green-400' : 'text-green-600')}>
-            {getTranslated('title')}
+            {getTranslatedTitle()}
           </h1>
           <p className="text-sm text-muted-foreground pt-4">
             {chapter.wordCount.toLocaleString()} words
@@ -207,7 +187,7 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
           className={cn(
             "prose max-w-none",
             `prose-size-${fontSize}`,
-            'font-serif-override',
+            'font-serif',
             theme === 'system' ? 'dark:prose-invert' : '',
             'prose-p:mb-6'
           )}
