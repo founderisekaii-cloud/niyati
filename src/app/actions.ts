@@ -131,17 +131,11 @@ export async function generatePdf(chapterData: ChapterPdfData): Promise<string> 
         color: rgb(0, 0, 1), // Blue
     });
     y -= 40;
-
-    // Body Text
-    const bodySize = 12;
-    const bodyColor = rgb(0, 0, 0); // Black
-    const words = cleanContent.split(' ');
-    let line = '';
     
-    const drawContentOnPage = () => {
+    const drawContentOnPage = (p: any) => {
         // Footer
         const footerText = "For latest reading latest release visit https://niyati-mu.vercel.app/ and sign in.";
-        page.drawText(footerText, {
+        p.drawText(footerText, {
             x: margin,
             y: 30,
             size: 8,
@@ -154,7 +148,7 @@ export async function generatePdf(chapterData: ChapterPdfData): Promise<string> 
         const watermarkSize = 50;
         const textWidth = timesRomanFont.widthOfTextAtSize(watermarkText, watermarkSize);
         const textHeight = timesRomanFont.heightAtSize(watermarkSize);
-        page.drawText(watermarkText, {
+        p.drawText(watermarkText, {
             x: width / 2 - textWidth / 2,
             y: height / 2 + textHeight / 2,
             font: timesRomanFont,
@@ -165,27 +159,44 @@ export async function generatePdf(chapterData: ChapterPdfData): Promise<string> 
         });
     }
 
-    drawContentOnPage();
+    drawContentOnPage(page);
 
-    for (const word of words) {
-        const testLine = line + word + ' ';
-        const lineWidth = timesRomanFont.widthOfTextAtSize(testLine, bodySize);
-        
-        if (y < margin + 30) { // Check if space for new line + footer
+    // Body Text
+    const bodySize = 12;
+    const bodyColor = rgb(0, 0, 0); // Black
+    const paragraphs = cleanContent.split('\n');
+
+    for (const paragraph of paragraphs) {
+      const words = paragraph.split(' ');
+      let line = '';
+
+      if (y < margin + 40) { // Check if space for a new line + footer
             page = pdfDoc.addPage();
-            drawContentOnPage();
-            y = height - margin;
-        }
+            drawContentOnPage(page);
+            y = height - margin - 20; // Start a bit lower on new page
+      }
 
-        if (lineWidth < width - margin * 2) {
-            line = testLine;
-        } else {
-            page.drawText(line, { x: margin, y, font: timesRomanFont, size: bodySize, color: bodyColor });
-            y -= bodySize * 1.5;
-            line = word + ' ';
-        }
+      for (const word of words) {
+          const testLine = line + word + ' ';
+          const lineWidth = timesRomanFont.widthOfTextAtSize(testLine, bodySize);
+          
+          if (lineWidth < width - margin * 2) {
+              line = testLine;
+          } else {
+              page.drawText(line, { x: margin, y, font: timesRomanFont, size: bodySize, color: bodyColor });
+              y -= bodySize * 1.5;
+              line = word + ' ';
+
+              if (y < margin + 40) {
+                  page = pdfDoc.addPage();
+                  drawContentOnPage(page);
+                  y = height - margin - 20;
+              }
+          }
+      }
+      page.drawText(line, { x: margin, y, font: timesRomanFont, size: bodySize, color: bodyColor });
+      y -= bodySize * 1.5; // Move to next line for the start of the next paragraph
     }
-    page.drawText(line, { x: margin, y, font: timesRomanFont, size: bodySize, color: bodyColor });
 
 
     const pdfBytes = await pdfDoc.save();
