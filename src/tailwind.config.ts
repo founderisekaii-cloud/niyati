@@ -13,7 +13,7 @@ export default {
       typography: ({ theme }: { theme: any}) => ({
         DEFAULT: {
           css: {
-            '--tw-prose-body': theme('colors.foreground / 0.8'),
+            '--tw-prose-body': 'hsl(var(--muted-foreground))',
             '--tw-prose-headings': theme('colors.primary'),
             '--tw-prose-lead': theme('colors.foreground / 0.9'),
             '--tw-prose-links': theme('colors.primary'),
@@ -29,7 +29,7 @@ export default {
             '--tw-prose-pre-bg': theme('colors.muted'),
             '--tw-prose-th-borders': theme('colors.border'),
             '--tw-prose-td-borders': theme('colors.border'),
-            '--tw-prose-invert-body': theme('colors.foreground / 0.8'),
+            '--tw-prose-invert-body': 'hsl(var(--muted-foreground))',
             '--tw-prose-invert-headings': theme('colors.primary'),
             '--tw-prose-invert-lead': theme('colors.foreground / 0.9'),
             '--tw-prose-invert-links': theme('colors.primary'),
