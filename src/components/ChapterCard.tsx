@@ -1,86 +1,107 @@
 'use client';
 
 import type { Chapter } from '@/lib/types';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Book, Coins, Lock, Sparkles } from 'lucide-react';
-import { differenceInDays } from 'date-fns';
+import Image from 'next/image';
 import Link from 'next/link';
-import { useMemo } from 'react';
+import { Button } from '@/components/ui/button';
+import { Heart, MessageCircle, DollarSign, Lock, ArrowRight, BookOpen } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { useRouter } from 'next/navigation';
 
 type ChapterCardProps = {
   chapter: Chapter;
-  onUnlock: (chapter: Chapter) => void;
 };
 
-const getChapterPrice = (releaseDate: string, basePrice: number) => {
-  const daysSinceRelease = differenceInDays(new Date(), new Date(releaseDate));
-  if (daysSinceRelease >= 30) return 0;
-  if (daysSinceRelease >= 14) return 2;
-  if (daysSinceRelease >= 7) return 3;
-  return basePrice;
-};
+export default function ChapterCard({ chapter }: ChapterCardProps) {
+  const { user } = useAuth();
+  const router = useRouter();
 
-export default function ChapterCard({ chapter, onUnlock }: ChapterCardProps) {
-  const price = useMemo(() => getChapterPrice(chapter.releaseDate, chapter.basePrice), [chapter.releaseDate, chapter.basePrice]);
-  const isFree = price === 0;
-
-  const daysSinceRelease = differenceInDays(new Date(), new Date(chapter.releaseDate));
-
-  const getBadge = () => {
-    if (isFree) {
-      return (
-        <Badge variant="secondary" className="bg-green-800/50 text-green-300 border-green-500/50">
-          <Sparkles className="mr-2 h-3 w-3" />
-          Free
-        </Badge>
-      );
+  const handlePrivateClick = () => {
+    if (!user) {
+      router.push('/login');
+    } else {
+      router.push(`/chapters/${chapter.id}`);
     }
-    if (daysSinceRelease < 7) {
-       return <Badge variant="destructive">New</Badge>
+  };
+
+  const handleProtectedClick = () => {
+    // Placeholder for payment flow
+    alert(`Unlock chapter for ₹${chapter.price}`);
+  };
+
+  const renderActionButton = () => {
+    switch (chapter.status) {
+      case 'public':
+        return (
+          <Button asChild className="bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto">
+            <Link href={`/chapters/${chapter.id}`}>Read Now</Link>
+          </Button>
+        );
+      case 'private':
+        return (
+          <Button className="bg-blue-600 hover:bg-blue-700 text-white w-full sm:w-auto" onClick={handlePrivateClick}>
+            <Lock className="mr-2 h-4 w-4" />
+            Sign In to Read
+          </Button>
+        );
+      case 'protected':
+        return (
+          <Button className="bg-red-600 hover:bg-red-700 text-white w-full sm:w-auto" onClick={handleProtectedClick}>
+            <DollarSign className="mr-2 h-4 w-4" />
+            ₹{chapter.price}
+          </Button>
+        );
+      default:
+        return null;
     }
-    return <Badge variant="secondary"><Coins className="mr-2 h-3 w-3" />₹{price}</Badge>;
   };
 
   return (
-    <Card className="flex flex-col h-full bg-card/50 hover:bg-card/70 transition-colors duration-300 transform hover:-translate-y-1">
-      <CardHeader>
-        <div className="flex justify-between items-start">
-          <CardTitle className="font-headline text-xl text-primary pr-4">
-            {chapter.title}
-          </CardTitle>
-          {getBadge()}
+    <div className="flex flex-col sm:flex-row rounded-none bg-transparent border border-border/40 overflow-hidden w-full gap-4 p-4">
+      {/* Left Side: Cover Image */}
+      <div className="w-full sm:w-1/4 aspect-square flex-shrink-0">
+        <Image
+          src={chapter.coverImage || '/placeholder-cover.jpg'}
+          alt={`Cover for ${chapter.title}`}
+          width={200}
+          height={200}
+          className="object-cover w-full h-full"
+        />
+      </div>
+
+      {/* Right Side: Content */}
+      <div className="flex flex-col flex-grow justify-between w-full sm:w-3/4">
+        <div>
+          <h3 className="text-lg font-bold text-primary font-headline">
+            Season {chapter.seasonNumber} | Chapter {chapter.chapterNumber}: {chapter.title}
+          </h3>
+          <p className="text-sm text-muted-foreground mt-2 line-clamp-3">
+            {chapter.summary}
+          </p>
+           <Link href={`/chapters/${chapter.id}`} className="text-xs text-primary hover:underline mt-1 inline-block">
+                ... read more
+           </Link>
         </div>
-        <CardDescription className="text-sm text-foreground/70">
-          {chapter.wordCount.toLocaleString()} words
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex-grow">
-        <p className="text-foreground/80">{chapter.summary}</p>
-      </CardContent>
-      <CardFooter>
-        {isFree ? (
-          <Button asChild className="w-full">
-            <Link href={`/chapters/${chapter.id}`}>
-              <Book className="mr-2 h-4 w-4" />
-              Read Now
-            </Link>
-          </Button>
-        ) : (
-          <Button variant="outline" className="w-full" onClick={() => onUnlock(chapter)}>
-            <Lock className="mr-2 h-4 w-4" />
-            Unlock for ₹{price}
-          </Button>
-        )}
-      </CardFooter>
-    </Card>
+
+        {/* Bottom Panel: Actions */}
+        <div className="flex items-center justify-between mt-4 border-t border-border/20 pt-3">
+           <div className="flex items-center gap-2">
+                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary">
+                    <Heart className="h-5 w-5" />
+                    <span className="sr-only">Like</span>
+                </Button>
+                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary">
+                    <MessageCircle className="h-5 w-5" />
+                    <span className="sr-only">Comment</span>
+                </Button>
+                 <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-primary">
+                    <DollarSign className="h-5 w-5" />
+                    <span className="ml-2 hidden sm:inline">Support</span>
+                </Button>
+           </div>
+          {renderActionButton()}
+        </div>
+      </div>
+    </div>
   );
 }
