@@ -20,10 +20,10 @@ export default function ChapterPage({ params }: ChapterPageProps) {
   const [chapter, setChapter] = useState<Chapter | null>(null);
   const [loading, setLoading] = useState(true);
   const { user, loading: authLoading } = useAuth();
-  const { id } = params;
 
   useEffect(() => {
     async function getChapter() {
+      const { id } = params;
       if (!id) return;
       try {
         const chaptersCol = collection(db, 'chapters');
@@ -62,7 +62,7 @@ export default function ChapterPage({ params }: ChapterPageProps) {
     }
 
     getChapter();
-  }, [id]);
+  }, [params]);
 
 
   if (loading || authLoading) {
