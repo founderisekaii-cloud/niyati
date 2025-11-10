@@ -27,13 +27,13 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
   collection,
-  addDoc,
-  serverTimestamp,
   onSnapshot,
   query,
   orderBy,
   doc,
   deleteDoc,
+  addDoc,
+  serverTimestamp,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
@@ -41,12 +41,20 @@ import type { Chapter } from '@/lib/types';
 import Link from 'next/link';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { enrichChapterContent } from '@/ai/flows/enrich-chapter-flow';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 const chapterSchema = z.object({
-  title: z.string().min(1, 'Title is required.'),
-  summary: z.string().min(1, 'Summary is required.'),
-  wordCount: z.coerce.number().min(1, 'Word count is required.'),
-  basePrice: z.coerce.number().min(0, 'Base price is required.'),
+  seasonNumber: z.coerce.number().min(1, 'Season number is required.'),
+  chapterNumber: z.coerce.number().min(1, 'Chapter number is required.'),
+  status: z.enum(['public', 'private', 'protected']),
+  price: z.coerce.number().min(0).optional(),
   content: z.string().min(1, 'Content is required.'),
 });
 
@@ -67,26 +75,46 @@ export default function ChaptersAdminPage() {
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<ChapterFormData>({
     resolver: zodResolver(chapterSchema),
+    defaultValues: {
+      status: 'private',
+    },
   });
 
+  const status = watch('status');
+
   useEffect(() => {
-    const q = query(collection(db, 'chapters'), orderBy('releaseDate', 'desc'));
+    const q = query(
+      collection(db, 'chapters'),
+      orderBy('seasonNumber', 'desc'),
+      orderBy('chapterNumber', 'desc')
+    );
     const unsubscribe = onSnapshot(
       q,
       snapshot => {
-        const chaptersData = snapshot.docs.map(doc => ({
-          docId: doc.id,
-          id: doc.data().id,
-          title: doc.data().title,
-          summary: doc.data().summary,
-          wordCount: doc.data().wordCount,
-          releaseDate: doc.data().releaseDate?.toDate().toISOString() || new Date().toISOString(),
-          basePrice: doc.data().basePrice,
-          content: doc.data().content,
-        }));
+        const chaptersData = snapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            docId: doc.id,
+            id: data.id,
+            title: data.title,
+            summary: data.summary,
+            wordCount: data.wordCount,
+            releaseDate:
+              data.releaseDate?.toDate().toISOString() ||
+              new Date().toISOString(),
+            basePrice: data.basePrice,
+            content: data.content,
+            seasonNumber: data.seasonNumber || 0,
+            chapterNumber: data.chapterNumber || 0,
+            status: data.status || 'private',
+            price: data.price || 0,
+          };
+        });
         setChapters(chaptersData);
         setChaptersLoading(false);
       },
@@ -104,53 +132,69 @@ export default function ChaptersAdminPage() {
     return () => unsubscribe();
   }, [toast]);
 
-  const onSubmit = (data: ChapterFormData) => {
+  const onSubmit = async (data: ChapterFormData) => {
     setLoading(true);
-    const newChapterData = {
-      ...data,
-      id: data.title.toLowerCase().replace(/\s+/g, '-'),
-      releaseDate: serverTimestamp(),
-    };
+    try {
+      // Step 1: Enrich content with AI
+      toast({ description: "AI is generating title, summary, and cover art..." });
+      const enrichedData = await enrichChapterContent({ fullContent: data.content });
 
-    addDoc(collection(db, 'chapters'), newChapterData)
-      .then(() => {
-        toast({
-          title: 'Success!',
-          description: 'New chapter has been added.',
-        });
-        reset();
-        setIsOpen(false);
-      })
-      .catch(async (serverError: any) => {
-        const permissionError = new FirestorePermissionError({
-          path: 'chapters',
-          operation: 'create',
-          requestResourceData: newChapterData,
-        });
+      // Step 2: Prepare the final chapter document
+      const newChapterData = {
+        ...data,
+        title: enrichedData.title,
+        summary: enrichedData.summary,
+        coverImage: enrichedData.coverImage,
+        wordCount: data.content.split(/\s+/).length,
+        id: `s${data.seasonNumber}-c${data.chapterNumber}`,
+        releaseDate: serverTimestamp(),
+        price: data.status === 'protected' ? data.price : 0,
+      };
 
-        errorEmitter.emit('permission-error', permissionError);
-      })
-      .finally(() => {
-        setLoading(false);
+      // Step 3: Save to Firestore
+      const docRef = await addDoc(collection(db, 'chapters'), newChapterData);
+      
+      toast({
+        title: 'Success!',
+        description: `Chapter "${enrichedData.title}" has been added.`,
       });
+      
+      reset();
+      setIsOpen(false);
+      
+    } catch (error: any) {
+       console.error('Error adding new chapter:', error);
+       if (error.name === 'FirestorePermissionError') {
+            errorEmitter.emit('permission-error', error);
+       } else {
+            toast({
+                title: 'AI Enrichment Failed',
+                description: error.message || 'Could not process the chapter content.',
+                variant: 'destructive',
+            });
+       }
+    } finally {
+        setLoading(false);
+    }
   };
+
 
   const handleDelete = async (chapterId: string) => {
     if (window.confirm('Are you sure you want to delete this chapter?')) {
       const chapterRef = doc(db, 'chapters', chapterId);
       deleteDoc(chapterRef)
         .then(() => {
-            toast({
-              title: 'Success!',
-              description: 'Chapter deleted.',
-            });
+          toast({
+            title: 'Success!',
+            description: 'Chapter deleted.',
+          });
         })
         .catch(async (serverError: any) => {
-            const permissionError = new FirestorePermissionError({
-                path: chapterRef.path,
-                operation: 'delete',
-            });
-            errorEmitter.emit('permission-error', permissionError);
+          const permissionError = new FirestorePermissionError({
+            path: chapterRef.path,
+            operation: 'delete',
+          });
+          errorEmitter.emit('permission-error', permissionError);
         });
     }
   };
@@ -173,64 +217,88 @@ export default function ChaptersAdminPage() {
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="title">Title</Label>
-                  <Input id="title" {...register('title')} />
-                  {errors.title && (
+                  <Label htmlFor="seasonNumber">Season Number</Label>
+                  <Input
+                    id="seasonNumber"
+                    type="number"
+                    {...register('seasonNumber')}
+                  />
+                  {errors.seasonNumber && (
                     <p className="text-sm text-destructive">
-                      {errors.title.message}
+                      {errors.seasonNumber.message}
                     </p>
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="wordCount">Word Count</Label>
+                  <Label htmlFor="chapterNumber">Chapter Number</Label>
                   <Input
-                    id="wordCount"
+                    id="chapterNumber"
                     type="number"
-                    {...register('wordCount')}
+                    {...register('chapterNumber')}
                   />
-                  {errors.wordCount && (
+                  {errors.chapterNumber && (
                     <p className="text-sm text-destructive">
-                      {errors.wordCount.message}
+                      {errors.chapterNumber.message}
                     </p>
                   )}
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="summary">Summary</Label>
-                <Textarea id="summary" {...register('summary')} />
-                {errors.summary && (
-                  <p className="text-sm text-destructive">
-                    {errors.summary.message}
-                  </p>
-                )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <div className="space-y-2">
+                    <Label htmlFor="status">Status</Label>
+                    <Select
+                        onValueChange={(value: 'public' | 'private' | 'protected') => setValue('status', value)}
+                        defaultValue={status}
+                    >
+                        <SelectTrigger id="status">
+                            <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="private">Private (Sign-in required)</SelectItem>
+                            <SelectItem value="public">Public (Free for all)</SelectItem>
+                            <SelectItem value="protected">Protected (Requires payment)</SelectItem>
+                        </SelectContent>
+                    </Select>
+                 </div>
+                 {status === 'protected' && (
+                    <div className="space-y-2">
+                        <Label htmlFor="price">Price (₹)</Label>
+                        <Input
+                          id="price"
+                          type="number"
+                          step="1"
+                          {...register('price')}
+                        />
+                        {errors.price && (
+                          <p className="text-sm text-destructive">
+                            {errors.price.message}
+                          </p>
+                        )}
+                    </div>
+                 )}
               </div>
+
               <div className="space-y-2">
-                <Label htmlFor="content">Content (HTML)</Label>
-                <Textarea id="content" {...register('content')} rows={10} />
+                <Label htmlFor="content">Full Chapter Content</Label>
+                <Textarea
+                  id="content"
+                  {...register('content')}
+                  rows={10}
+                  placeholder="Paste the entire chapter content here. The AI will generate the title and summary."
+                />
                 {errors.content && (
                   <p className="text-sm text-destructive">
                     {errors.content.message}
                   </p>
                 )}
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="basePrice">Base Price (₹)</Label>
-                <Input
-                  id="basePrice"
-                  type="number"
-                  step="1"
-                  {...register('basePrice')}
-                />
-                {errors.basePrice && (
-                  <p className="text-sm text-destructive">
-                    {errors.basePrice.message}
-                  </p>
-                )}
-              </div>
+
               <DialogFooter>
                 <DialogClose asChild>
-                   <Button variant="outline" type="button">Cancel</Button>
+                  <Button variant="outline" type="button">
+                    Cancel
+                  </Button>
                 </DialogClose>
                 <Button type="submit" disabled={loading}>
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -261,7 +329,7 @@ export default function ChaptersAdminPage() {
                   className="flex items-center justify-between rounded-lg border p-4"
                 >
                   <div>
-                    <h3 className="font-semibold text-lg">{chapter.title}</h3>
+                    <h3 className="font-semibold text-lg">{`S${chapter.seasonNumber} C${chapter.chapterNumber}: ${chapter.title}`}</h3>
                     <p className="text-sm text-muted-foreground">
                       Released on:{' '}
                       {new Date(chapter.releaseDate).toLocaleDateString()}
@@ -273,11 +341,15 @@ export default function ChaptersAdminPage() {
                         <Book className="h-4 w-4" />
                       </Link>
                     </Button>
-                     <Button variant="ghost" size="icon" disabled>
-                        <Edit className="h-4 w-4" />
+                    <Button variant="ghost" size="icon" disabled>
+                      <Edit className="h-4 w-4" />
                     </Button>
-                     <Button variant="ghost" size="icon" onClick={() => handleDelete(chapter.docId)}>
-                        <Trash className="h-4 w-4 text-destructive" />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleDelete(chapter.docId)}
+                    >
+                      <Trash className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>
                 </div>
