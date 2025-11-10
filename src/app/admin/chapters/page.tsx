@@ -107,7 +107,6 @@ export default function ChaptersAdminPage() {
             releaseDate:
               data.releaseDate?.toDate().toISOString() ||
               new Date().toISOString(),
-            basePrice: data.basePrice,
             content: data.content,
             seasonNumber: data.seasonNumber || 0,
             chapterNumber: data.chapterNumber || 0,
