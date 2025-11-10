@@ -91,7 +91,7 @@ export default function ChaptersAdminPage() {
   useEffect(() => {
     const q = query(
       collection(db, 'chapters'),
-      orderBy('seasonNumber', 'desc'),
+      orderBy('seasonNumber', 'asc'),
     );
     const unsubscribe = onSnapshot(
       q,

@@ -62,7 +62,7 @@ export default function ChapterPage({ params }: ChapterPageProps) {
     }
 
     getChapter();
-  }, [params.id]);
+  }, [params]);
 
 
   if (loading || authLoading) {

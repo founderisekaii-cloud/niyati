@@ -107,6 +107,7 @@ export async function generatePdf(chapterData: ChapterPdfData): Promise<string> 
     // Helper function to draw on every page
     const drawPageChrome = (p: any) => {
         const pageHeight = p.getSize().height;
+        const pageWidth = p.getSize().width;
         // Header
         const headerText = "Visit our official website to read more content: https://niyati-mu.vercel.app/";
         p.drawText(headerText, {
@@ -134,8 +135,8 @@ export async function generatePdf(chapterData: ChapterPdfData): Promise<string> 
         const textHeight = timesRomanBoldFont.heightAtSize(watermarkSize);
 
         p.drawText(watermarkText, {
-            x: width / 2 - textWidth / 2,
-            y: height / 2 + textHeight / 4,
+            x: pageWidth / 2 - textWidth / 2,
+            y: pageHeight / 2 + textHeight / 4,
             font: timesRomanBoldFont,
             size: watermarkSize,
             color: rgb(0, 0.5, 0), // Darker Green
