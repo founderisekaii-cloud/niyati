@@ -34,6 +34,7 @@ import {
   doc,
   deleteDoc,
   addDoc,
+  updateDoc,
   serverTimestamp,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -66,7 +67,9 @@ interface ChapterWithId extends Chapter {
 }
 
 export default function ChaptersAdminPage() {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isNewChapterOpen, setIsNewChapterOpen] = useState(false);
+  const [isEditChapterOpen, setIsEditChapterOpen] = useState(false);
+  const [editingChapter, setEditingChapter] = useState<ChapterWithId | null>(null);
   const [loading, setLoading] = useState(false);
   const [chapters, setChapters] = useState<ChapterWithId[]>([]);
   const [chaptersLoading, setChaptersLoading] = useState(true);
@@ -81,18 +84,12 @@ export default function ChaptersAdminPage() {
     formState: { errors },
   } = useForm<ChapterFormData>({
     resolver: zodResolver(chapterSchema),
-    defaultValues: {
-      status: 'private',
-    },
   });
 
   const status = watch('status');
 
   useEffect(() => {
-    const q = query(
-      collection(db, 'chapters'),
-      orderBy('seasonNumber', 'asc'),
-    );
+    const q = query(collection(db, 'chapters'), orderBy('seasonNumber', 'asc'));
     const unsubscribe = onSnapshot(
       q,
       snapshot => {
@@ -115,7 +112,6 @@ export default function ChaptersAdminPage() {
             coverImage: data.coverImage,
           };
         });
-         // Manual sort for chapter number after fetching
         const sortedChapters = chaptersData.sort((a, b) => {
           if (a.seasonNumber === b.seasonNumber) {
             return b.chapterNumber - a.chapterNumber;
@@ -138,15 +134,27 @@ export default function ChaptersAdminPage() {
 
     return () => unsubscribe();
   }, [toast]);
+  
+  // Effect to reset form when opening edit dialog
+  useEffect(() => {
+    if (isEditChapterOpen && editingChapter) {
+      setValue('seasonNumber', editingChapter.seasonNumber);
+      setValue('chapterNumber', editingChapter.chapterNumber);
+      setValue('status', editingChapter.status);
+      setValue('price', editingChapter.price);
+      setValue('content', editingChapter.content);
+    } else {
+        reset({ status: 'private', price: 0, content: '' });
+    }
+  }, [isEditChapterOpen, editingChapter, setValue, reset]);
 
-  const onSubmit = async (data: ChapterFormData) => {
+
+  const handleNewChapterSubmit = async (data: ChapterFormData) => {
     setLoading(true);
     try {
-      // Step 1: Enrich content with AI
       toast({ description: "AI is generating title and summary..." });
       const enrichedData = await enrichChapterContent({ fullContent: data.content });
 
-      // Step 2: Prepare the final chapter document
       const newChapterData = {
         ...data,
         title: enrichedData.title,
@@ -158,8 +166,7 @@ export default function ChaptersAdminPage() {
         price: data.status === 'protected' ? data.price : 0,
       };
 
-      // Step 3: Save to Firestore
-      const docRef = await addDoc(collection(db, 'chapters'), newChapterData);
+      await addDoc(collection(db, 'chapters'), newChapterData);
       
       toast({
         title: 'Success!',
@@ -167,7 +174,7 @@ export default function ChaptersAdminPage() {
       });
       
       reset();
-      setIsOpen(false);
+      setIsNewChapterOpen(false);
       
     } catch (error: any) {
        console.error('Error adding new chapter:', error);
@@ -185,6 +192,49 @@ export default function ChaptersAdminPage() {
     }
   };
 
+  const handleEditChapterSubmit = async (data: ChapterFormData) => {
+    if (!editingChapter) return;
+    setLoading(true);
+
+    try {
+        const chapterRef = doc(db, 'chapters', editingChapter.docId);
+
+        const updatedData = {
+            ...data,
+            id: `s${data.seasonNumber}-c${data.chapterNumber}`,
+            wordCount: data.content.split(/\s+/).length,
+            price: data.status === 'protected' ? data.price : 0,
+        };
+        
+        await updateDoc(chapterRef, updatedData);
+
+        toast({
+            title: "Success!",
+            description: `Chapter "S${data.seasonNumber} C${data.chapterNumber}" has been updated.`,
+        });
+
+        setIsEditChapterOpen(false);
+        setEditingChapter(null);
+
+    } catch (error: any) {
+       console.error('Error updating chapter:', error);
+       if (error.name === 'FirestorePermissionError') {
+            const permissionError = new FirestorePermissionError({
+                path: doc(db, 'chapters', editingChapter.docId).path,
+                operation: 'update',
+            });
+            errorEmitter.emit('permission-error', permissionError);
+       } else {
+            toast({
+                title: 'Update Failed',
+                description: error.message || 'Could not update the chapter.',
+                variant: 'destructive',
+            });
+       }
+    } finally {
+        setLoading(false);
+    }
+  };
 
   const handleDelete = async (chapterId: string) => {
     if (window.confirm('Are you sure you want to delete this chapter?')) {
@@ -199,17 +249,74 @@ export default function ChaptersAdminPage() {
         const permissionError = new FirestorePermissionError({
             path: chapterRef.path,
             operation: 'delete',
-          });
+        });
         errorEmitter.emit('permission-error', permissionError);
       }
     }
   };
 
+  const openEditDialog = (chapter: ChapterWithId) => {
+    setEditingChapter(chapter);
+    setIsEditChapterOpen(true);
+  }
+
+  const renderForm = (isEditMode: boolean) => (
+      <form onSubmit={handleSubmit(isEditMode ? handleEditChapterSubmit : handleNewChapterSubmit)} className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="seasonNumber">Season Number</Label>
+            <Input id="seasonNumber" type="number" {...register('seasonNumber')} />
+            {errors.seasonNumber && <p className="text-sm text-destructive">{errors.seasonNumber.message}</p>}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="chapterNumber">Chapter Number</Label>
+            <Input id="chapterNumber" type="number" {...register('chapterNumber')} />
+            {errors.chapterNumber && <p className="text-sm text-destructive">{errors.chapterNumber.message}</p>}
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="status">Status</Label>
+            <Select onValueChange={(value: 'public' | 'private' | 'protected') => setValue('status', value)} value={status}>
+              <SelectTrigger id="status"><SelectValue placeholder="Select status" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="private">Private (Sign-in required)</SelectItem>
+                <SelectItem value="public">Public (Free for all)</SelectItem>
+                <SelectItem value="protected">Protected (Requires payment)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {status === 'protected' && (
+            <div className="space-y-2">
+              <Label htmlFor="price">Price (₹)</Label>
+              <Input id="price" type="number" step="1" {...register('price')} />
+              {errors.price && <p className="text-sm text-destructive">{errors.price.message}</p>}
+            </div>
+          )}
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="content">Full Chapter Content</Label>
+          <Textarea id="content" {...register('content')} rows={10} placeholder={isEditMode ? "Edit the chapter content." : "Paste the entire chapter content here. The AI will generate the title and summary."} />
+          {errors.content && <p className="text-sm text-destructive">{errors.content.message}</p>}
+        </div>
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button variant="outline" type="button" onClick={() => isEditMode ? setIsEditChapterOpen(false) : setIsNewChapterOpen(false)}>Cancel</Button>
+          </DialogClose>
+          <Button type="submit" disabled={loading}>
+            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isEditMode ? 'Update Chapter' : 'Save Chapter'}
+          </Button>
+        </DialogFooter>
+      </form>
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold font-headline">Manage Chapters</h1>
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        {/* New Chapter Dialog */}
+        <Dialog open={isNewChapterOpen} onOpenChange={setIsNewChapterOpen}>
           <DialogTrigger asChild>
             <Button>
               <PlusCircle className="mr-2 h-4 w-4" />
@@ -220,107 +327,26 @@ export default function ChaptersAdminPage() {
             <DialogHeader>
               <DialogTitle>Add a New Chapter</DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="seasonNumber">Season Number</Label>
-                  <Input
-                    id="seasonNumber"
-                    type="number"
-                    {...register('seasonNumber')}
-                  />
-                  {errors.seasonNumber && (
-                    <p className="text-sm text-destructive">
-                      {errors.seasonNumber.message}
-                    </p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="chapterNumber">Chapter Number</Label>
-                  <Input
-                    id="chapterNumber"
-                    type="number"
-                    {...register('chapterNumber')}
-                  />
-                  {errors.chapterNumber && (
-                    <p className="text-sm text-destructive">
-                      {errors.chapterNumber.message}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                 <div className="space-y-2">
-                    <Label htmlFor="status">Status</Label>
-                    <Select
-                        onValueChange={(value: 'public' | 'private' | 'protected') => setValue('status', value)}
-                        defaultValue={status}
-                    >
-                        <SelectTrigger id="status">
-                            <SelectValue placeholder="Select status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="private">Private (Sign-in required)</SelectItem>
-                            <SelectItem value="public">Public (Free for all)</SelectItem>
-                            <SelectItem value="protected">Protected (Requires payment)</SelectItem>
-                        </SelectContent>
-                    </Select>
-                 </div>
-                 {status === 'protected' && (
-                    <div className="space-y-2">
-                        <Label htmlFor="price">Price (₹)</Label>
-                        <Input
-                          id="price"
-                          type="number"
-                          step="1"
-                          {...register('price')}
-                        />
-                        {errors.price && (
-                          <p className="text-sm text-destructive">
-                            {errors.price.message}
-                          </p>
-                        )}
-                    </div>
-                 )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="content">Full Chapter Content</Label>
-                <Textarea
-                  id="content"
-                  {...register('content')}
-                  rows={10}
-                  placeholder="Paste the entire chapter content here. The AI will generate the title and summary."
-                />
-                {errors.content && (
-                  <p className="text-sm text-destructive">
-                    {errors.content.message}
-                  </p>
-                )}
-              </div>
-
-              <DialogFooter>
-                <DialogClose asChild>
-                  <Button variant="outline" type="button">
-                    Cancel
-                  </Button>
-                </DialogClose>
-                <Button type="submit" disabled={loading}>
-                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Save Chapter
-                </Button>
-              </DialogFooter>
-            </form>
+            {renderForm(false)}
           </DialogContent>
         </Dialog>
       </div>
+
+       {/* Edit Chapter Dialog */}
+        <Dialog open={isEditChapterOpen} onOpenChange={setIsEditChapterOpen}>
+          <DialogContent className="max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>Edit Chapter: {editingChapter ? `S${editingChapter.seasonNumber} C${editingChapter.chapterNumber}` : ''}</DialogTitle>
+            </DialogHeader>
+            {renderForm(true)}
+          </DialogContent>
+        </Dialog>
+
+
       <Card>
         <CardHeader>
           <CardTitle>Chapter List</CardTitle>
-          <CardDescription>
-            View, edit, and manage existing chapters.
-          </CardDescription>
+          <CardDescription>View, edit, and manage existing chapters.</CardDescription>
         </CardHeader>
         <CardContent>
           {chaptersLoading ? (
@@ -330,31 +356,21 @@ export default function ChaptersAdminPage() {
           ) : chapters.length > 0 ? (
             <div className="space-y-4">
               {chapters.map(chapter => (
-                <div
-                  key={chapter.docId}
-                  className="flex items-center justify-between rounded-lg border p-4"
-                >
+                <div key={chapter.docId} className="flex items-center justify-between rounded-lg border p-4">
                   <div>
                     <h3 className="font-semibold text-lg">{`S${chapter.seasonNumber} C${chapter.chapterNumber}: ${chapter.title}`}</h3>
                     <p className="text-sm text-muted-foreground">
-                      Released on:{' '}
-                      {new Date(chapter.releaseDate).toLocaleDateString()}
+                      Released on: {new Date(chapter.releaseDate).toLocaleDateString()}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
                     <Button variant="ghost" size="icon" asChild>
-                      <Link href={`/chapters/${chapter.id}`}>
-                        <Book className="h-4 w-4" />
-                      </Link>
+                      <Link href={`/chapters/${chapter.id}`}><Book className="h-4 w-4" /></Link>
                     </Button>
-                    <Button variant="ghost" size="icon">
+                    <Button variant="ghost" size="icon" onClick={() => openEditDialog(chapter)}>
                       <Edit className="h-4 w-4" />
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDelete(chapter.docId)}
-                    >
+                    <Button variant="ghost" size="icon" onClick={() => handleDelete(chapter.docId)}>
                       <Trash className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>
@@ -369,3 +385,5 @@ export default function ChaptersAdminPage() {
     </div>
   );
 }
+
+    
