@@ -96,7 +96,6 @@ export async function generatePdf(chapterData: ChapterPdfData): Promise<string> 
     const timesRomanBoldFont = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
 
     const { title, seasonNumber, chapterNumber, content } = chapterData;
-    // Strip HTML tags and any other non-ASCII characters, but keep line breaks
     const cleanContent = content.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]*>?/gm, '').replace(/[^\x00-\x7F]/g, "");
 
     let page = pdfDoc.addPage();
@@ -104,11 +103,10 @@ export async function generatePdf(chapterData: ChapterPdfData): Promise<string> 
     const margin = 50;
     let y = height - margin;
 
-    // Helper function to draw on every page
     const drawPageChrome = (p: any) => {
         const pageHeight = p.getSize().height;
         const pageWidth = p.getSize().width;
-        // Header
+        
         const headerText = "Visit our official website to read more content: https://niyati-mu.vercel.app/";
         p.drawText(headerText, {
             x: margin,
@@ -118,7 +116,6 @@ export async function generatePdf(chapterData: ChapterPdfData): Promise<string> 
             color: rgb(0.5, 0.5, 0.5),
         });
 
-        // Footer
         const footerText = "Not for redistribution. For personal use of the logged-in user only.";
         p.drawText(footerText, {
             x: margin,
@@ -128,39 +125,23 @@ export async function generatePdf(chapterData: ChapterPdfData): Promise<string> 
             color: rgb(0.5, 0.5, 0.5),
         });
 
-        // Watermark - User Provided Code
-        // Assuming these variables are from your environment (e.g., pdf-lib)
-        // 1. Define Text and Styling
         const watermarkText = "CREATED BY VIKAS A DUBEY";
-        // Calculate the diagonal length of the page
-        const diagonalLength = Math.sqrt(pageWidth * pageWidth + pageHeight * pageHeight);
-
-        // 2. Find a size that spans the diagonal (you may need to experiment)
-        // A size of 100-150 is often required for single-line coverage on letter/A4
-        // You may need to repeat the text a few times to ensure coverage.
         const repeatedWatermark = `${watermarkText} - ${watermarkText} - ${watermarkText}`; 
-        const targetWatermarkSize = 150; // Use a much larger size
-
-        const textWidth = timesRomanBoldFont.widthOfTextAtSize(repeatedWatermark, targetWatermarkSize);
-        // Use 45 degrees for rotation
+        const targetWatermarkSize = 150;
 
         p.drawText(repeatedWatermark, {
-            // 3. Set the starting point far below/left to ensure the text covers the top-right corner after rotation
-            // A simple starting point of negative coordinates for X and Y often works for full coverage when rotated -45 degrees.
-            x: -pageWidth, // Start far left
-            y: 2*pageHeight, // Adjust this value to position vertically
-            
+            x: margin,
+            y: pageHeight - 30,
             font: timesRomanBoldFont,
             size: targetWatermarkSize,
-            color: rgb(0.1, 0.4, 0.1), // Faint Green
-            opacity: 0.15, // Slightly less transparent
+            color: rgb(0.1, 0.4, 0.1),
+            opacity: 0.15,
             rotate: degrees(-45),
         });
     }
 
     drawPageChrome(page);
 
-    // --- Centered Title Block ---
     const storyName = "Niyati";
     const fullTitle = `${storyName}: ${title}`;
     const seasonChapterText = `Season ${seasonNumber} | Chapter ${chapterNumber}`;
@@ -171,7 +152,7 @@ export async function generatePdf(chapterData: ChapterPdfData): Promise<string> 
         y: y - 20,
         font: timesRomanBoldFont,
         size: 24,
-        color: rgb(0.8, 0, 0), // Darker Red
+        color: rgb(0.8, 0, 0),
     });
     y -= 50;
 
@@ -181,13 +162,12 @@ export async function generatePdf(chapterData: ChapterPdfData): Promise<string> 
         y,
         font: timesRomanFont,
         size: 18,
-        color: rgb(0, 0, 0.8), // Darker Blue
+        color: rgb(0, 0, 0.8),
     });
     y -= 60;
     
-    // Body Text
     const bodySize = 12;
-    const bodyColor = rgb(0, 0, 0); // Black
+    const bodyColor = rgb(0, 0, 0);
     const lineHeight = bodySize * 1.5;
     const paragraphs = cleanContent.split('\n').filter(p => p.trim() !== '');
 
@@ -195,10 +175,10 @@ export async function generatePdf(chapterData: ChapterPdfData): Promise<string> 
       let line = '';
       const words = paragraph.split(' ');
 
-      if (y < margin + lineHeight) { // Check if space for a new line + footer
+      if (y < margin + lineHeight) {
             page = pdfDoc.addPage();
             drawPageChrome(page);
-            y = height - margin - 20; // Start a bit lower on new page
+            y = height - margin - 20;
       }
 
       for (const word of words) {
@@ -220,9 +200,8 @@ export async function generatePdf(chapterData: ChapterPdfData): Promise<string> 
           }
       }
       page.drawText(line, { x: margin, y, font: timesRomanFont, size: bodySize, color: bodyColor });
-      y -= lineHeight * 2; // Add extra space between paragraphs
+      y -= lineHeight * 2;
     }
-
 
     const pdfBytes = await pdfDoc.save();
     return Buffer.from(pdfBytes).toString('base64');
