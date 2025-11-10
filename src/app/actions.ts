@@ -223,7 +223,7 @@ export async function generatePdf(chapterData: ChapterPdfData): Promise<string> 
           }
       }
       page.drawText(line, { x: margin, y, font: timesRomanFont, size: bodySize, color: bodyColor });
-      y -= lineHeight * 2;
+      y -= lineHeight * 2; // Add extra space after each paragraph
     }
 
     const pdfBytes = await pdfDoc.save();
