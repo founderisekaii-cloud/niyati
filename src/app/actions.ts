@@ -105,73 +105,47 @@ export async function generatePdf(chapterData: ChapterPdfData): Promise<string> 
         const pageWidth = p.getSize().width;
         const margin = 50;
         
+        // Draw Header
         const headerText = "Visit our official website to read more content: https://niyati-mu.vercel.app/";
         p.drawText(headerText, {
             x: margin,
             y: pageHeight - 30,
-            size: 12,
+            size: 10,
             font: timesRomanFont,
             color: rgb(0.5, 0.5, 0.5),
         });
 
+        // Draw Footer
         const footerText = "Not for redistribution. For personal use of the logged-in user only.";
         p.drawText(footerText, {
             x: margin,
             y: 30,
-            size: 12,
+            size: 10,
             font: timesRomanFont,
             color: rgb(0.5, 0.5, 0.5),
         });
 
-        // Centered, multi-line, DIAGONAL watermark
-        const watermarkLine1 = "CREATED";
-        const watermarkLine2 = "BY";
-        const watermarkLine3 = "VIKAS A. DUBEY";
-        const watermarkSize = 80;
-        const watermarkColor = rgb(0.1, 0.4, 0.1);
-        const watermarkOpacity = 0.15;
-        const watermarkLineHeight = watermarkSize * 1.2;
+        // Draw Randomized Watermarks
+        const watermarkText = "VIKAS A. DUBEY";
+        for (let i = 0; i < 15; i++) {
+            const randomSize = Math.random() * 20 + 10; // size between 10 and 30
+            const randomRotation = Math.random() * 360;
+            const randomX = Math.random() * pageWidth;
+            const randomY = Math.random() * pageHeight;
+            const randomColorR = Math.random() * 0.5 + 0.5; // Lighter colors
+            const randomColorG = Math.random() * 0.5 + 0.5;
+            const randomColorB = Math.random() * 0.5 + 0.5;
 
-        const line1Width = timesRomanBoldFont.widthOfTextAtSize(watermarkLine1, watermarkSize);
-        const line2Width = timesRomanBoldFont.widthOfTextAtSize(watermarkLine2, watermarkSize);
-        const line3Width = timesRomanBoldFont.widthOfTextAtSize(watermarkLine3, watermarkSize);
-        
-        const totalWatermarkHeight = watermarkLineHeight * 2;
-        const centerX = pageWidth / 2;
-        const centerY = pageHeight / 2;
-
-        // Position the center of the text block at the center of the page
-        const startY = centerY + totalWatermarkHeight / 2;
-        
-        p.drawText(watermarkLine1, {
-            x: centerX - line1Width / 2,
-            y: startY,
-            font: timesRomanBoldFont,
-            size: watermarkSize,
-            color: watermarkColor,
-            opacity: watermarkOpacity,
-            rotate: degrees(-45),
-        });
-
-        p.drawText(watermarkLine2, {
-            x: centerX - line2Width / 2,
-            y: startY - watermarkLineHeight,
-            font: timesRomanBoldFont,
-            size: watermarkSize,
-            color: watermarkColor,
-            opacity: watermarkOpacity,
-            rotate: degrees(-45),
-        });
-        
-        p.drawText(watermarkLine3, {
-            x: centerX - line3Width / 2,
-            y: startY - (watermarkLineHeight * 2),
-            font: timesRomanBoldFont,
-            size: watermarkSize,
-            color: watermarkColor,
-            opacity: watermarkOpacity,
-            rotate: degrees(-45),
-        });
+            p.drawText(watermarkText, {
+                x: randomX,
+                y: randomY,
+                font: timesRomanBoldFont,
+                size: randomSize,
+                color: rgb(randomColorR, randomColorG, randomColorB),
+                opacity: 0.05, // Very subtle
+                rotate: degrees(randomRotation),
+            });
+        }
     }
 
     drawPageChrome(page);
@@ -183,33 +157,36 @@ export async function generatePdf(chapterData: ChapterPdfData): Promise<string> 
     const storyName = "Niyati";
     const seasonChapterText = `Season ${seasonNumber} | Chapter ${chapterNumber}`;
 
+    // Draw Story Name (Red)
     const storyNameWidth = timesRomanBoldFont.widthOfTextAtSize(storyName, 28);
     page.drawText(storyName, {
         x: width / 2 - storyNameWidth / 2,
         y,
         font: timesRomanBoldFont,
         size: 28,
-        color: rgb(0, 0, 0),
+        color: rgb(0.8, 0.1, 0.1), // Red
     });
     y -= 35;
     
+    // Draw Season/Chapter (Blue)
     const seasonChapterWidth = timesRomanFont.widthOfTextAtSize(seasonChapterText, 18);
     page.drawText(seasonChapterText, {
         x: width / 2 - seasonChapterWidth / 2,
         y,
         font: timesRomanFont,
         size: 18,
-        color: rgb(0.2, 0.2, 0.2),
+        color: rgb(0.1, 0.1, 0.8), // Blue
     });
     y -= 30;
     
+    // Draw Title (Green)
     const titleWidth = timesRomanBoldFont.widthOfTextAtSize(title, 24);
     page.drawText(title, {
         x: width / 2 - titleWidth / 2,
         y: y,
         font: timesRomanBoldFont,
         size: 24,
-        color: rgb(0.1, 0.1, 0.1),
+        color: rgb(0.1, 0.6, 0.1), // Green
     });
     y -= 60;
     
