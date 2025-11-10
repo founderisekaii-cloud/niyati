@@ -99,19 +99,17 @@ export async function generatePdf(chapterData: ChapterPdfData): Promise<string> 
     const cleanContent = content.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]*>?/gm, '').replace(/[^\x00-\x7F]/g, "");
 
     let page = pdfDoc.addPage();
-    const { width, height } = page.getSize();
-    const margin = 50;
-    let y = height - margin;
-
+    
     const drawPageChrome = (p: any) => {
         const pageHeight = p.getSize().height;
         const pageWidth = p.getSize().width;
+        const margin = 50;
         
         const headerText = "Visit our official website to read more content: https://niyati-mu.vercel.app/";
         p.drawText(headerText, {
             x: margin,
             y: pageHeight - 30,
-            size: 10,
+            size: 12,
             font: timesRomanFont,
             color: rgb(0.5, 0.5, 0.5),
         });
@@ -120,49 +118,91 @@ export async function generatePdf(chapterData: ChapterPdfData): Promise<string> 
         p.drawText(footerText, {
             x: margin,
             y: 30,
-            size: 10,
+            size: 12,
             font: timesRomanFont,
             color: rgb(0.5, 0.5, 0.5),
         });
 
-        const watermarkText = "CREATED BY VIKAS A DUBEY";
-        const repeatedWatermark = `${watermarkText} - ${watermarkText} - ${watermarkText}`; 
-        const targetWatermarkSize = 150;
+        // Centered, multi-line watermark
+        const watermarkLine1 = "CREATED";
+        const watermarkLine2 = "BY";
+        const watermarkLine3 = "VIKAS A. DUBEY";
+        const watermarkSize = 80;
+        const watermarkColor = rgb(0.1, 0.4, 0.1);
+        const watermarkOpacity = 0.15;
+        const watermarkLineHeight = watermarkSize * 1.2;
 
-        p.drawText(repeatedWatermark, {
-            x: margin,
-            y: pageHeight - 30,
+        const line1Width = timesRomanBoldFont.widthOfTextAtSize(watermarkLine1, watermarkSize);
+        const line2Width = timesRomanBoldFont.widthOfTextAtSize(watermarkLine2, watermarkSize);
+        const line3Width = timesRomanBoldFont.widthOfTextAtSize(watermarkLine3, watermarkSize);
+        
+        const totalWatermarkHeight = watermarkLineHeight * 3;
+        const startY = pageHeight / 2 + totalWatermarkHeight / 2 - watermarkSize;
+
+        p.drawText(watermarkLine1, {
+            x: pageWidth / 2 - line1Width / 2,
+            y: startY,
             font: timesRomanBoldFont,
-            size: targetWatermarkSize,
-            color: rgb(0.1, 0.4, 0.1),
-            opacity: 0.15,
-            rotate: degrees(-45),
+            size: watermarkSize,
+            color: watermarkColor,
+            opacity: watermarkOpacity,
+        });
+
+        p.drawText(watermarkLine2, {
+            x: pageWidth / 2 - line2Width / 2,
+            y: startY - watermarkLineHeight,
+            font: timesRomanBoldFont,
+            size: watermarkSize,
+            color: watermarkColor,
+            opacity: watermarkOpacity,
+        });
+        
+        p.drawText(watermarkLine3, {
+            x: pageWidth / 2 - line3Width / 2,
+            y: startY - (watermarkLineHeight * 2),
+            font: timesRomanBoldFont,
+            size: watermarkSize,
+            color: watermarkColor,
+            opacity: watermarkOpacity,
         });
     }
 
     drawPageChrome(page);
 
+    const { width, height } = page.getSize();
+    const margin = 50;
+    let y = height - margin - 50;
+
     const storyName = "Niyati";
-    const fullTitle = `${storyName}: ${title}`;
     const seasonChapterText = `Season ${seasonNumber} | Chapter ${chapterNumber}`;
 
-    const storyNameWidth = timesRomanBoldFont.widthOfTextAtSize(fullTitle, 24);
-    page.drawText(fullTitle, {
+    const storyNameWidth = timesRomanBoldFont.widthOfTextAtSize(storyName, 28);
+    page.drawText(storyName, {
         x: width / 2 - storyNameWidth / 2,
-        y: y - 20,
+        y,
         font: timesRomanBoldFont,
-        size: 24,
-        color: rgb(0.8, 0, 0),
+        size: 28,
+        color: rgb(0, 0, 0),
     });
-    y -= 50;
-
+    y -= 35;
+    
     const seasonChapterWidth = timesRomanFont.widthOfTextAtSize(seasonChapterText, 18);
     page.drawText(seasonChapterText, {
         x: width / 2 - seasonChapterWidth / 2,
         y,
         font: timesRomanFont,
         size: 18,
-        color: rgb(0, 0, 0.8),
+        color: rgb(0.2, 0.2, 0.2),
+    });
+    y -= 30;
+    
+    const titleWidth = timesRomanBoldFont.widthOfTextAtSize(title, 24);
+    page.drawText(title, {
+        x: width / 2 - titleWidth / 2,
+        y: y,
+        font: timesRomanBoldFont,
+        size: 24,
+        color: rgb(0.1, 0.1, 0.1),
     });
     y -= 60;
     
