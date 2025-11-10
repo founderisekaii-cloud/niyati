@@ -96,8 +96,8 @@ export async function generatePdf(chapterData: ChapterPdfData): Promise<string> 
     const timesRomanBoldFont = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
 
     const { title, seasonNumber, chapterNumber, content } = chapterData;
-    // Strip HTML tags but keep line breaks, and remove any other non-ASCII characters
-    const cleanContent = content.replace(/<[^>]*>?/gm, '').replace(/[^\x00-\x7F]/g, "");
+    // Strip HTML tags and any other non-ASCII characters, but keep line breaks
+    const cleanContent = content.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]*>?/gm, '').replace(/[^\x00-\x7F]/g, "");
 
     let page = pdfDoc.addPage();
     const { width, height } = page.getSize();
@@ -106,11 +106,12 @@ export async function generatePdf(chapterData: ChapterPdfData): Promise<string> 
 
     // Helper function to draw on every page
     const drawPageChrome = (p: any) => {
+        const pageHeight = p.getSize().height;
         // Header
         const headerText = "Visit our official website to read more content: https://niyati-mu.vercel.app/";
         p.drawText(headerText, {
             x: margin,
-            y: height - 30,
+            y: pageHeight - 30,
             size: 10,
             font: timesRomanFont,
             color: rgb(0.5, 0.5, 0.5),
@@ -151,8 +152,6 @@ export async function generatePdf(chapterData: ChapterPdfData): Promise<string> 
     const seasonChapterText = `Season ${seasonNumber} | Chapter ${chapterNumber}`;
 
     const storyNameWidth = timesRomanBoldFont.widthOfTextAtSize(fullTitle, 24);
-    const seasonChapterWidth = timesRomanFont.widthOfTextAtSize(seasonChapterText, 18);
-
     page.drawText(fullTitle, {
         x: width / 2 - storyNameWidth / 2,
         y: y - 20,
@@ -162,6 +161,7 @@ export async function generatePdf(chapterData: ChapterPdfData): Promise<string> 
     });
     y -= 50;
 
+    const seasonChapterWidth = timesRomanFont.widthOfTextAtSize(seasonChapterText, 18);
     page.drawText(seasonChapterText, {
         x: width / 2 - seasonChapterWidth / 2,
         y,
