@@ -24,7 +24,7 @@ export type EnrichChapterInput = z.infer<typeof EnrichChapterInputSchema>;
 const EnrichChapterOutputSchema = z.object({
   title: z.string().describe('The extracted or generated title of the chapter.'),
   summary: z.string().describe('A compelling, 3-sentence summary of the chapter.'),
-  coverImage: z.string().describe('A Base64 encoded data URI of the generated cover image.'),
+  coverImage: z.string().describe('A URL for the cover image.'),
 });
 export type EnrichChapterOutput = z.infer<typeof EnrichChapterOutputSchema>;
 
@@ -63,23 +63,14 @@ const enrichChapterFlow = ai.defineFlow(
         throw new Error("Failed to generate title or summary.");
     }
     
-    // Step 2: Generate Cover Image using the generated Title and Summary
-    const imageGenResult = await ai.generate({
-        model: 'googleai/imagen-4.0-fast-generate-001',
-        prompt: `Create a visually striking, sharp-edged, square cover image for a fictional story chapter titled '${title}' which is about: '${summary}'. Use a modern, high-quality, and professional aesthetic. The image should be symbolic and intriguing, not literal.`,
-    });
-    
-    const coverImagePart = imageGenResult.media;
-
-    if (!coverImagePart?.url) {
-      throw new Error('Failed to generate cover image.');
-    }
+    // Step 2: Use a placeholder for the cover image to avoid billing errors.
+    const placeholderImageUrl = 'https://picsum.photos/seed/placeholder/400/400';
 
     // Step 3: Return all generated content
     return {
       title,
       summary,
-      coverImage: coverImagePart.url, // URL is a data URI
+      coverImage: placeholderImageUrl,
     };
   }
 );

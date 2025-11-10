@@ -51,8 +51,8 @@ import {
 } from '@/components/ui/select';
 
 const chapterSchema = z.object({
-  seasonNumber: z.coerce.number().min(1, 'Season number is required.'),
-  chapterNumber: z.coerce.number().min(1, 'Chapter number is required.'),
+  seasonNumber: z.coerce.number().min(0, 'Season number is required.'),
+  chapterNumber: z.coerce.number().min(0, 'Chapter number is required.'),
   status: z.enum(['public', 'private', 'protected']),
   price: z.coerce.number().min(0).optional(),
   content: z.string().min(1, 'Content is required.'),
@@ -88,7 +88,6 @@ export default function ChaptersAdminPage() {
   const status = watch('status');
 
   useEffect(() => {
-    // Simplified query to order by seasonNumber only to prevent composite index error.
     const q = query(
       collection(db, 'chapters'),
       orderBy('seasonNumber', 'desc'),
@@ -108,10 +107,11 @@ export default function ChaptersAdminPage() {
               data.releaseDate?.toDate().toISOString() ||
               new Date().toISOString(),
             content: data.content,
-            seasonNumber: data.seasonNumber || 0,
-            chapterNumber: data.chapterNumber || 0,
+            seasonNumber: data.seasonNumber,
+            chapterNumber: data.chapterNumber,
             status: data.status || 'private',
             price: data.price || 0,
+            coverImage: data.coverImage,
           };
         });
          // Manual sort for chapter number after fetching
