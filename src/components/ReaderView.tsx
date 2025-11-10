@@ -5,7 +5,7 @@
 import { useState, useEffect } from 'react';
 import type { Chapter } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { FileText, Palette, Loader2, LogIn, Text, Type } from 'lucide-react';
+import { FileText, Palette, Loader2, LogIn, Text } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { useLanguage } from '@/context/LanguageContext';
@@ -140,10 +140,11 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
         .dark-theme-override { background-color: #121212; color: #E0E0E0; }
         .sepia-theme-override { background-color: #fbf5e9; color: #5b4636; }
         
-        .prose {
-          color: inherit;
+        .prose.text-muted-foreground {
+            --tw-prose-body: hsl(var(--muted-foreground));
+            --tw-prose-invert-body: hsl(var(--muted-foreground));
         }
-
+        
         .dark .dark-theme-override .prose { color: #E0E0E0; }
         
         .dark-theme-override .prose p, .dark-theme-override h1, .dark-theme-override h2,
@@ -154,9 +155,6 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
 
         .prose.font-serif {
             font-family: 'Alegreya', serif !important;
-        }
-        .prose.font-sans {
-            font-family: 'Inter', sans-serif !important;
         }
 
         .prose.prose-size-sm p { font-size: 0.8rem; line-height: 1.6; }
@@ -186,6 +184,7 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
         <article
           className={cn(
             "prose max-w-none",
+            'text-muted-foreground',
             `prose-size-${fontSize}`,
             'font-serif',
             theme === 'system' ? 'dark:prose-invert' : '',
@@ -283,3 +282,5 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
     </>
   );
 }
+
+    
