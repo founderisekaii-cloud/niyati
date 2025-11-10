@@ -130,7 +130,7 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
     {/* It changes the background color and text color based on the selected theme. */}
     <div
       className={cn(
-        'max-w-3xl mx-auto rounded-lg transition-colors duration-500 relative p-4 md:p-8 font-headline',
+        'max-w-3xl mx-auto rounded-lg transition-colors duration-500 relative p-4 md:p-8',
         theme === 'dark' ? 'bg-[#121212] text-white' : 'bg-[#fbf5e9] text-[#5b4636]'
       )}
     >
@@ -138,15 +138,15 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
       <div className="relative z-10">
         <header className="mb-8 text-center space-y-2">
           {/* This displays the story name, styled like the PDF. */}
-           <h2 className="text-3xl font-bold" style={{ color: 'rgb(204, 26, 26)' }}>
+           <h2 className="text-3xl font-bold font-headline" style={{ color: 'rgb(204, 26, 26)' }}>
              Niyati
            </h2>
           {/* This displays the season and chapter number, styled like the PDF. */}
-           <p className="text-xl" style={{ color: 'rgb(26, 26, 204)' }}>
+           <p className="text-xl font-headline" style={{ color: 'rgb(26, 26, 204)' }}>
              Season {chapter.seasonNumber} | Chapter {chapter.chapterNumber}
            </p>
           {/* This displays the chapter title, styled like the PDF. */}
-          <h1 className="text-4xl font-bold" style={{ color: 'rgb(26, 153, 26)' }}>
+          <h1 className="text-4xl font-bold font-headline" style={{ color: 'rgb(26, 153, 26)' }}>
             {chapter.title}
           </h1>
           {/* This displays the word count. */}
@@ -162,7 +162,7 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
         {/* The `prose` class from Tailwind automatically styles our raw HTML content to look good. */}
         {/* The prose-invert class handles the dark mode styling for us. */}
         <article
-          className={cn("prose prose-lg max-w-none prose-p:font-body", theme === 'dark' ? 'prose-invert' : '')}
+          className={cn("prose prose-xl max-w-none prose-p:font-body", theme === 'dark' ? 'prose-invert' : 'prose-p:text-[#5b4636]')}
           // This is a special property that tells React to render raw HTML content from your database.
           // It's used because your chapter content is stored as HTML.
           dangerouslySetInnerHTML={{ __html: getFormattedContent() }}
@@ -239,5 +239,7 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
     </>
   );
 }
+
+    
 
     
