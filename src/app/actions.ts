@@ -95,7 +95,8 @@ export async function generatePdf(chapterData: ChapterPdfData): Promise<string> 
     const timesRomanFont = await pdfDoc.embedFont(StandardFonts.TimesRoman);
 
     const { title, seasonNumber, chapterNumber, content } = chapterData;
-    const cleanContent = content.replace(/<[^>]*>?/gm, ''); // Strip HTML tags
+    // Strip HTML tags and any non-ASCII characters to prevent encoding errors
+    const cleanContent = content.replace(/<[^>]*>?/gm, '').replace(/[^\x00-\x7F]/g, "");
 
     let page = pdfDoc.addPage();
     const { width, height } = page.getSize();
