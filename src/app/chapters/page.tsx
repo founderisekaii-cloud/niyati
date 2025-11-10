@@ -5,7 +5,7 @@ import type { Chapter } from '@/lib/types';
 
 async function getChapters(): Promise<Chapter[]> {
   const chaptersCol = collection(db, 'chapters');
-  const q = query(chaptersCol, orderBy('releaseDate', 'desc'));
+  const q = query(chaptersCol, orderBy('seasonNumber', 'asc'), orderBy('chapterNumber', 'asc'));
   const chapterSnapshot = await getDocs(q);
   const chaptersList = chapterSnapshot.docs.map(doc => {
     const data = doc.data();
@@ -16,8 +16,12 @@ async function getChapters(): Promise<Chapter[]> {
       summary: data.summary,
       wordCount: data.wordCount,
       releaseDate: data.releaseDate.toDate().toISOString(),
-      basePrice: data.basePrice,
       content: data.content,
+      seasonNumber: data.seasonNumber || 1,
+      chapterNumber: data.chapterNumber || 0,
+      status: data.status || 'private',
+      price: data.price || data.basePrice || 0,
+      coverImage: data.coverImage || '/placeholder-cover.jpg',
     };
   });
   return chaptersList;
