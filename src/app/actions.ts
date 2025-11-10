@@ -123,7 +123,7 @@ export async function generatePdf(chapterData: ChapterPdfData): Promise<string> 
             color: rgb(0.5, 0.5, 0.5),
         });
 
-        // Centered, multi-line watermark
+        // Centered, multi-line, DIAGONAL watermark
         const watermarkLine1 = "CREATED";
         const watermarkLine2 = "BY";
         const watermarkLine3 = "VIKAS A. DUBEY";
@@ -136,34 +136,41 @@ export async function generatePdf(chapterData: ChapterPdfData): Promise<string> 
         const line2Width = timesRomanBoldFont.widthOfTextAtSize(watermarkLine2, watermarkSize);
         const line3Width = timesRomanBoldFont.widthOfTextAtSize(watermarkLine3, watermarkSize);
         
-        const totalWatermarkHeight = watermarkLineHeight * 3;
-        const startY = pageHeight / 2 + totalWatermarkHeight / 2 - watermarkSize;
+        const totalWatermarkHeight = watermarkLineHeight * 2;
+        const centerX = pageWidth / 2;
+        const centerY = pageHeight / 2;
 
+        // Position the center of the text block at the center of the page
+        const startY = centerY + totalWatermarkHeight / 2;
+        
         p.drawText(watermarkLine1, {
-            x: pageWidth / 2 - line1Width / 2,
+            x: centerX - line1Width / 2,
             y: startY,
             font: timesRomanBoldFont,
             size: watermarkSize,
             color: watermarkColor,
             opacity: watermarkOpacity,
+            rotate: degrees(-45),
         });
 
         p.drawText(watermarkLine2, {
-            x: pageWidth / 2 - line2Width / 2,
+            x: centerX - line2Width / 2,
             y: startY - watermarkLineHeight,
             font: timesRomanBoldFont,
             size: watermarkSize,
             color: watermarkColor,
             opacity: watermarkOpacity,
+            rotate: degrees(-45),
         });
         
         p.drawText(watermarkLine3, {
-            x: pageWidth / 2 - line3Width / 2,
+            x: centerX - line3Width / 2,
             y: startY - (watermarkLineHeight * 2),
             font: timesRomanBoldFont,
             size: watermarkSize,
             color: watermarkColor,
             opacity: watermarkOpacity,
+            rotate: degrees(-45),
         });
     }
 
