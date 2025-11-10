@@ -5,7 +5,7 @@
 import { useState, useEffect } from 'react';
 import type { Chapter } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { FileText, Sun, Moon, Loader2, LogIn, Text, Type, Palette } from 'lucide-react';
+import { FileText, Palette, Loader2, LogIn, Text, Type } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { useLanguage } from '@/context/LanguageContext';
@@ -19,6 +19,13 @@ import {
     DialogTitle,
     DialogDescription,
 } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 // This defines what information the ReaderView component needs to work.
 type ReaderViewProps = {
@@ -137,18 +144,6 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
     setTheme(themes[nextIndex]);
   };
   
-  const cycleFontSize = () => {
-    const currentIndex = fontSizes.indexOf(fontSize);
-    const nextIndex = (currentIndex + 1) % fontSizes.length;
-    setFontSize(fontSizes[nextIndex]);
-  };
-
-  const cycleFontFamily = () => {
-    const currentIndex = fontFamilies.indexOf(fontFamily);
-    const nextIndex = (currentIndex + 1) % fontFamilies.length;
-    setFontFamily(fontFamilies[nextIndex]);
-  };
-
   // This is the main structure of the page, written in JSX (which looks like HTML).
   return (
     <>
@@ -230,24 +225,46 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
             >
                 <Palette className="h-5 w-5"/>
             </Button>
-             <Button
-                size="icon"
-                variant="outline"
-                onClick={cycleFontSize}
-                title="Change Font Size"
-                className="rounded-full bg-background/50 backdrop-blur"
-            >
-                <Text className="h-5 w-5"/>
-            </Button>
-            <Button
-                size="icon"
-                variant="outline"
-                onClick={cycleFontFamily}
-                title="Change Font Family"
-                className="rounded-full bg-background/50 backdrop-blur"
-            >
-                <Type className="h-5 w-5"/>
-            </Button>
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                    size="icon"
+                    variant="outline"
+                    title="Change Font Size"
+                    className="rounded-full bg-background/50 backdrop-blur"
+                >
+                    <Text className="h-5 w-5"/>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuRadioGroup value={fontSize} onValueChange={(value) => setFontSize(value as FontSize)}>
+                  <DropdownMenuRadioItem value="sm">Small</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="base">Base</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="lg">Large</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="xl">Extra Large</DropdownMenuRadioItem>
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                    size="icon"
+                    variant="outline"
+                    title="Change Font Family"
+                    className="rounded-full bg-background/50 backdrop-blur"
+                >
+                    <Type className="h-5 w-5"/>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuRadioGroup value={fontFamily} onValueChange={(value) => setFontFamily(value as FontFamily)}>
+                  <DropdownMenuRadioItem value="serif">Serif</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="sans">Sans-serif</DropdownMenuRadioItem>
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
           {authLoading ? (
              <Button size="icon" variant="outline" className="rounded-full bg-background/50 backdrop-blur" disabled>
