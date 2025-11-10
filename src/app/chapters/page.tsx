@@ -17,8 +17,8 @@ async function getChapters(): Promise<Chapter[]> {
       wordCount: data.wordCount,
       releaseDate: data.releaseDate.toDate().toISOString(),
       content: data.content,
-      seasonNumber: data.seasonNumber || 1,
-      chapterNumber: data.chapterNumber || 0,
+      seasonNumber: data.seasonNumber, // Removed incorrect default '|| 1'
+      chapterNumber: data.chapterNumber, // Removed incorrect default '|| 0'
       partNumber: data.partNumber || 1,
       status: data.status || 'private',
       price: data.price || 0,
