@@ -8,8 +8,6 @@ type ChapterListProps = {
 };
 
 export default function ChapterList({ chapters }: ChapterListProps) {
-  // The PaymentModal and related state are removed as the new
-  // ChapterCard design handles actions directly.
   return (
     <div className="space-y-6">
       {chapters.map(chapter => (

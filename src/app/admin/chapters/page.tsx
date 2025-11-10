@@ -55,6 +55,7 @@ import {
 const chapterSchema = z.object({
   seasonNumber: z.coerce.number().min(0, 'Season number is required.'),
   chapterNumber: z.coerce.number().min(0, 'Chapter number is required.'),
+  partNumber: z.coerce.number().min(1, 'Part number is required.'),
   status: z.enum(['public', 'private', 'protected']),
   price: z.coerce.number().min(0).optional(),
   content: z.string().min(1, 'Content is required.'),
@@ -84,6 +85,9 @@ export default function ChaptersAdminPage() {
     formState: { errors },
   } = useForm<ChapterFormData>({
     resolver: zodResolver(chapterSchema),
+    defaultValues: {
+      partNumber: 1,
+    }
   });
 
   const status = watch('status');
@@ -97,7 +101,6 @@ export default function ChaptersAdminPage() {
           const data = doc.data();
           return {
             docId: doc.id,
-            id: data.id,
             title: data.title,
             summary: data.summary,
             wordCount: data.wordCount,
@@ -107,6 +110,7 @@ export default function ChaptersAdminPage() {
             content: data.content,
             seasonNumber: data.seasonNumber,
             chapterNumber: data.chapterNumber,
+            partNumber: data.partNumber,
             status: data.status || 'private',
             price: data.price || 0,
             coverImage: data.coverImage,
@@ -114,6 +118,9 @@ export default function ChaptersAdminPage() {
         });
         const sortedChapters = chaptersData.sort((a, b) => {
           if (a.seasonNumber === b.seasonNumber) {
+            if (a.chapterNumber === b.chapterNumber) {
+              return b.partNumber - a.partNumber;
+            }
             return b.chapterNumber - a.chapterNumber;
           }
           return b.seasonNumber - a.seasonNumber;
@@ -140,11 +147,12 @@ export default function ChaptersAdminPage() {
     if (isEditChapterOpen && editingChapter) {
       setValue('seasonNumber', editingChapter.seasonNumber);
       setValue('chapterNumber', editingChapter.chapterNumber);
+      setValue('partNumber', editingChapter.partNumber);
       setValue('status', editingChapter.status);
       setValue('price', editingChapter.price);
       setValue('content', editingChapter.content);
     } else {
-        reset({ status: 'private', price: 0, content: '' });
+        reset({ status: 'private', price: 0, content: '', partNumber: 1 });
     }
   }, [isEditChapterOpen, editingChapter, setValue, reset]);
 
@@ -161,7 +169,6 @@ export default function ChaptersAdminPage() {
         summary: enrichedData.summary,
         coverImage: enrichedData.coverImage,
         wordCount: data.content.split(/\s+/).length,
-        id: `s${data.seasonNumber}-c${data.chapterNumber}`,
         releaseDate: serverTimestamp(),
         price: data.status === 'protected' ? data.price : 0,
       };
@@ -201,7 +208,6 @@ export default function ChaptersAdminPage() {
 
         const updatedData = {
             ...data,
-            id: `s${data.seasonNumber}-c${data.chapterNumber}`,
             wordCount: data.content.split(/\s+/).length,
             price: data.status === 'protected' ? data.price : 0,
         };
@@ -262,7 +268,7 @@ export default function ChaptersAdminPage() {
 
   const renderForm = (isEditMode: boolean) => (
       <form onSubmit={handleSubmit(isEditMode ? handleEditChapterSubmit : handleNewChapterSubmit)} className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-2">
             <Label htmlFor="seasonNumber">Season Number</Label>
             <Input id="seasonNumber" type="number" {...register('seasonNumber')} />
@@ -272,6 +278,11 @@ export default function ChaptersAdminPage() {
             <Label htmlFor="chapterNumber">Chapter Number</Label>
             <Input id="chapterNumber" type="number" {...register('chapterNumber')} />
             {errors.chapterNumber && <p className="text-sm text-destructive">{errors.chapterNumber.message}</p>}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="partNumber">Part Number</Label>
+            <Input id="partNumber" type="number" {...register('partNumber')} />
+            {errors.partNumber && <p className="text-sm text-destructive">{errors.partNumber.message}</p>}
           </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -358,14 +369,14 @@ export default function ChaptersAdminPage() {
               {chapters.map(chapter => (
                 <div key={chapter.docId} className="flex items-center justify-between rounded-lg border p-4">
                   <div>
-                    <h3 className="font-semibold text-lg">{`S${chapter.seasonNumber} C${chapter.chapterNumber}: ${chapter.title}`}</h3>
+                    <h3 className="font-semibold text-lg">{`S${chapter.seasonNumber} C${chapter.chapterNumber} P${chapter.partNumber}: ${chapter.title}`}</h3>
                     <p className="text-sm text-muted-foreground">
                       Released on: {new Date(chapter.releaseDate).toLocaleDateString()}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
                     <Button variant="ghost" size="icon" asChild>
-                      <Link href={`/chapters/${chapter.id}`}><Book className="h-4 w-4" /></Link>
+                      <Link href={`/chapters/${chapter.seasonNumber}/${chapter.chapterNumber}/${chapter.partNumber}`}><Book className="h-4 w-4" /></Link>
                     </Button>
                     <Button variant="ghost" size="icon" onClick={() => openEditDialog(chapter)}>
                       <Edit className="h-4 w-4" />
@@ -385,5 +396,3 @@ export default function ChaptersAdminPage() {
     </div>
   );
 }
-
-    

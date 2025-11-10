@@ -17,18 +17,19 @@ export default function ChapterCard({ chapter }: ChapterCardProps) {
   const { user } = useAuth();
   const router = useRouter();
   const { t } = useTranslation();
+  const chapterUrl = `/chapters/${chapter.seasonNumber}/${chapter.chapterNumber}/${chapter.partNumber}`;
 
   const handlePrivateClick = () => {
     if (!user) {
       router.push('/login');
     } else {
-      router.push(`/chapters/${chapter.id}`);
+      router.push(chapterUrl);
     }
   };
 
   const handleProtectedClick = () => {
     // Placeholder for payment flow
-    router.push(`/chapters/${chapter.id}`);
+    router.push(chapterUrl);
   };
 
   const renderActionButton = () => {
@@ -36,12 +37,12 @@ export default function ChapterCard({ chapter }: ChapterCardProps) {
       case 'public':
         return (
           <Button asChild className="bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto">
-            <Link href={`/chapters/${chapter.id}`}>Read Now</Link>
+            <Link href={chapterUrl}>Read Now</Link>
           </Button>
         );
       case 'private':
         return (
-          <Button className="bg-blue-600 hover:bg-blue-700 text-white w-full sm:w-auto" onClick={handlePrivateClick}>
+          <Button className="bg-blue-600 hover:bg-blue-700 text-white w-full sm-w-auto" onClick={handlePrivateClick}>
             <Lock className="mr-2 h-4 w-4" />
             Sign In to Read
           </Button>
@@ -75,12 +76,12 @@ export default function ChapterCard({ chapter }: ChapterCardProps) {
       <div className="flex flex-col flex-grow justify-between w-full sm:w-3/4">
         <div>
           <h3 className="text-lg font-bold text-primary font-headline">
-            Season {chapter.seasonNumber} | Chapter {chapter.chapterNumber}: {chapter.title}
+            Season {chapter.seasonNumber} | Chapter {chapter.chapterNumber} (Part {chapter.partNumber}): {chapter.title}
           </h3>
           <p className="text-sm text-muted-foreground mt-2 line-clamp-3">
             {chapter.summary}
           </p>
-           <Link href={`/chapters/${chapter.id}`} className="text-xs text-primary hover:underline mt-1 inline-block">
+           <Link href={chapterUrl} className="text-xs text-primary hover:underline mt-1 inline-block">
                 ... read more
            </Link>
         </div>

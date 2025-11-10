@@ -12,7 +12,6 @@ async function getChapters(): Promise<Chapter[]> {
     const data = doc.data();
     return {
       docId: doc.id,
-      id: data.id,
       title: data.title,
       summary: data.summary,
       wordCount: data.wordCount,
@@ -20,6 +19,7 @@ async function getChapters(): Promise<Chapter[]> {
       content: data.content,
       seasonNumber: data.seasonNumber || 1,
       chapterNumber: data.chapterNumber || 0,
+      partNumber: data.partNumber || 1,
       status: data.status || 'private',
       price: data.price || 0,
       coverImage: data.coverImage || '/placeholder-cover.jpg',
@@ -29,6 +29,9 @@ async function getChapters(): Promise<Chapter[]> {
   // Manual sort for chapter number after fetching
   return chaptersList.sort((a, b) => {
     if (a.seasonNumber === b.seasonNumber) {
+      if (a.chapterNumber === b.chapterNumber) {
+        return a.partNumber - b.partNumber;
+      }
       return a.chapterNumber - b.chapterNumber;
     }
     return a.seasonNumber - b.seasonNumber;

@@ -13,7 +13,7 @@ import ChapterActionCard from '@/components/ChapterActionCard';
 
 type ChapterPageProps = {
   params: {
-    id: string;
+    slug: string[]; // e.g., ['1', '1', '1'] for S1, C1, P1
   };
 };
 
@@ -21,13 +21,25 @@ export default function ChapterPage({ params }: ChapterPageProps) {
   const [chapter, setChapter] = useState<Chapter | null>(null);
   const [loading, setLoading] = useState(true);
   const { user, loading: authLoading } = useAuth();
+  
+  const { slug } = params;
+  const [season, chapterNum, part] = slug.map(Number);
+
 
   useEffect(() => {
     async function getChapter() {
-      if (!params.id) return;
+      if (slug.length < 2 || isNaN(season) || isNaN(chapterNum)) return;
+      const partNum = isNaN(part) ? 1 : part;
+
       try {
         const chaptersCol = collection(db, 'chapters');
-        const q = query(chaptersCol, where('id', '==', params.id), limit(1));
+        const q = query(
+          chaptersCol, 
+          where('seasonNumber', '==', season), 
+          where('chapterNumber', '==', chapterNum),
+          where('partNumber', '==', partNum),
+          limit(1)
+        );
         const snapshot = await getDocs(q);
 
         if (snapshot.empty) {
@@ -36,7 +48,6 @@ export default function ChapterPage({ params }: ChapterPageProps) {
           const docData = snapshot.docs[0].data();
           const chapterData: Chapter = {
             docId: snapshot.docs[0].id,
-            id: docData.id,
             title: docData.title,
             summary: docData.summary,
             wordCount: docData.wordCount,
@@ -44,6 +55,7 @@ export default function ChapterPage({ params }: ChapterPageProps) {
             content: docData.content,
             seasonNumber: docData.seasonNumber,
             chapterNumber: docData.chapterNumber,
+            partNumber: docData.partNumber,
             status: docData.status || 'private',
             price: docData.price || 0,
             coverImage: docData.coverImage
@@ -59,7 +71,7 @@ export default function ChapterPage({ params }: ChapterPageProps) {
     }
 
     getChapter();
-  }, [params]);
+  }, [slug, season, chapterNum, part]);
 
 
   if (loading || authLoading) {
