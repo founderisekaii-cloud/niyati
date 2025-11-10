@@ -22,13 +22,17 @@ export default function ChapterPage({ params }: ChapterPageProps) {
   const [loading, setLoading] = useState(true);
   const { user, loading: authLoading } = useAuth();
   
-  const { slug } = params;
+  const resolvedParams = use(params);
+  const { slug } = resolvedParams;
   const [season, chapterNum, part] = slug.map(Number);
 
 
   useEffect(() => {
     async function getChapter() {
-      if (slug.length < 2 || isNaN(season) || isNaN(chapterNum)) return;
+      if (!slug || slug.length < 2 || isNaN(season) || isNaN(chapterNum)) {
+        setLoading(false);
+        return;
+      }
       const partNum = isNaN(part) ? 1 : part;
 
       try {
