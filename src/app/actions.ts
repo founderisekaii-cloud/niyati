@@ -93,9 +93,10 @@ type ChapterPdfData = {
 export async function generatePdf(chapterData: ChapterPdfData): Promise<string> {
     const pdfDoc = await PDFDocument.create();
     const timesRomanFont = await pdfDoc.embedFont(StandardFonts.TimesRoman);
+    const timesRomanBoldFont = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
 
     const { title, seasonNumber, chapterNumber, content } = chapterData;
-    // Strip HTML tags and any non-ASCII characters to prevent encoding errors
+    // Strip HTML tags but keep line breaks, and remove any other non-ASCII characters
     const cleanContent = content.replace(/<[^>]*>?/gm, '').replace(/[^\x00-\x7F]/g, "");
 
     let page = pdfDoc.addPage();
@@ -103,77 +104,85 @@ export async function generatePdf(chapterData: ChapterPdfData): Promise<string> 
     const margin = 50;
     let y = height - margin;
 
-    // Header
-    const headerText = "Visit our official website to read more content and more stories, don't copy it without author's permission.";
-    page.drawText(headerText, {
-        x: margin,
-        y: height - 30,
-        size: 8,
-        font: timesRomanFont,
-        color: rgb(0.5, 0.5, 0.5),
-    });
+    // Helper function to draw on every page
+    const drawPageChrome = (p: any) => {
+        // Header
+        const headerText = "Visit our official website to read more content: https://niyati-mu.vercel.app/";
+        p.drawText(headerText, {
+            x: margin,
+            y: height - 30,
+            size: 10,
+            font: timesRomanFont,
+            color: rgb(0.5, 0.5, 0.5),
+        });
 
-    // Chapter Title
-    page.drawText(title, {
-        x: margin,
-        y,
-        font: timesRomanFont,
-        size: 18,
-        color: rgb(1, 0, 0), // Red
-    });
-    y -= 30;
-
-    // Season/Chapter Number
-    page.drawText(`Season ${seasonNumber} | Chapter ${chapterNumber}`, {
-        x: margin,
-        y,
-        font: timesRomanFont,
-        size: 16,
-        color: rgb(0, 0, 1), // Blue
-    });
-    y -= 40;
-    
-    const drawContentOnPage = (p: any) => {
         // Footer
-        const footerText = "For latest reading latest release visit https://niyati-mu.vercel.app/ and sign in.";
+        const footerText = "Not for redistribution. For personal use of the logged-in user only.";
         p.drawText(footerText, {
             x: margin,
             y: 30,
-            size: 8,
+            size: 10,
             font: timesRomanFont,
             color: rgb(0.5, 0.5, 0.5),
         });
 
         // Watermark
         const watermarkText = "CREATED BY VIKAS A DUBEY";
-        const watermarkSize = 50;
-        const textWidth = timesRomanFont.widthOfTextAtSize(watermarkText, watermarkSize);
-        const textHeight = timesRomanFont.heightAtSize(watermarkSize);
+        const watermarkSize = 70;
+        const textWidth = timesRomanBoldFont.widthOfTextAtSize(watermarkText, watermarkSize);
+
         p.drawText(watermarkText, {
             x: width / 2 - textWidth / 2,
-            y: height / 2 + textHeight / 2,
-            font: timesRomanFont,
+            y: height / 2 + watermarkSize / 4,
+            font: timesRomanBoldFont,
             size: watermarkSize,
-            color: rgb(0, 1, 0), // Green
+            color: rgb(0, 0.5, 0), // Darker Green
             opacity: 0.1,
             rotate: degrees(-45),
         });
     }
 
-    drawContentOnPage(page);
+    drawPageChrome(page);
 
+    // --- Centered Title Block ---
+    const storyName = "Niyati";
+    const fullTitle = `${storyName}: ${title}`;
+    const seasonChapterText = `Season ${seasonNumber} | Chapter ${chapterNumber}`;
+
+    const storyNameWidth = timesRomanBoldFont.widthOfTextAtSize(fullTitle, 24);
+    const seasonChapterWidth = timesRomanFont.widthOfTextAtSize(seasonChapterText, 18);
+
+    page.drawText(fullTitle, {
+        x: width / 2 - storyNameWidth / 2,
+        y: y - 20,
+        font: timesRomanBoldFont,
+        size: 24,
+        color: rgb(0.8, 0, 0), // Darker Red
+    });
+    y -= 50;
+
+    page.drawText(seasonChapterText, {
+        x: width / 2 - seasonChapterWidth / 2,
+        y,
+        font: timesRomanFont,
+        size: 18,
+        color: rgb(0, 0, 0.8), // Darker Blue
+    });
+    y -= 60;
+    
     // Body Text
     const bodySize = 12;
     const bodyColor = rgb(0, 0, 0); // Black
-    const paragraphs = cleanContent.split('\n');
+    const lineHeight = bodySize * 1.5;
+    const paragraphs = cleanContent.split('\n').filter(p => p.trim() !== '');
 
     for (const paragraph of paragraphs) {
       const words = paragraph.split(' ');
       let line = '';
 
-      if (y < margin + 40) { // Check if space for a new line + footer
+      if (y < margin + lineHeight) { // Check if space for a new line + footer
             page = pdfDoc.addPage();
-            drawContentOnPage(page);
+            drawPageChrome(page);
             y = height - margin - 20; // Start a bit lower on new page
       }
 
@@ -185,18 +194,18 @@ export async function generatePdf(chapterData: ChapterPdfData): Promise<string> 
               line = testLine;
           } else {
               page.drawText(line, { x: margin, y, font: timesRomanFont, size: bodySize, color: bodyColor });
-              y -= bodySize * 1.5;
+              y -= lineHeight;
               line = word + ' ';
 
-              if (y < margin + 40) {
+              if (y < margin + lineHeight) {
                   page = pdfDoc.addPage();
-                  drawContentOnPage(page);
+                  drawPageChrome(page);
                   y = height - margin - 20;
               }
           }
       }
       page.drawText(line, { x: margin, y, font: timesRomanFont, size: bodySize, color: bodyColor });
-      y -= bodySize * 1.5; // Move to next line for the start of the next paragraph
+      y -= lineHeight * 2; // Add extra space between paragraphs
     }
 
 
