@@ -168,8 +168,10 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
         .sepia-theme-override { background-color: #fbf5e9; color: #5b4636; }
         .dark .dark-theme-override .prose { color: #E0E0E0; }
         
-        .dark-theme-override .prose-p, .dark-theme-override h1, .dark-theme-override h2, .dark-theme-override p { color: #E0E0E0 !important; }
-        .sepia-theme-override .prose-p, .sepia-theme-override h1, .sepia-theme-override h2, .sepia-theme-override p { color: #5b4636 !important; }
+        .dark-theme-override .prose-p, .dark-theme-override h1, .dark-theme-override h2, .dark-theme-override p,
+        .dark-theme-override .prose-headings, .dark-theme-override .prose-body { color: #E0E0E0 !important; }
+        .sepia-theme-override .prose-p, .sepia-theme-override h1, .sepia-theme-override h2, .sepia-theme-override p,
+        .sepia-theme-override .prose-headings, .sepia-theme-override .prose-body { color: #5b4636 !important; }
 
         .font-sans-override .prose {
             font-family: 'Inter', sans-serif !important;
@@ -181,16 +183,21 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
         .font-serif-override .prose {
             font-family: 'Alegreya', serif !important;
         }
+
+        .prose-xl p {
+            font-size: 1.25rem;
+            line-height: 1.8;
+        }
       `}</style>
       <div className="relative z-10">
         <header className="mb-8 text-center space-y-2">
-           <h2 className={cn("text-3xl font-bold font-headline", theme !== 'system' ? '' : 'text-red-600')}>
+           <h2 className={cn("text-3xl font-bold font-headline", theme !== 'system' ? '' : 'text-red-600 dark:text-red-500')}>
              Niyati
            </h2>
-           <p className={cn("text-xl font-headline", theme !== 'system' ? '' : 'text-blue-600')}>
+           <p className={cn("text-xl font-headline", theme !== 'system' ? '' : 'text-blue-600 dark:text-blue-400')}>
              Season {chapter.seasonNumber} | Chapter {chapter.chapterNumber}
            </p>
-          <h1 className={cn("text-4xl font-bold font-headline", theme !== 'system' ? '' : 'text-green-600')}>
+          <h1 className={cn("text-4xl font-bold font-headline", theme !== 'system' ? '' : 'text-green-600 dark:text-green-400')}>
             {chapter.title}
           </h1>
           <p className="text-sm text-muted-foreground pt-4">
@@ -202,10 +209,11 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
 
         <article
           className={cn(
-            "prose max-w-none prose-p:text-muted-foreground prose-p:text-lg",
+            "prose max-w-none prose-p:text-muted-foreground",
             `prose-${fontSize}`,
             fontFamily === 'sans' ? 'font-sans-override' : 'font-serif-override',
-            theme === 'system' ? 'dark:prose-invert' : ''
+            theme === 'system' ? 'dark:prose-invert' : '',
+            'prose-p:mb-6 prose-p:leading-relaxed'
           )}
           dangerouslySetInnerHTML={{ __html: getFormattedContent() }}
         />
