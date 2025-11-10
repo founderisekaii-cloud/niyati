@@ -17,12 +17,11 @@ type ChapterPageProps = {
   };
 };
 
-export default function ChapterPage({ params }: ChapterPageProps) {
+export default function ChapterPage({ params: { slug } }: ChapterPageProps) {
   const [chapter, setChapter] = useState<Chapter | null>(null);
   const [loading, setLoading] = useState(true);
   const { user, loading: authLoading } = useAuth();
   
-  const { slug } = params;
   const [season, chapterNum, part] = slug.map(Number);
 
 
