@@ -1,8 +1,13 @@
+
 export interface Chapter {
   docId?: string; // Firestore document ID
   id: string;
   title: string;
+  title_hi?: string;
+  title_mr?: string;
   summary: string;
+  summary_hi?: string;
+  summary_mr?: string;
   wordCount: number;
   releaseDate: string; // ISO 8601 format
   content: string; // Default/English content

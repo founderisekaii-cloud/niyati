@@ -102,7 +102,11 @@ export default function ChaptersAdminPage() {
             docId: doc.id,
             id: data.id,
             title: data.title,
+            title_hi: data.title_hi,
+            title_mr: data.title_mr,
             summary: data.summary,
+            summary_hi: data.summary_hi,
+            summary_mr: data.summary_mr,
             wordCount: data.wordCount,
             releaseDate:
               data.releaseDate?.toDate().toISOString() ||
@@ -143,14 +147,18 @@ export default function ChaptersAdminPage() {
     setLoading(true);
     try {
       // Step 1: Enrich content with AI
-      toast({ description: "AI is generating title, summary, and cover art..." });
+      toast({ description: "AI is generating title, summary, and translations..." });
       const enrichedData = await enrichChapterContent({ fullContent: data.content });
 
       // Step 2: Prepare the final chapter document
       const newChapterData = {
         ...data,
         title: enrichedData.title,
+        title_hi: enrichedData.title_hi,
+        title_mr: enrichedData.title_mr,
         summary: enrichedData.summary,
+        summary_hi: enrichedData.summary_hi,
+        summary_mr: enrichedData.summary_mr,
         coverImage: enrichedData.coverImage,
         wordCount: data.content.split(/\s+/).length,
         id: `s${data.seasonNumber}-c${data.chapterNumber}`,

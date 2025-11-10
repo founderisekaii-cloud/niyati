@@ -4,15 +4,11 @@
 /**
  * @fileOverview Implements a Genkit flow to enrich chapter content using AI.
  * This flow takes the full text of a chapter and returns a generated title,
- * summary, and a cover image.
- *
- * - enrichChapterContent - The main function to call the AI enrichment flow.
- * - EnrichChapterInput - The input type (full chapter text).
- * - EnrichChapterOutput - The output type (title, summary, cover image).
+ * summary, and a cover image, with translations for Hindi and Marathi.
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { z } from 'zod';
 
 // 1. Define Input Schema
 const EnrichChapterInputSchema = z.object({
@@ -22,8 +18,12 @@ export type EnrichChapterInput = z.infer<typeof EnrichChapterInputSchema>;
 
 // 2. Define Output Schema
 const EnrichChapterOutputSchema = z.object({
-  title: z.string().describe('The extracted or generated title of the chapter.'),
-  summary: z.string().describe('A compelling, 3-sentence summary of the chapter.'),
+  title: z.string().describe('The extracted or generated title of the chapter in English.'),
+  title_hi: z.string().describe('The Hindi translation of the chapter title.'),
+  title_mr: z.string().describe('The Marathi translation of the chapter title.'),
+  summary: z.string().describe('A compelling, 3-sentence summary of the chapter in English.'),
+  summary_hi: z.string().describe('The Hindi translation of the summary.'),
+  summary_mr: z.string().describe('The Marathi translation of the summary.'),
   coverImage: z.string().describe('A URL for the cover image.'),
 });
 export type EnrichChapterOutput = z.infer<typeof EnrichChapterOutputSchema>;
@@ -34,13 +34,18 @@ const generationPrompt = ai.definePrompt({
     name: 'chapterGenerationPrompt',
     input: { schema: z.object({ fullContent: z.string() }) },
     output: { schema: z.object({
-        title: z.string().describe("Extract the chapter title from the text. If no clear title is present, create a concise, compelling one based on the content."),
-        summary: z.string().describe("A compelling, 3-sentence summary suitable for a chapter listing page. It should be engaging and concise."),
+        title: z.string().describe("Extract the chapter title from the text in English. If no clear title is present, create a concise, compelling one based on the content."),
+        title_hi: z.string().describe("Translate the generated English title into appropriate and compelling Hindi."),
+        title_mr: z.string().describe("Translate the generated English title into appropriate and compelling Marathi."),
+        summary: z.string().describe("Generate a compelling, 3-sentence summary in English, suitable for a chapter listing page. It should be engaging and concise."),
+        summary_hi: z.string().describe("Translate the generated English summary into appropriate and compelling Hindi."),
+        summary_mr: z.string().describe("Translate the generated English summary into appropriate and compelling Marathi."),
     })},
-    prompt: `You are a master storyteller and editor. Read the full chapter content provided below and perform two tasks:
-    1. Extract the title. The title is likely the very first line or a clearly marked heading. If no explicit title exists, create one that captures the essence of the chapter.
-    2. Generate a compelling, 3-sentence summary suitable for a chapter listing page description. The summary should be engaging and concise, encouraging users to read.
-    
+    prompt: `You are a master storyteller and multilingual editor. Read the full chapter content provided below and perform the following tasks:
+    1.  **Title Generation (English):** Extract the title from the text. The title is likely the very first line or a clearly marked heading. If no explicit title exists, create a concise, compelling one in English that captures the essence of the chapter.
+    2.  **Summary Generation (English):** Generate a compelling, 3-sentence summary in English suitable for a chapter listing page description. The summary should be engaging and concise, encouraging users to read.
+    3.  **Translations:** Translate the generated English title and English summary into both Hindi and Marathi. Ensure the translations are accurate, natural, and maintain the tone of the original.
+
     Full Chapter Content:
     {{{fullContent}}}
     `,
@@ -57,10 +62,10 @@ const enrichChapterFlow = ai.defineFlow(
   async (input) => {
     // Step 1: Generate Title and Summary
     const textGenResult = await generationPrompt(input);
-    const { title, summary } = textGenResult.output!;
+    const { title, title_hi, title_mr, summary, summary_hi, summary_mr } = textGenResult.output!;
 
-    if (!title || !summary) {
-        throw new Error("Failed to generate title or summary.");
+    if (!title || !summary || !title_hi || !summary_hi || !title_mr || !summary_mr) {
+        throw new Error("Failed to generate title or summary and their translations.");
     }
     
     // Step 2: Use a placeholder for the cover image to avoid billing errors.
@@ -69,7 +74,11 @@ const enrichChapterFlow = ai.defineFlow(
     // Step 3: Return all generated content
     return {
       title,
+      title_hi,
+      title_mr,
       summary,
+      summary_hi,
+      summary_mr,
       coverImage: placeholderImageUrl,
     };
   }

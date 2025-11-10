@@ -5,7 +5,7 @@
 import { useState, useEffect } from 'react';
 import type { Chapter } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { FileText, Palette, Loader2, LogIn, Text } from 'lucide-react';
+import { FileText, Palette, Loader2, LogIn, Text, Type } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { useLanguage } from '@/context/LanguageContext';
@@ -39,7 +39,6 @@ const themes: Theme[] = ['system', 'sepia', 'dark'];
 // This defines the possible font sizes.
 type FontSize = 'sm' | 'base' | 'lg' | 'xl';
 const fontSizes: FontSize[] = ['sm', 'base', 'lg', 'xl'];
-
 
 // This is the main component for the entire reader page.
 export default function ReaderView({ chapter }: ReaderViewProps) {
@@ -92,6 +91,12 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
     // Split the raw text by newline characters, wrap each part in <p> tags, and join them back together.
     return rawContent.split('\n').filter(p => p.trim() !== '').map(p => `<p>${p}</p>`).join('');
   };
+  
+  const getTranslated = (field: 'title' | 'summary') => {
+      const key = `${field}_${language}` as keyof Chapter;
+      return chapter[key] as string || chapter[field];
+  }
+
 
   const handleViewPdf = async () => {
     if (!user) {
@@ -115,7 +120,7 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
         }
 
         const pdfData = await generatePdf({
-            title: chapter.title,
+            title: getTranslated('title'),
             seasonNumber: chapter.seasonNumber,
             chapterNumber: chapter.chapterNumber,
             content: contentForPdf
@@ -182,7 +187,7 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
              Season {chapter.seasonNumber} | Chapter {chapter.chapterNumber}
            </p>
           <h1 className={cn("text-4xl font-bold font-headline", theme !== 'system' ? '' : 'text-green-600 dark:text-green-400')}>
-            {chapter.title}
+            {getTranslated('title')}
           </h1>
           <p className="text-sm text-muted-foreground pt-4">
             {chapter.wordCount.toLocaleString()} words
@@ -291,5 +296,3 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
     </>
   );
 }
-
-    
