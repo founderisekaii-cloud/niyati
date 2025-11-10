@@ -178,11 +178,12 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
         .font-serif-override .prose {
             font-family: 'Alegreya', serif !important;
         }
+        
+        .prose.prose-size-sm p { font-size: 0.8rem; line-height: 1.6; }
+        .prose.prose-size-base p { font-size: 1rem; line-height: 1.7; }
+        .prose.prose-size-lg p { font-size: 1.15rem; line-height: 1.8; }
+        .prose.prose-size-xl p { font-size: 1.3rem; line-height: 1.9; }
 
-        .prose-xl p {
-            font-size: 1.25rem;
-            line-height: 1.8;
-        }
       `}</style>
       <div className="relative z-10">
         <header className="mb-8 text-center space-y-2">
@@ -205,10 +206,10 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
         <article
           className={cn(
             "prose max-w-none prose-p:text-muted-foreground",
-            `prose-${fontSize}`,
+            `prose-size-${fontSize}`,
             fontFamily === 'sans' ? 'font-sans-override' : 'font-serif-override',
             theme === 'system' ? 'dark:prose-invert' : '',
-            'prose-p:mb-6 prose-p:leading-relaxed'
+            'prose-p:mb-6'
           )}
           dangerouslySetInnerHTML={{ __html: getFormattedContent() }}
         />
