@@ -4,9 +4,10 @@ import type { Chapter } from '@/lib/types';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Heart, MessageCircle, DollarSign, Lock, ArrowRight, BookOpen } from 'lucide-react';
+import { Heart, MessageCircle, DollarSign, Lock } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 type ChapterCardProps = {
   chapter: Chapter;
@@ -15,6 +16,7 @@ type ChapterCardProps = {
 export default function ChapterCard({ chapter }: ChapterCardProps) {
   const { user } = useAuth();
   const router = useRouter();
+  const { t, language } = useTranslation();
 
   const handlePrivateClick = () => {
     if (!user) {
@@ -26,8 +28,14 @@ export default function ChapterCard({ chapter }: ChapterCardProps) {
 
   const handleProtectedClick = () => {
     // Placeholder for payment flow
-    alert(`Unlock chapter for ₹${chapter.price}`);
+    router.push(`/chapters/${chapter.id}`);
   };
+  
+  const getTranslated = (field: 'title' | 'summary') => {
+      const key = `${field}_${language}` as keyof Chapter;
+      return (chapter[key] as string) || chapter[field];
+  }
+
 
   const renderActionButton = () => {
     switch (chapter.status) {
@@ -62,7 +70,7 @@ export default function ChapterCard({ chapter }: ChapterCardProps) {
       <div className="w-full sm:w-1/4 aspect-square flex-shrink-0">
         <Image
           src={chapter.coverImage || '/placeholder-cover.jpg'}
-          alt={`Cover for ${chapter.title}`}
+          alt={`Cover for ${getTranslated('title')}`}
           width={200}
           height={200}
           className="object-cover w-full h-full"
@@ -73,10 +81,10 @@ export default function ChapterCard({ chapter }: ChapterCardProps) {
       <div className="flex flex-col flex-grow justify-between w-full sm:w-3/4">
         <div>
           <h3 className="text-lg font-bold text-primary font-headline">
-            Season {chapter.seasonNumber} | Chapter {chapter.chapterNumber}: {chapter.title}
+            Season {chapter.seasonNumber} | Chapter {chapter.chapterNumber}: {getTranslated('title')}
           </h3>
           <p className="text-sm text-muted-foreground mt-2 line-clamp-3">
-            {chapter.summary}
+            {getTranslated('summary')}
           </p>
            <Link href={`/chapters/${chapter.id}`} className="text-xs text-primary hover:underline mt-1 inline-block">
                 ... read more
