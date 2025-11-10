@@ -1,10 +1,11 @@
+
 'use client';
 
 import type { Chapter } from '@/lib/types';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Heart, MessageCircle, DollarSign, Lock } from 'lucide-react';
+import { Heart, MessageCircle, DollarSign, Lock, BookOpen } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from '@/hooks/useTranslation';
@@ -19,20 +20,14 @@ export default function ChapterCard({ chapter }: ChapterCardProps) {
   const { t } = useTranslation();
   const chapterUrl = `/chapters/${chapter.seasonNumber}/${chapter.chapterNumber}/${chapter.partNumber}`;
 
-  const handlePrivateClick = () => {
-    if (!user) {
-      router.push('/login');
-    } else {
-      router.push(chapterUrl);
-    }
-  };
-
   const handleProtectedClick = () => {
-    // Placeholder for payment flow
+    // This will navigate to the chapter page, which will then show the ChapterActionCard
     router.push(chapterUrl);
   };
 
   const renderActionButton = () => {
+    const isLoggedIn = !!user;
+
     switch (chapter.status) {
       case 'public':
         return (
@@ -41,13 +36,25 @@ export default function ChapterCard({ chapter }: ChapterCardProps) {
           </Button>
         );
       case 'private':
+        if (isLoggedIn) {
+            // If user is logged in, treat private chapter as public
+            return (
+                 <Button asChild className="w-full sm:w-auto">
+                    <Link href={chapterUrl}><BookOpen className="mr-2 h-4 w-4" />Read Chapter</Link>
+                </Button>
+            );
+        }
         return (
-          <Button className="bg-blue-600 hover:bg-blue-700 text-white w-full sm-w-auto" onClick={handlePrivateClick}>
-            <Lock className="mr-2 h-4 w-4" />
-            Sign In to Read
+          <Button asChild variant="secondary" className="w-full sm:w-auto">
+            <Link href="/login">
+                <Lock className="mr-2 h-4 w-4" />
+                Sign In to Read
+            </Link>
           </Button>
         );
       case 'protected':
+        // This logic will be expanded once payments are implemented
+        // For now, it directs user to the action card.
         return (
           <Button className="bg-red-600 hover:bg-red-700 text-white w-full sm:w-auto" onClick={handleProtectedClick}>
             <DollarSign className="mr-2 h-4 w-4" />
