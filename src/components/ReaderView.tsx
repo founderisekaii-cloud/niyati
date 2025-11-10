@@ -92,7 +92,7 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
         });
         const blob = new Blob([Buffer.from(pdfData, 'base64')], { type: 'application/pdf' });
         const url = URL.createObjectURL(blob);
-        setPdfUrl(`${url}#toolbar=0&navpanes=0`);
+        setPdfUrl(`${url}#toolbar=0`);
         setIsPdfModalOpen(true);
         toast({ title: "PDF Generated!" });
     } catch (error) {
@@ -115,28 +115,6 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
         theme === 'dark' ? 'bg-[#121212] text-white' : 'bg-[#fbf5e9] text-[#5b4636]'
       )}
     >
-      {/* This section creates the subtle watermark effect. */}
-      {/* It only shows the watermark if we have the user's email. */}
-      {user?.email && (
-        <div className="absolute inset-0 grid grid-cols-2 sm:grid-cols-3 gap-8 sm:gap-16 pointer-events-none opacity-[0.03] overflow-hidden p-4 md:p-8">
-          {/* This creates 12 watermark text elements and spreads them across the page. */}
-          {Array.from({ length: 12 }).map((_, i) => (
-            <div
-              key={i}
-              className="flex items-center justify-center transform -rotate-45"
-            >
-              <p className={cn(
-                "text-lg font-bold whitespace-nowrap",
-                // The watermark color also changes based on the theme to be less distracting.
-                theme === 'dark' ? 'text-gray-500' : 'text-[#9e8a78]'
-              )}>
-                {user.email} - {new Date().toLocaleDateString()}
-              </p>
-            </div>
-          ))}
-        </div>
-      )}
-
       {/* This container holds the actual chapter content and sits on top of the watermark. */}
       <div className="relative z-10">
         <header className="mb-8 text-center">
@@ -213,8 +191,8 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
         )}
     </div>
     <Dialog open={isPdfModalOpen} onOpenChange={setIsPdfModalOpen}>
-        <DialogContent className="max-w-5xl h-[90vh] flex flex-col">
-            <DialogHeader>
+        <DialogContent className="w-screen h-screen max-w-full max-h-full p-0 flex flex-col border-none rounded-none">
+            <DialogHeader className="p-4 border-b">
                 <DialogTitle>PDF Viewer</DialogTitle>
                 <DialogDescription>
                     {chapter.title} - Reading in secure mode.
@@ -224,7 +202,7 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
                  {pdfUrl && (
                     <iframe
                         src={pdfUrl}
-                        className="w-full h-full"
+                        className="w-full h-full border-0"
                         title={`PDF Viewer - ${chapter.title}`}
                     />
                  )}
