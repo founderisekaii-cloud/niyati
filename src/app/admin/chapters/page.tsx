@@ -88,10 +88,10 @@ export default function ChaptersAdminPage() {
   const status = watch('status');
 
   useEffect(() => {
+    // Simplified query to order by seasonNumber only to prevent composite index error.
     const q = query(
       collection(db, 'chapters'),
       orderBy('seasonNumber', 'desc'),
-      orderBy('chapterNumber', 'desc')
     );
     const unsubscribe = onSnapshot(
       q,
@@ -115,7 +115,14 @@ export default function ChaptersAdminPage() {
             price: data.price || 0,
           };
         });
-        setChapters(chaptersData);
+         // Manual sort for chapter number after fetching
+        const sortedChapters = chaptersData.sort((a, b) => {
+          if (a.seasonNumber === b.seasonNumber) {
+            return b.chapterNumber - a.chapterNumber;
+          }
+          return b.seasonNumber - a.seasonNumber;
+        });
+        setChapters(sortedChapters);
         setChaptersLoading(false);
       },
       error => {

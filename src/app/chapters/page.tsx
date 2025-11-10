@@ -5,7 +5,9 @@ import type { Chapter } from '@/lib/types';
 
 async function getChapters(): Promise<Chapter[]> {
   const chaptersCol = collection(db, 'chapters');
-  const q = query(chaptersCol, orderBy('seasonNumber', 'asc'), orderBy('chapterNumber', 'asc'));
+  // Simplified query to order by seasonNumber only to prevent composite index error.
+  // We can manually create the composite index in Firebase later for more complex sorting.
+  const q = query(chaptersCol, orderBy('seasonNumber', 'asc'));
   const chapterSnapshot = await getDocs(q);
   const chaptersList = chapterSnapshot.docs.map(doc => {
     const data = doc.data();
@@ -24,7 +26,14 @@ async function getChapters(): Promise<Chapter[]> {
       coverImage: data.coverImage || '/placeholder-cover.jpg',
     };
   });
-  return chaptersList;
+  
+  // Manual sort for chapter number after fetching
+  return chaptersList.sort((a, b) => {
+    if (a.seasonNumber === b.seasonNumber) {
+      return a.chapterNumber - b.chapterNumber;
+    }
+    return a.seasonNumber - b.seasonNumber;
+  });
 }
 
 export default async function ChaptersPage() {
