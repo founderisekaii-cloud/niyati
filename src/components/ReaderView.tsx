@@ -5,13 +5,13 @@
 import { useState, useEffect } from 'react';
 import type { Chapter } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { Download, Sun, Moon, Loader2 } from 'lucide-react';
+import { FileText, Sun, Moon, Loader2, LogIn } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { useLanguage } from '@/context/LanguageContext';
 import { generatePdf } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
-
+import { useAuth } from '@/hooks/useAuth';
 
 // This defines what information the ReaderView component needs to work.
 // In this case, it just needs the 'chapter' details.
@@ -28,11 +28,11 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
   // It starts as 'dark' by default.
   const [theme, setTheme] = useState<Theme>('dark');
   
-  // This creates a piece of state to hold the logged-in user's email for watermarking.
-  const [userEmail, setUserEmail] = useState<string | null>(null);
+  // Get user authentication state.
+  const { user, loading: authLoading } = useAuth();
 
-  // State for PDF download
-  const [isDownloading, setIsDownloading] = useState(false);
+  // State for PDF generation
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const { toast } = useToast();
 
   // This uses the LanguageContext to know which language ('en', 'hi', 'mr') is currently selected.
@@ -40,9 +40,6 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
 
   // This 'useEffect' hook runs code only once when the component first loads on the screen.
   useEffect(() => {
-    // We simulate getting the user's email. In a real app, this would come from your login system.
-    setUserEmail('reader@example.com');
-
     // This is a security feature. It prevents users from right-clicking to copy text.
     const handleContextmenu = (e: MouseEvent) => {
       e.preventDefault();
@@ -69,8 +66,12 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
     }
   };
 
-  const handleDownload = async () => {
-    setIsDownloading(true);
+  const handleViewPdf = async () => {
+    if (!user) {
+        toast({ title: "Authentication Required", description: "Please log in to view the PDF.", variant: "destructive" });
+        return;
+    }
+    setIsGeneratingPdf(true);
     toast({ description: "Generating your secure PDF..." });
     try {
         const pdfData = await generatePdf({
@@ -81,19 +82,13 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
         });
         const blob = new Blob([Buffer.from(pdfData, 'base64')], { type: 'application/pdf' });
         const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${chapter.id}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        a.remove();
-        toast({ title: "Download started!" });
+        window.open(url, '_blank'); // Open in new tab
+        toast({ title: "PDF Generated!" });
     } catch (error) {
         console.error("PDF generation failed:", error);
         toast({ title: "Error", description: "Could not generate PDF.", variant: "destructive" });
     } finally {
-        setIsDownloading(false);
+        setIsGeneratingPdf(false);
     }
   };
 
@@ -110,7 +105,7 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
     >
       {/* This section creates the subtle watermark effect. */}
       {/* It only shows the watermark if we have the user's email. */}
-      {userEmail && (
+      {user?.email && (
         <div className="absolute inset-0 grid grid-cols-2 sm:grid-cols-3 gap-8 sm:gap-16 pointer-events-none opacity-[0.03] overflow-hidden p-4 md:p-8">
           {/* This creates 12 watermark text elements and spreads them across the page. */}
           {Array.from({ length: 12 }).map((_, i) => (
@@ -123,7 +118,7 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
                 // The watermark color also changes based on the theme to be less distracting.
                 theme === 'dark' ? 'text-gray-500' : 'text-[#9e8a78]'
               )}>
-                {userEmail} - {new Date().toLocaleDateString()}
+                {user.email} - {new Date().toLocaleDateString()}
               </p>
             </div>
           ))}
@@ -171,18 +166,39 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
             {/* It shows a Sun icon for dark mode and a Moon icon for sepia mode. */}
             {theme === 'dark' ? <Sun className="h-5 w-5"/> : <Moon className="h-5 w-5"/>}
           </Button>
-            {/* This is the download button. */}
-            <Button 
+
+          {authLoading ? (
+             <Button size="icon" variant="outline" className="rounded-full bg-background/50 backdrop-blur" disabled>
+                <Loader2 className="h-5 w-5 animate-spin" />
+             </Button>
+          ) : user ? (
+             <Button 
                 size="icon" 
                 variant="outline" 
-                title="Download (DRM Protected)" 
+                title="View PDF" 
                 className="rounded-full bg-background/50 backdrop-blur"
-                onClick={handleDownload}
-                disabled={isDownloading}
+                onClick={handleViewPdf}
+                disabled={isGeneratingPdf}
             >
-            {isDownloading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Download className="h-5 w-5" />}
-          </Button>
+                {isGeneratingPdf ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileText className="h-5 w-5" />}
+            </Button>
+          ) : (
+             <Button 
+                size="icon" 
+                variant="outline" 
+                title="Log in to view PDF" 
+                className="rounded-full bg-background/50 backdrop-blur"
+                disabled
+            >
+                <LogIn className="h-5 w-5" />
+            </Button>
+          )}
         </div>
+         {!authLoading && !user && (
+            <div className="mt-8 text-center text-sm text-muted-foreground p-4 bg-background/50 rounded-md">
+                Please <a href="/login" className="text-primary font-semibold hover:underline">log in</a> or <a href="/signup" className="text-primary font-semibold hover:underline">sign up</a> to view this chapter as a PDF.
+            </div>
+        )}
     </div>
   );
 }

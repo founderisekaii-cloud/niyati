@@ -4,8 +4,6 @@
 import { autoApproveUpiPayment } from '@/ai/flows/auto-approve-upi-payments';
 import { z } from 'zod';
 import { PDFDocument, rgb, StandardFonts, degrees } from 'pdf-lib';
-import fs from 'fs/promises';
-import path from 'path';
 
 const paymentSchema = z.object({
   chapterId: z.string(),
@@ -94,11 +92,7 @@ type ChapterPdfData = {
 
 export async function generatePdf(chapterData: ChapterPdfData): Promise<string> {
     const pdfDoc = await PDFDocument.create();
-
-    // Load font files
-    const fontPath = path.resolve(process.cwd(), 'public/fonts/times.ttf');
-    const fontBytes = await fs.readFile(fontPath);
-    const timesRomanFont = await pdfDoc.embedFont(fontBytes);
+    const timesRomanFont = await pdfDoc.embedFont(StandardFonts.TimesRoman);
 
     const { title, seasonNumber, chapterNumber, content } = chapterData;
 
