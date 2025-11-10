@@ -6,7 +6,7 @@ import ReaderView from '@/components/ReaderView';
 import { collection, getDocs, query, where, limit } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Chapter } from '@/lib/types';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, use } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { NiyatiVerseLogo } from '@/components/icons';
 import ChapterActionCard from '@/components/ChapterActionCard';
