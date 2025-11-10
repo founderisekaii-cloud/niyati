@@ -128,12 +128,13 @@ export async function generatePdf(chapterData: ChapterPdfData): Promise<string> 
 
         // Watermark
         const watermarkText = "CREATED BY VIKAS A DUBEY";
-        const watermarkSize = 70;
+        const watermarkSize = 60;
         const textWidth = timesRomanBoldFont.widthOfTextAtSize(watermarkText, watermarkSize);
+        const textHeight = timesRomanBoldFont.heightAtSize(watermarkSize);
 
         p.drawText(watermarkText, {
             x: width / 2 - textWidth / 2,
-            y: height / 2 + watermarkSize / 4,
+            y: height / 2 + textHeight / 4,
             font: timesRomanBoldFont,
             size: watermarkSize,
             color: rgb(0, 0.5, 0), // Darker Green
@@ -177,8 +178,8 @@ export async function generatePdf(chapterData: ChapterPdfData): Promise<string> 
     const paragraphs = cleanContent.split('\n').filter(p => p.trim() !== '');
 
     for (const paragraph of paragraphs) {
-      const words = paragraph.split(' ');
       let line = '';
+      const words = paragraph.split(' ');
 
       if (y < margin + lineHeight) { // Check if space for a new line + footer
             page = pdfDoc.addPage();
