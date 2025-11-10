@@ -41,7 +41,7 @@ const fontFamilies: FontFamily[] = ['serif', 'sans'];
 // This is the main component for the entire reader page.
 export default function ReaderView({ chapter }: ReaderViewProps) {
   const [theme, setTheme] = useState<Theme>('system');
-  const [fontSize, setFontSize] = useState<FontSize>('base');
+  const [fontSize, setFontSize] = useState<FontSize>('lg');
   const [fontFamily, setFontFamily] = useState<FontFamily>('serif');
   
   // Get user authentication state.
@@ -167,8 +167,9 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
         .dark-theme-override { background-color: #121212; color: #E0E0E0; }
         .sepia-theme-override { background-color: #fbf5e9; color: #5b4636; }
         .dark .dark-theme-override .prose { color: #E0E0E0; }
-        .dark-theme-override .prose-p { color: #E0E0E0 !important; }
-        .sepia-theme-override .prose-p { color: #5b4636 !important; }
+        
+        .dark-theme-override .prose-p, .dark-theme-override h1, .dark-theme-override h2, .dark-theme-override p { color: #E0E0E0 !important; }
+        .sepia-theme-override .prose-p, .sepia-theme-override h1, .sepia-theme-override h2, .sepia-theme-override p { color: #5b4636 !important; }
 
         .font-sans-override .prose {
             font-family: 'Inter', sans-serif !important;
@@ -183,13 +184,13 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
       `}</style>
       <div className="relative z-10">
         <header className="mb-8 text-center space-y-2">
-           <h2 className="text-3xl font-bold font-headline" style={{ color: 'rgb(204, 26, 26)' }}>
+           <h2 className={cn("text-3xl font-bold font-headline", theme !== 'system' ? '' : 'text-red-600')}>
              Niyati
            </h2>
-           <p className="text-xl font-headline" style={{ color: 'rgb(26, 26, 204)' }}>
+           <p className={cn("text-xl font-headline", theme !== 'system' ? '' : 'text-blue-600')}>
              Season {chapter.seasonNumber} | Chapter {chapter.chapterNumber}
            </p>
-          <h1 className="text-4xl font-bold font-headline" style={{ color: 'rgb(26, 153, 26)' }}>
+          <h1 className={cn("text-4xl font-bold font-headline", theme !== 'system' ? '' : 'text-green-600')}>
             {chapter.title}
           </h1>
           <p className="text-sm text-muted-foreground pt-4">
@@ -201,7 +202,7 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
 
         <article
           className={cn(
-            "prose max-w-none",
+            "prose max-w-none prose-p:text-muted-foreground prose-p:text-lg",
             `prose-${fontSize}`,
             fontFamily === 'sans' ? 'font-sans-override' : 'font-serif-override',
             theme === 'system' ? 'dark:prose-invert' : ''
