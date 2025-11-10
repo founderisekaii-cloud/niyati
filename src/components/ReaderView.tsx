@@ -60,19 +60,26 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
   }, []); // The empty array [] means this effect runs only one time.
 
 
-  // This function decides which chapter content to show based on the selected language.
-  const getContent = () => {
+  // This function decides which chapter content to show based on the selected language, and formats it.
+  const getFormattedContent = () => {
+    let rawContent = '';
     switch (language) {
       case 'hi':
         // If Hindi is selected, try to use 'content_hi'. If it's not available, use the default content.
-        return chapter.content_hi || chapter.content;
+        rawContent = chapter.content_hi || chapter.content;
+        break;
       case 'mr':
         // If Marathi is selected, try to use 'content_mr'. If it's not available, use the main 'content'.
-        return chapter.content_mr || chapter.content;
+        rawContent = chapter.content_mr || chapter.content;
+        break;
       default:
         // By default (for English), use 'content_en'. If it's not available, use the main 'content'.
-        return chapter.content_en || chapter.content;
+        rawContent = chapter.content_en || chapter.content;
+        break;
     }
+    
+    // Split the raw text by newline characters, wrap each part in <p> tags, and join them back together.
+    return rawContent.split('\n').filter(p => p.trim() !== '').map(p => `<p>${p}</p>`).join('');
   };
 
   const handleViewPdf = async () => {
@@ -83,7 +90,19 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
     setIsGeneratingPdf(true);
     toast({ description: "Generating your secure PDF..." });
     try {
-        const contentForPdf = getContent();
+        let contentForPdf = '';
+         switch (language) {
+          case 'hi':
+            contentForPdf = chapter.content_hi || chapter.content;
+            break;
+          case 'mr':
+            contentForPdf = chapter.content_mr || chapter.content;
+            break;
+          default:
+            contentForPdf = chapter.content_en || chapter.content;
+            break;
+        }
+
         const pdfData = await generatePdf({
             title: chapter.title,
             seasonNumber: chapter.seasonNumber,
@@ -138,7 +157,7 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
           className={cn("prose prose-lg max-w-none", theme === 'dark' ? 'prose-invert' : '')}
           // This is a special property that tells React to render raw HTML content from your database.
           // It's used because your chapter content is stored as HTML.
-          dangerouslySetInnerHTML={{ __html: getContent() }}
+          dangerouslySetInnerHTML={{ __html: getFormattedContent() }}
         />
 
         
