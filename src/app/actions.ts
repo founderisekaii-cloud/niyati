@@ -95,6 +95,7 @@ export async function generatePdf(chapterData: ChapterPdfData): Promise<string> 
     const timesRomanFont = await pdfDoc.embedFont(StandardFonts.TimesRoman);
 
     const { title, seasonNumber, chapterNumber, content } = chapterData;
+    const cleanContent = content.replace(/<[^>]*>?/gm, ''); // Strip HTML tags
 
     let page = pdfDoc.addPage();
     const { width, height } = page.getSize();
@@ -134,7 +135,6 @@ export async function generatePdf(chapterData: ChapterPdfData): Promise<string> 
     // Body Text
     const bodySize = 12;
     const bodyColor = rgb(0, 0, 0); // Black
-    const cleanContent = content.replace(/<[^>]*>?/gm, ''); // Strip HTML tags
     const words = cleanContent.split(' ');
     let line = '';
     

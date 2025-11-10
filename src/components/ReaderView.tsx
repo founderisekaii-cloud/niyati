@@ -74,11 +74,12 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
     setIsGeneratingPdf(true);
     toast({ description: "Generating your secure PDF..." });
     try {
+        const contentForPdf = getContent();
         const pdfData = await generatePdf({
             title: chapter.title,
             seasonNumber: chapter.seasonNumber,
             chapterNumber: chapter.chapterNumber,
-            content: getContent()
+            content: contentForPdf
         });
         const blob = new Blob([Buffer.from(pdfData, 'base64')], { type: 'application/pdf' });
         const url = window.URL.createObjectURL(blob);
