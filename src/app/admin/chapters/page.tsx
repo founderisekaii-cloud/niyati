@@ -173,7 +173,7 @@ export default function ChaptersAdminPage() {
         price: data.status === 'protected' ? data.price : 0,
       };
 
-      await addDoc(collection(db, 'chapters'), newChapterData);
+      const docRef = await addDoc(collection(db, 'chapters'), newChapterData);
       
       toast({
         title: 'Success!',
@@ -252,11 +252,17 @@ export default function ChaptersAdminPage() {
           description: 'Chapter deleted.',
         });
       } catch (serverError: any) {
+        console.error('Error deleting chapter:', serverError);
         const permissionError = new FirestorePermissionError({
             path: chapterRef.path,
             operation: 'delete',
         });
         errorEmitter.emit('permission-error', permissionError);
+        toast({
+          title: 'Delete Failed',
+          description: 'You may not have permission to delete this chapter. Check the console for more details.',
+          variant: 'destructive',
+        });
       }
     }
   };
@@ -396,3 +402,5 @@ export default function ChaptersAdminPage() {
     </div>
   );
 }
+
+    
