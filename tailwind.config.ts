@@ -9,10 +9,61 @@ export default {
   ],
   theme: {
     extend: {
+      typography: ({ theme }: { theme: any}) => ({
+        DEFAULT: {
+          css: {
+            '--tw-prose-body': theme('colors.foreground / 0.8'),
+            '--tw-prose-headings': theme('colors.primary'),
+            '--tw-prose-lead': theme('colors.foreground / 0.9'),
+            '--tw-prose-links': theme('colors.primary'),
+            '--tw-prose-bold': theme('colors.foreground'),
+            '--tw-prose-counters': theme('colors.muted-foreground'),
+            '--tw-prose-bullets': theme('colors.muted-foreground'),
+            '--tw-prose-hr': theme('colors.border'),
+            '--tw-prose-quotes': theme('colors.foreground'),
+            '--tw-prose-quote-borders': theme('colors.primary'),
+            '--tw-prose-captions': theme('colors.muted-foreground'),
+            '--tw-prose-code': theme('colors.foreground'),
+            '--tw-prose-pre-code': theme('colors.foreground'),
+            '--tw-prose-pre-bg': theme('colors.muted'),
+            '--tw-prose-th-borders': theme('colors.border'),
+            '--tw-prose-td-borders': theme('colors.border'),
+            '--tw-prose-invert-body': theme('colors.foreground / 0.8'),
+            '--tw-prose-invert-headings': theme('colors.primary'),
+            '--tw-prose-invert-lead': theme('colors.foreground / 0.9'),
+            '--tw-prose-invert-links': theme('colors.primary'),
+            '--tw-prose-invert-bold': theme('colors.foreground'),
+            '--tw-prose-invert-counters': theme('colors.muted-foreground'),
+            '--tw-prose-invert-bullets': theme('colors.muted-foreground'),
+            '--tw-prose-invert-hr': theme('colors.border'),
+            '--tw-prose-invert-quotes': theme('colors.foreground'),
+            '--tw-prose-invert-quote-borders': theme('colors.primary'),
+            '--tw-prose-invert-captions': theme('colors.muted-foreground'),
+            '--tw-prose-invert-code': theme('colors.foreground'),
+            '--tw-prose-invert-pre-code': theme('colors.foreground'),
+            '--tw-prose-invert-pre-bg': theme('colors.muted'),
+            '--tw-prose-invert-th-borders': theme('colors.border'),
+            '--tw-prose-invert-td-borders': theme('colors.border'),
+             p: {
+              marginBottom: theme('spacing.6'),
+              lineHeight: '1.7',
+            },
+          },
+        },
+        xl: {
+            css: {
+                 p: {
+                    lineHeight: '1.8',
+                    fontSize: '1.25rem',
+                 }
+            }
+        },
+      }),
       fontFamily: {
         body: ['Inter', 'sans-serif'],
         headline: ['Alegreya', 'serif'],
         code: ['monospace'],
+        serif: ['Alegreya', 'serif'], // Added for reader view
       },
       colors: {
         background: 'hsl(var(--background))',
@@ -106,5 +157,10 @@ export default {
       },
     },
   },
-  plugins: [require('tailwindcss-animate')],
+  plugins: [
+    require('@tailwindcss/typography'),
+    require('tailwindcss-animate')
+],
 } satisfies Config;
+
+    

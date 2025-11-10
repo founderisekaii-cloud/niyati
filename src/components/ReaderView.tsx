@@ -5,7 +5,7 @@
 import { useState, useEffect } from 'react';
 import type { Chapter } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { FileText, Sun, Moon, Loader2, LogIn } from 'lucide-react';
+import { FileText, Sun, Moon, Loader2, LogIn, Text, Type, Palette } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { useLanguage } from '@/context/LanguageContext';
@@ -21,19 +21,28 @@ import {
 } from '@/components/ui/dialog';
 
 // This defines what information the ReaderView component needs to work.
-// In this case, it just needs the 'chapter' details.
 type ReaderViewProps = {
   chapter: Chapter;
 };
 
-// This defines the possible themes for the reader: 'dark' or 'sepia'.
-type Theme = 'dark' | 'sepia';
+// This defines the possible themes for the reader.
+type Theme = 'system' | 'sepia' | 'dark';
+const themes: Theme[] = ['system', 'sepia', 'dark'];
+
+// This defines the possible font sizes.
+type FontSize = 'sm' | 'base' | 'lg' | 'xl';
+const fontSizes: FontSize[] = ['sm', 'base', 'lg', 'xl'];
+
+// This defines the possible font families.
+type FontFamily = 'serif' | 'sans';
+const fontFamilies: FontFamily[] = ['serif', 'sans'];
+
 
 // This is the main component for the entire reader page.
 export default function ReaderView({ chapter }: ReaderViewProps) {
-  // This creates a piece of state to keep track of the current theme ('dark' or 'sepia').
-  // It starts as 'dark' by default.
-  const [theme, setTheme] = useState<Theme>('dark');
+  const [theme, setTheme] = useState<Theme>('system');
+  const [fontSize, setFontSize] = useState<FontSize>('base');
+  const [fontFamily, setFontFamily] = useState<FontFamily>('serif');
   
   // Get user authentication state.
   const { user, loading: authLoading } = useAuth();
@@ -122,67 +131,114 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
     }
   };
 
+  const cycleTheme = () => {
+    const currentIndex = themes.indexOf(theme);
+    const nextIndex = (currentIndex + 1) % themes.length;
+    setTheme(themes[nextIndex]);
+  };
+  
+  const cycleFontSize = () => {
+    const currentIndex = fontSizes.indexOf(fontSize);
+    const nextIndex = (currentIndex + 1) % fontSizes.length;
+    setFontSize(fontSizes[nextIndex]);
+  };
+
+  const cycleFontFamily = () => {
+    const currentIndex = fontFamilies.indexOf(fontFamily);
+    const nextIndex = (currentIndex + 1) % fontFamilies.length;
+    setFontFamily(fontFamilies[nextIndex]);
+  };
+
   // This is the main structure of the page, written in JSX (which looks like HTML).
   return (
     <>
-    {/* This is the main container for the reader. */}
-    {/* The 'cn' function smartly combines CSS classes. */}
-    {/* It changes the background color and text color based on the selected theme. */}
     <div
       className={cn(
-        'max-w-3xl mx-auto rounded-lg transition-colors duration-500 relative p-4 md:p-8',
-        theme === 'dark' ? 'bg-[#121212] text-white' : 'bg-[#fbf5e9] text-[#5b4636]'
+        'max-w-3xl mx-auto rounded-lg transition-colors duration-300 relative p-4 md:p-8',
+        theme === 'dark' && 'dark-theme-override',
+        theme === 'sepia' && 'sepia-theme-override'
       )}
+      style={{
+        // When theme is 'system', we don't apply any inline styles, letting the global theme take over.
+        backgroundColor: theme === 'system' ? 'transparent' : undefined
+      }}
     >
-      {/* This container holds the actual chapter content and sits on top of the watermark. */}
+      <style jsx global>{`
+        .dark-theme-override { background-color: #121212; color: #E0E0E0; }
+        .sepia-theme-override { background-color: #fbf5e9; color: #5b4636; }
+        .dark .dark-theme-override .prose { color: #E0E0E0; }
+        .dark-theme-override .prose-p { color: #E0E0E0 !important; }
+        .sepia-theme-override .prose-p { color: #5b4636 !important; }
+
+        .font-sans-override .prose {
+            font-family: 'Inter', sans-serif !important;
+        }
+        .font-sans-override .prose h1, .font-sans-override .prose h2, .font-sans-override .prose h3 {
+             font-family: 'Alegreya', serif !important;
+        }
+
+        .font-serif-override .prose {
+            font-family: 'Alegreya', serif !important;
+        }
+      `}</style>
       <div className="relative z-10">
         <header className="mb-8 text-center space-y-2">
-          {/* This displays the story name, styled like the PDF. */}
            <h2 className="text-3xl font-bold font-headline" style={{ color: 'rgb(204, 26, 26)' }}>
              Niyati
            </h2>
-          {/* This displays the season and chapter number, styled like the PDF. */}
            <p className="text-xl font-headline" style={{ color: 'rgb(26, 26, 204)' }}>
              Season {chapter.seasonNumber} | Chapter {chapter.chapterNumber}
            </p>
-          {/* This displays the chapter title, styled like the PDF. */}
           <h1 className="text-4xl font-bold font-headline" style={{ color: 'rgb(26, 153, 26)' }}>
             {chapter.title}
           </h1>
-          {/* This displays the word count. */}
           <p className="text-sm text-muted-foreground pt-4">
             {chapter.wordCount.toLocaleString()} words
           </p>
         </header>
 
-        {/* A simple decorative line. */}
         <Separator className="my-8 bg-border/50" />
 
-        {/* This is where the chapter's main text is displayed. */}
-        {/* The `prose` class from Tailwind automatically styles our raw HTML content to look good. */}
-        {/* The prose-invert class handles the dark mode styling for us. */}
         <article
-          className={cn("prose prose-xl max-w-none prose-p:font-body", theme === 'dark' ? 'prose-invert' : 'prose-p:text-[#5b4636]')}
-          // This is a special property that tells React to render raw HTML content from your database.
-          // It's used because your chapter content is stored as HTML.
+          className={cn(
+            "prose max-w-none",
+            `prose-${fontSize}`,
+            fontFamily === 'sans' ? 'font-sans-override' : 'font-serif-override',
+            theme === 'system' ? 'dark:prose-invert' : ''
+          )}
           dangerouslySetInnerHTML={{ __html: getFormattedContent() }}
         />
 
         
       </div>
-       {/* This container holds the floating buttons at the bottom-right. */}
        <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
-            {/* This button toggles the theme between 'dark' and 'sepia'. */}
             <Button
-            size="icon"
-            variant="outline"
-            onClick={() => setTheme(theme === 'dark' ? 'sepia' : 'dark')}
-            title="Toggle theme"
-            className="rounded-full bg-background/50 backdrop-blur"
-          >
-            {/* It shows a Sun icon for dark mode and a Moon icon for sepia mode. */}
-            {theme === 'dark' ? <Sun className="h-5 w-5"/> : <Moon className="h-5 w-5"/>}
-          </Button>
+                size="icon"
+                variant="outline"
+                onClick={cycleTheme}
+                title="Cycle Theme"
+                className="rounded-full bg-background/50 backdrop-blur"
+            >
+                <Palette className="h-5 w-5"/>
+            </Button>
+             <Button
+                size="icon"
+                variant="outline"
+                onClick={cycleFontSize}
+                title="Change Font Size"
+                className="rounded-full bg-background/50 backdrop-blur"
+            >
+                <Text className="h-5 w-5"/>
+            </Button>
+            <Button
+                size="icon"
+                variant="outline"
+                onClick={cycleFontFamily}
+                title="Change Font Family"
+                className="rounded-full bg-background/50 backdrop-blur"
+            >
+                <Type className="h-5 w-5"/>
+            </Button>
 
           {authLoading ? (
              <Button size="icon" variant="outline" className="rounded-full bg-background/50 backdrop-blur" disabled>
@@ -239,7 +295,5 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
     </>
   );
 }
-
-    
 
     
