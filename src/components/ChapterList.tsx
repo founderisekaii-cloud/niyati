@@ -13,7 +13,7 @@ export default function ChapterList({ chapters }: ChapterListProps) {
   return (
     <div className="space-y-6">
       {chapters.map(chapter => (
-        <ChapterCard key={chapter.id} chapter={chapter} />
+        <ChapterCard key={chapter.docId} chapter={chapter} />
       ))}
     </div>
   );
