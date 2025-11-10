@@ -23,6 +23,7 @@ export default function ChapterPage({ params }: ChapterPageProps) {
 
   useEffect(() => {
     async function getChapter() {
+      if (!params.id) return;
       try {
         const chaptersCol = collection(db, 'chapters');
         const q = query(chaptersCol, where('id', '==', params.id), limit(1));
