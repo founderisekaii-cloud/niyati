@@ -12,6 +12,13 @@ import { useLanguage } from '@/context/LanguageContext';
 import { generatePdf } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+} from '@/components/ui/dialog';
 
 // This defines what information the ReaderView component needs to work.
 // In this case, it just needs the 'chapter' details.
@@ -31,8 +38,10 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
   // Get user authentication state.
   const { user, loading: authLoading } = useAuth();
 
-  // State for PDF generation
+  // State for PDF generation and viewing
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
   const { toast } = useToast();
 
   // This uses the LanguageContext to know which language ('en', 'hi', 'mr') is currently selected.
@@ -82,8 +91,9 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
             content: contentForPdf
         });
         const blob = new Blob([Buffer.from(pdfData, 'base64')], { type: 'application/pdf' });
-        const url = window.URL.createObjectURL(blob);
-        window.open(url, '_blank'); // Open in new tab
+        const url = URL.createObjectURL(blob);
+        setPdfUrl(`${url}#toolbar=0&navpanes=0`);
+        setIsPdfModalOpen(true);
         toast({ title: "PDF Generated!" });
     } catch (error) {
         console.error("PDF generation failed:", error);
@@ -95,9 +105,10 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
 
   // This is the main structure of the page, written in JSX (which looks like HTML).
   return (
-    // This is the main container for the reader. 
-    // The 'cn' function smartly combines CSS classes.
-    // It changes the background color and text color based on the selected theme.
+    <>
+    {/* This is the main container for the reader. */}
+    {/* The 'cn' function smartly combines CSS classes. */}
+    {/* It changes the background color and text color based on the selected theme. */}
     <div
       className={cn(
         'max-w-3xl mx-auto rounded-lg transition-colors duration-500 relative p-4 md:p-8',
@@ -201,5 +212,25 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
             </div>
         )}
     </div>
+    <Dialog open={isPdfModalOpen} onOpenChange={setIsPdfModalOpen}>
+        <DialogContent className="max-w-5xl h-[90vh] flex flex-col">
+            <DialogHeader>
+                <DialogTitle>PDF Viewer</DialogTitle>
+                <DialogDescription>
+                    {chapter.title} - Reading in secure mode.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="flex-grow">
+                 {pdfUrl && (
+                    <iframe
+                        src={pdfUrl}
+                        className="w-full h-full"
+                        title={`PDF Viewer - ${chapter.title}`}
+                    />
+                 )}
+            </div>
+        </DialogContent>
+    </Dialog>
+    </>
   );
 }

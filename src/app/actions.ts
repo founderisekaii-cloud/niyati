@@ -27,7 +27,7 @@ export type PaymentState = {
   isApproved?: boolean;
   error?: boolean;
   fieldErrors?: {
-    [key: string]: string[];
+    [key:string]: string[];
   };
 };
 
@@ -99,11 +99,34 @@ export async function generatePdf(chapterData: ChapterPdfData): Promise<string> 
     const cleanContent = content.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]*>?/gm, '').replace(/[^\x00-\x7F]/g, "");
 
     let page = pdfDoc.addPage();
+    const { width, height } = page.getSize();
+    const margin = 50;
     
     const drawPageChrome = (p: any) => {
         const pageHeight = p.getSize().height;
         const pageWidth = p.getSize().width;
-        const margin = 50;
+        
+        // Draw Randomized Watermarks first, so they are behind everything.
+        const watermarkText = "VIKAS A. DUBEY";
+        for (let i = 0; i < 15; i++) {
+            const randomSize = Math.random() * 20 + 10;
+            const randomRotation = Math.random() * 360;
+            const randomX = Math.random() * pageWidth;
+            const randomY = Math.random() * pageHeight;
+            const randomColorR = Math.random() * 0.5 + 0.5;
+            const randomColorG = Math.random() * 0.5 + 0.5;
+            const randomColorB = Math.random() * 0.5 + 0.5;
+
+            p.drawText(watermarkText, {
+                x: randomX,
+                y: randomY,
+                font: timesRomanBoldFont,
+                size: randomSize,
+                color: rgb(randomColorR, randomColorG, randomColorB),
+                opacity: 0.05,
+                rotate: degrees(randomRotation),
+            });
+        }
         
         // Draw Header
         const headerText = "Visit our official website to read more content: https://niyati-mu.vercel.app/";
@@ -124,34 +147,10 @@ export async function generatePdf(chapterData: ChapterPdfData): Promise<string> 
             font: timesRomanFont,
             color: rgb(0.5, 0.5, 0.5),
         });
-
-        // Draw Randomized Watermarks
-        const watermarkText = "VIKAS A. DUBEY";
-        for (let i = 0; i < 15; i++) {
-            const randomSize = Math.random() * 20 + 10; // size between 10 and 30
-            const randomRotation = Math.random() * 360;
-            const randomX = Math.random() * pageWidth;
-            const randomY = Math.random() * pageHeight;
-            const randomColorR = Math.random() * 0.5 + 0.5; // Lighter colors
-            const randomColorG = Math.random() * 0.5 + 0.5;
-            const randomColorB = Math.random() * 0.5 + 0.5;
-
-            p.drawText(watermarkText, {
-                x: randomX,
-                y: randomY,
-                font: timesRomanBoldFont,
-                size: randomSize,
-                color: rgb(randomColorR, randomColorG, randomColorB),
-                opacity: 0.05, // Very subtle
-                rotate: degrees(randomRotation),
-            });
-        }
     }
 
     drawPageChrome(page);
 
-    const { width, height } = page.getSize();
-    const margin = 50;
     let y = height - margin - 50;
 
     const storyName = "Niyati";
