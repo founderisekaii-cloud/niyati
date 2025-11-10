@@ -148,7 +148,7 @@ export async function generatePdf(chapterData: ChapterPdfData): Promise<string> 
             // 3. Set the starting point far below/left to ensure the text covers the top-right corner after rotation
             // A simple starting point of negative coordinates for X and Y often works for full coverage when rotated -45 degrees.
             x: -pageWidth, // Start far left
-            y: pageHeight / 4, // Adjust this value to position vertically
+            y: pageHeight, // Adjust this value to position vertically
             
             font: timesRomanBoldFont,
             size: targetWatermarkSize,
