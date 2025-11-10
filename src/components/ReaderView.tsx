@@ -5,7 +5,7 @@
 import { useState, useEffect } from 'react';
 import type { Chapter } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { FileText, Palette, Loader2, LogIn, Text, Type } from 'lucide-react';
+import { FileText, Palette, Loader2, LogIn, Text } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { useLanguage } from '@/context/LanguageContext';
@@ -40,16 +40,11 @@ const themes: Theme[] = ['system', 'sepia', 'dark'];
 type FontSize = 'sm' | 'base' | 'lg' | 'xl';
 const fontSizes: FontSize[] = ['sm', 'base', 'lg', 'xl'];
 
-// This defines the possible font families.
-type FontFamily = 'serif' | 'sans';
-const fontFamilies: FontFamily[] = ['serif', 'sans'];
-
 
 // This is the main component for the entire reader page.
 export default function ReaderView({ chapter }: ReaderViewProps) {
   const [theme, setTheme] = useState<Theme>('system');
   const [fontSize, setFontSize] = useState<FontSize>('lg');
-  const [fontFamily, setFontFamily] = useState<FontFamily>('serif');
   
   // Get user authentication state.
   const { user, loading: authLoading } = useAuth();
@@ -168,13 +163,6 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
         .sepia-theme-override .prose-p, .sepia-theme-override h1, .sepia-theme-override h2, .sepia-theme-override p,
         .sepia-theme-override .prose-headings, .sepia-theme-override .prose-body { color: #5b4636 !important; }
 
-        .font-sans-override .prose {
-            font-family: 'Inter', sans-serif !important;
-        }
-        .font-sans-override .prose h1, .font-sans-override .prose h2, .font-sans-override .prose h3 {
-             font-family: 'Alegreya', serif !important;
-        }
-
         .font-serif-override .prose {
             font-family: 'Alegreya', serif !important;
         }
@@ -207,7 +195,7 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
           className={cn(
             "prose max-w-none prose-p:text-muted-foreground",
             `prose-size-${fontSize}`,
-            fontFamily === 'sans' ? 'font-sans-override' : 'font-serif-override',
+            'font-serif-override',
             theme === 'system' ? 'dark:prose-invert' : '',
             'prose-p:mb-6'
           )}
@@ -244,25 +232,6 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
                   <DropdownMenuRadioItem value="base">Base</DropdownMenuRadioItem>
                   <DropdownMenuRadioItem value="lg">Large</DropdownMenuRadioItem>
                   <DropdownMenuRadioItem value="xl">Extra Large</DropdownMenuRadioItem>
-                </DropdownMenuRadioGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                    size="icon"
-                    variant="outline"
-                    title="Change Font Family"
-                    className="rounded-full bg-background/50 backdrop-blur"
-                >
-                    <Type className="h-5 w-5"/>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuRadioGroup value={fontFamily} onValueChange={(value) => setFontFamily(value as FontFamily)}>
-                  <DropdownMenuRadioItem value="serif">Serif</DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="sans">Sans-serif</DropdownMenuRadioItem>
                 </DropdownMenuRadioGroup>
               </DropdownMenuContent>
             </DropdownMenu>
