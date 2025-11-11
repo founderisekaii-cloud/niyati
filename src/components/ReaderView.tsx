@@ -165,13 +165,13 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
       `}</style>
       <div className="relative z-10">
         <header className="mb-8 text-center space-y-2">
-           <h2 className={cn("text-3xl font-bold font-headline", theme === 'system' ? 'text-red-600 dark:text-red-500' : 'text-red-600')}>
+           <h2 className={cn("text-3xl font-bold font-headline", "text-red-600 dark:text-red-500")}>
              Niyati
            </h2>
-           <p className={cn("text-xl font-headline", theme === 'system' ? 'text-blue-600 dark:text-blue-400' : 'text-blue-600')}>
+           <p className={cn("text-xl font-headline", "text-blue-600 dark:text-blue-400")}>
              Season {chapter.seasonNumber} | Chapter {chapter.chapterNumber}
            </p>
-          <h1 className={cn("text-4xl font-bold font-headline", theme === 'system' ? 'text-green-600 dark:text-green-400' : 'text-green-600')}>
+          <h1 className={cn("text-4xl font-bold font-headline", "text-green-600 dark:text-green-400")}>
             {getTranslatedTitle()}
           </h1>
           <p className="text-sm text-muted-foreground pt-4">
@@ -289,3 +289,5 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
     </>
   );
 }
+
+    
