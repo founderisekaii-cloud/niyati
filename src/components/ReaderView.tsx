@@ -2,7 +2,7 @@
 'use client';
 
 // This section imports all the tools and components we need for this page.
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import type { Chapter } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { FileText, Palette, Loader2, LogIn, Text } from 'lucide-react';
@@ -99,8 +99,10 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
     try {
         const pdfData = await generatePdf({
             title: chapter.title,
+            subtitle: chapter.subtitle || '',
             seasonNumber: chapter.seasonNumber,
             chapterNumber: chapter.chapterNumber,
+            partNumber: chapter.partNumber,
             content: chapter.content
         });
         const blob = new Blob([Buffer.from(pdfData, 'base64')], { type: 'application/pdf' });

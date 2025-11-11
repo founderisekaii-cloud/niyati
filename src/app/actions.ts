@@ -85,17 +85,20 @@ export async function handlePaymentVerification(
 
 type ChapterPdfData = {
     title: string;
+    subtitle: string;
     seasonNumber: number;
     chapterNumber: number;
+    partNumber: number;
     content: string;
 };
 
 export async function generatePdf(chapterData: ChapterPdfData): Promise<string> {
     const pdfDoc = await PDFDocument.create();
     const timesRomanFont = await pdfDoc.embedFont(StandardFonts.TimesRoman);
+    const timesRomanItalicFont = await pdfDoc.embedFont(StandardFonts.TimesRomanItalic);
     const timesRomanBoldFont = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
 
-    const { title, seasonNumber, chapterNumber, content } = chapterData;
+    const { title, subtitle, seasonNumber, chapterNumber, partNumber, content } = chapterData;
     const cleanContent = content.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]*>?/gm, '').replace(/[^\x00-\x7F]/g, "");
 
     let page = pdfDoc.addPage();
@@ -187,7 +190,33 @@ export async function generatePdf(chapterData: ChapterPdfData): Promise<string> 
         size: 24,
         color: rgb(0.1, 0.6, 0.1), // Green
     });
-    y -= 60;
+    y -= 25;
+
+    // Draw Subtitle (Gold/Yellow)
+    if (subtitle) {
+        const subtitleText = `"${subtitle}"`;
+        const subtitleWidth = timesRomanItalicFont.widthOfTextAtSize(subtitleText, 14);
+        page.drawText(subtitleText, {
+            x: width / 2 - subtitleWidth / 2,
+            y: y,
+            font: timesRomanItalicFont,
+            size: 14,
+            color: rgb(1, 215/255, 0), // Gold
+        });
+    }
+    y -= 40;
+
+    // Draw Part Number (Pink)
+    const partText = `PART ${partNumber}`;
+    const partWidth = timesRomanBoldFont.widthOfTextAtSize(partText, 20);
+    page.drawText(partText, {
+        x: width / 2 - partWidth / 2,
+        y: y,
+        font: timesRomanBoldFont,
+        size: 20,
+        color: rgb(229/255, 115/255, 229/255), // Pink
+    });
+    y -= 40;
     
     const bodySize = 12;
     const bodyColor = rgb(0, 0, 0);
