@@ -6,8 +6,8 @@ import type { Chapter, ChapterGroup } from '@/lib/types';
 
 async function getGroupedChapters(): Promise<ChapterGroup[]> {
   const chaptersCol = collection(db, 'chapters');
-  // Fetch all chapters, ordered for easier processing
-  const q = query(chaptersCol, orderBy('seasonNumber', 'asc'));
+  // Fetch all chapters without complex ordering to avoid index errors
+  const q = query(chaptersCol);
   const chapterSnapshot = await getDocs(q);
 
   const chapterMap = new Map<string, ChapterGroup & { parts: Chapter[] }>();
@@ -52,7 +52,7 @@ async function getGroupedChapters(): Promise<ChapterGroup[]> {
     }
   }
 
-  // Finally, sort the chapters themselves
+  // Finally, sort the chapters themselves in code
   finalGroups.sort((a, b) => {
     if (a.seasonNumber !== b.seasonNumber) {
       return a.seasonNumber - b.seasonNumber;
@@ -79,3 +79,5 @@ export default async function ChaptersPage() {
     </div>
   );
 }
+
+    

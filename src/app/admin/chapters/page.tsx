@@ -96,7 +96,8 @@ export default function ChaptersAdminPage() {
   const status = watch('status');
 
   useEffect(() => {
-    const q = query(collection(db, 'chapters'), orderBy('seasonNumber', 'desc'));
+    // Simplified query to avoid composite index
+    const q = query(collection(db, 'chapters'), orderBy('releaseDate', 'desc'));
     const unsubscribe = onSnapshot(
       q,
       snapshot => {
@@ -120,6 +121,8 @@ export default function ChaptersAdminPage() {
             coverImage: data.coverImage,
           };
         });
+        
+        // Sort in code to avoid complex queries
         const sortedChapters = chaptersData.sort((a, b) => {
           if (a.seasonNumber !== b.seasonNumber) {
             return b.seasonNumber - a.seasonNumber;
@@ -129,6 +132,7 @@ export default function ChaptersAdminPage() {
           }
           return b.partNumber - a.partNumber;
         });
+
         setChapters(sortedChapters);
         setChaptersLoading(false);
       },
@@ -437,5 +441,6 @@ export default function ChaptersAdminPage() {
       </Card>
     </div>
   );
+}
 
     

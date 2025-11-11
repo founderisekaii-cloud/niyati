@@ -47,6 +47,7 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
 
       try {
         const chaptersCol = collection(db, 'chapters');
+        // Simplified query to order by part number only, as season and chapter are fixed.
         const q = query(
           chaptersCol,
           where('seasonNumber', '==', seasonNum),
@@ -166,3 +167,5 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
     </div>
   );
 }
+
+    
