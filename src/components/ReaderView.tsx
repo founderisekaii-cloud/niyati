@@ -180,6 +180,13 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
         </header>
 
         <Separator className="my-8 bg-border/50" />
+        
+        <div className="text-center my-8">
+            <h3 className={cn("text-2xl font-bold font-headline tracking-widest", theme === 'system' ? 'text-foreground' : (theme === 'dark' ? 'text-gray-300' : 'text-gray-700'))}>
+                PART {chapter.partNumber}
+            </h3>
+        </div>
+
 
         <article
           className={cn(
@@ -282,5 +289,3 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
     </>
   );
 }
-
-    

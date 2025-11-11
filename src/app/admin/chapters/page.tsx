@@ -36,6 +36,9 @@ import {
   addDoc,
   updateDoc,
   serverTimestamp,
+  where,
+  getDocs,
+  limit,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
@@ -160,14 +163,43 @@ export default function ChaptersAdminPage() {
   const handleNewChapterSubmit = async (data: ChapterFormData) => {
     setLoading(true);
     try {
-      toast({ description: "AI is generating title and summary..." });
-      const enrichedData = await enrichChapterContent({ fullContent: data.content });
+        let title, summary, coverImage;
+
+        // If this is Part 1, generate new title, summary, etc.
+        // Otherwise, fetch from Part 1.
+        if (data.partNumber === 1) {
+            toast({ description: "AI is generating title, summary, and cleaning content..." });
+            const enrichedData = await enrichChapterContent({ fullContent: data.content });
+            title = enrichedData.title;
+            summary = enrichedData.summary;
+            coverImage = enrichedData.coverImage;
+            data.content = enrichedData.cleanedContent; // Use the cleaned content
+        } else {
+            toast({ description: `Fetching details from Part 1...` });
+            const q = query(
+                collection(db, 'chapters'),
+                where('seasonNumber', '==', data.seasonNumber),
+                where('chapterNumber', '==', data.chapterNumber),
+                where('partNumber', '==', 1),
+                limit(1)
+            );
+            const part1Snapshot = await getDocs(q);
+            if (part1Snapshot.empty) {
+                throw new Error(`Could not find Part 1 for Season ${data.seasonNumber}, Chapter ${data.chapterNumber} to copy details from.`);
+            }
+            const part1Data = part1Snapshot.docs[0].data();
+            title = part1Data.title;
+            summary = part1Data.summary;
+            coverImage = part1Data.coverImage;
+            // For subsequent parts, we assume the content is already clean
+        }
 
       const newChapterData = {
         ...data,
-        title: enrichedData.title,
-        summary: enrichedData.summary,
-        coverImage: enrichedData.coverImage,
+        title: title,
+        summary: summary,
+        coverImage: coverImage,
+        content: data.content, // content is now the cleaned content
         wordCount: data.content.split(/\s+/).length,
         releaseDate: serverTimestamp(),
         price: data.status === 'protected' ? data.price : 0,
@@ -177,7 +209,7 @@ export default function ChaptersAdminPage() {
       
       toast({
         title: 'Success!',
-        description: `Chapter "${enrichedData.title}" has been added.`,
+        description: `Chapter "${title}" (Part ${data.partNumber}) has been added.`,
       });
       
       reset();
@@ -189,8 +221,8 @@ export default function ChaptersAdminPage() {
             errorEmitter.emit('permission-error', error);
        } else {
             toast({
-                title: 'AI Enrichment Failed',
-                description: error.message || 'Could not process the chapter content.',
+                title: 'Operation Failed',
+                description: error.message || 'Could not process the chapter.',
                 variant: 'destructive',
             });
        }
@@ -313,7 +345,7 @@ export default function ChaptersAdminPage() {
         </div>
         <div className="space-y-2">
           <Label htmlFor="content">Full Chapter Content</Label>
-          <Textarea id="content" {...register('content')} rows={10} placeholder={isEditMode ? "Edit the chapter content." : "Paste the entire chapter content here. The AI will generate the title and summary."} />
+          <Textarea id="content" {...register('content')} rows={10} placeholder={ "Paste the entire chapter content here. For Part 1, the AI will generate the title, summary, and clean the content. For subsequent parts, ensure content is pre-cleaned."} />
           {errors.content && <p className="text-sm text-destructive">{errors.content.message}</p>}
         </div>
         <DialogFooter>
@@ -353,7 +385,7 @@ export default function ChaptersAdminPage() {
         <Dialog open={isEditChapterOpen} onOpenChange={setIsEditChapterOpen}>
           <DialogContent className="max-w-3xl">
             <DialogHeader>
-              <DialogTitle>Edit Chapter: {editingChapter ? `S${editingChapter.seasonNumber} C${editingChapter.chapterNumber}` : ''}</DialogTitle>
+              <DialogTitle>Edit Chapter: {editingChapter ? `S${editingChapter.seasonNumber} C${editingChapter.chapterNumber} P${editingChapter.partNumber}` : ''}</DialogTitle>
             </DialogHeader>
             {renderForm(true)}
           </DialogContent>
@@ -402,5 +434,3 @@ export default function ChaptersAdminPage() {
     </div>
   );
 }
-
-    
