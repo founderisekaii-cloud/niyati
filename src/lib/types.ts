@@ -1,4 +1,5 @@
 
+
 export interface Chapter {
   docId?: string; // Firestore document ID
   title: string;
@@ -22,7 +23,10 @@ export interface ChapterGroup {
   seasonNumber: number;
   chapterNumber: number;
   title: string;
+  subtitle?: string;
   summary: string;
   coverImage: string;
   partCount: number;
+  status: 'public' | 'private' | 'protected';
+  price: number;
 }

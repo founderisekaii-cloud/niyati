@@ -1,4 +1,5 @@
 
+
 import { collection, getDocs, orderBy, query, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import ChapterList from '@/components/ChapterList';
@@ -7,7 +8,7 @@ import type { Chapter, ChapterGroup } from '@/lib/types';
 async function getGroupedChapters(): Promise<ChapterGroup[]> {
   const chaptersCol = collection(db, 'chapters');
   // Fetch all chapters without complex ordering to avoid index errors
-  const q = query(chaptersCol);
+  const q = query(chaptersCol, orderBy('releaseDate', 'desc'));
   const chapterSnapshot = await getDocs(q);
 
   const chapterMap = new Map<string, ChapterGroup & { parts: Chapter[] }>();
@@ -22,9 +23,12 @@ async function getGroupedChapters(): Promise<ChapterGroup[]> {
         seasonNumber: data.seasonNumber,
         chapterNumber: data.chapterNumber,
         title: data.title, // Placeholder, will be updated by Part 1
+        subtitle: data.subtitle, // Placeholder
         summary: data.summary, // Placeholder
         coverImage: data.coverImage || '/placeholder-cover.jpg', // Placeholder
         partCount: 0,
+        status: data.status, // Placeholder
+        price: data.price, // Placeholder
         parts: [],
       });
     }
@@ -45,9 +49,12 @@ async function getGroupedChapters(): Promise<ChapterGroup[]> {
         seasonNumber: group.seasonNumber,
         chapterNumber: group.chapterNumber,
         title: part1.title,
+        subtitle: part1.subtitle,
         summary: part1.summary,
-        coverImage: part1.coverImage || '/placeholder-cover.jpg',
+        coverImage: part1.coverImage || `https://picsum.photos/seed/s${group.seasonNumber}c${group.chapterNumber}/400/400`,
         partCount: group.parts.length,
+        status: part1.status, // Use status from part 1
+        price: part1.price, // Use price from part 1
       });
     }
   }
@@ -55,9 +62,9 @@ async function getGroupedChapters(): Promise<ChapterGroup[]> {
   // Finally, sort the chapters themselves in code
   finalGroups.sort((a, b) => {
     if (a.seasonNumber !== b.seasonNumber) {
-      return a.seasonNumber - b.seasonNumber;
+      return b.seasonNumber - a.seasonNumber;
     }
-    return a.chapterNumber - b.chapterNumber;
+    return b.chapterNumber - a.chapterNumber;
   });
 
 
@@ -79,5 +86,3 @@ export default async function ChaptersPage() {
     </div>
   );
 }
-
-    
