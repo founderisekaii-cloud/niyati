@@ -53,6 +53,7 @@ export default function ChapterPage({ params }: ChapterPageProps) {
           const chapterData: Chapter = {
             docId: snapshot.docs[0].id,
             title: docData.title,
+            subtitle: docData.subtitle,
             summary: docData.summary,
             wordCount: docData.wordCount,
             releaseDate: docData.releaseDate.toDate().toISOString(),

@@ -105,6 +105,7 @@ export default function ChaptersAdminPage() {
           return {
             docId: doc.id,
             title: data.title,
+            subtitle: data.subtitle,
             summary: data.summary,
             wordCount: data.wordCount,
             releaseDate:
@@ -163,14 +164,15 @@ export default function ChaptersAdminPage() {
   const handleNewChapterSubmit = async (data: ChapterFormData) => {
     setLoading(true);
     try {
-        let title, summary, coverImage;
+        let title, subtitle, summary, coverImage;
 
         // If this is Part 1, generate new title, summary, etc.
         // Otherwise, fetch from Part 1.
         if (data.partNumber === 1) {
-            toast({ description: "AI is generating title, summary, and cleaning content..." });
+            toast({ description: "AI is generating title, subtitle, summary, and cleaning content..." });
             const enrichedData = await enrichChapterContent({ fullContent: data.content });
             title = enrichedData.title;
+            subtitle = enrichedData.subtitle;
             summary = enrichedData.summary;
             coverImage = enrichedData.coverImage;
             data.content = enrichedData.cleanedContent; // Use the cleaned content
@@ -189,6 +191,7 @@ export default function ChaptersAdminPage() {
             }
             const part1Data = part1Snapshot.docs[0].data();
             title = part1Data.title;
+            subtitle = part1Data.subtitle;
             summary = part1Data.summary;
             coverImage = part1Data.coverImage;
             // For subsequent parts, we assume the content is already clean
@@ -197,6 +200,7 @@ export default function ChaptersAdminPage() {
       const newChapterData = {
         ...data,
         title: title,
+        subtitle: subtitle,
         summary: summary,
         coverImage: coverImage,
         content: data.content, // content is now the cleaned content

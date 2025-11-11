@@ -2,6 +2,7 @@
 export interface Chapter {
   docId?: string; // Firestore document ID
   title: string;
+  subtitle?: string; // Add subtitle
   summary: string;
   wordCount: number;
   releaseDate: string; // ISO 8601 format

@@ -83,6 +83,10 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
       // In a real scenario, you might use a translation key like `t(chapter.titleKey)`
       return chapter.title;
   }
+  
+  const getTranslatedSubtitle = () => {
+      return chapter.subtitle;
+  }
 
 
   const handleViewPdf = async () => {
@@ -164,17 +168,22 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
 
       `}</style>
       <div className="relative z-10">
-        <header className="mb-8 text-center space-y-2">
-           <h2 className={cn("text-3xl font-bold font-headline", "text-red-600 dark:text-red-500")}>
+        <header className="mb-8 text-center space-y-4">
+           <h2 className="text-3xl font-bold font-headline text-red-600 dark:text-red-500">
              Niyati
            </h2>
-           <p className={cn("text-xl font-headline", "text-blue-600 dark:text-blue-400")}>
+           <p className="text-xl font-headline text-blue-600 dark:text-blue-400">
              Season {chapter.seasonNumber} | Chapter {chapter.chapterNumber}
            </p>
-          <h1 className={cn("text-4xl font-bold font-headline", "text-green-600 dark:text-green-400")}>
+          <h1 className="text-4xl font-bold font-headline text-green-600 dark:text-green-400">
             {getTranslatedTitle()}
           </h1>
-          <p className="text-sm text-muted-foreground pt-4">
+          {chapter.subtitle && (
+            <p className="text-lg font-serif italic" style={{ color: '#FFD700' }}>
+              "{getTranslatedSubtitle()}"
+            </p>
+          )}
+          <p className="text-sm text-muted-foreground pt-2">
             {chapter.wordCount.toLocaleString()} words
           </p>
         </header>
@@ -182,7 +191,7 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
         <Separator className="my-8 bg-border/50" />
         
         <div className="text-center my-8">
-            <h3 className={cn("text-2xl font-bold font-headline tracking-widest", theme === 'system' ? 'text-foreground' : (theme === 'dark' ? 'text-gray-300' : 'text-gray-700'))}>
+            <h3 className="text-2xl font-bold font-headline tracking-widest" style={{ color: '#E573E5' }}>
                 PART {chapter.partNumber}
             </h3>
         </div>
@@ -289,5 +298,3 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
     </>
   );
 }
-
-    
