@@ -96,7 +96,7 @@ export default function ChaptersAdminPage() {
   const status = watch('status');
 
   useEffect(() => {
-    const q = query(collection(db, 'chapters'), orderBy('seasonNumber', 'asc'));
+    const q = query(collection(db, 'chapters'), orderBy('seasonNumber', 'desc'));
     const unsubscribe = onSnapshot(
       q,
       snapshot => {
@@ -121,13 +121,13 @@ export default function ChaptersAdminPage() {
           };
         });
         const sortedChapters = chaptersData.sort((a, b) => {
-          if (a.seasonNumber === b.seasonNumber) {
-            if (a.chapterNumber === b.chapterNumber) {
-              return b.partNumber - a.partNumber;
-            }
+          if (a.seasonNumber !== b.seasonNumber) {
+            return b.seasonNumber - a.seasonNumber;
+          }
+          if (a.chapterNumber !== b.chapterNumber) {
             return b.chapterNumber - a.chapterNumber;
           }
-          return b.seasonNumber - a.seasonNumber;
+          return b.partNumber - a.partNumber;
         });
         setChapters(sortedChapters);
         setChaptersLoading(false);
@@ -437,4 +437,5 @@ export default function ChaptersAdminPage() {
       </Card>
     </div>
   );
-}
+
+    
