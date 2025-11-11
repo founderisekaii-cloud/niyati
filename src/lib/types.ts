@@ -16,3 +16,13 @@ export interface Chapter {
   price: number; // Only if status is 'protected'
   coverImage?: string; // URL or Base64 string
 }
+
+// Represents a grouping of all parts of a single chapter
+export interface ChapterGroup {
+  seasonNumber: number;
+  chapterNumber: number;
+  title: string;
+  summary: string;
+  coverImage: string;
+  partCount: number;
+}

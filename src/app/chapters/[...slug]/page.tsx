@@ -1,7 +1,7 @@
 
 'use client';
 
-import { notFound } from 'next/navigation';
+import { notFound, useParams } from 'next/navigation';
 import ReaderView from '@/components/ReaderView';
 import { collection, getDocs, query, where, limit } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -12,9 +12,9 @@ import { NiyatiVerseLogo } from '@/components/icons';
 import ChapterActionCard from '@/components/ChapterActionCard';
 
 type ChapterPageProps = {
-  params: {
-    slug: string[]; // e.g., ['1', '1', '1'] for S1, C1, P1
-  };
+    params: {
+        slug: string[];
+    };
 };
 
 export default function ChapterPage({ params }: ChapterPageProps) {
@@ -24,16 +24,22 @@ export default function ChapterPage({ params }: ChapterPageProps) {
   
   const resolvedParams = use(params);
   const { slug } = resolvedParams;
-  const [season, chapterNum, part] = slug.map(Number);
 
+  if (!slug || slug.length !== 3) {
+    // This page is now ONLY for reading a specific part.
+    // If slug is not [season, chapter, part], it's an invalid URL for this page.
+    notFound();
+    return null;
+  }
+
+  const [season, chapterNum, part] = slug.map(Number);
 
   useEffect(() => {
     async function getChapter() {
-      if (!slug || slug.length < 2 || isNaN(season) || isNaN(chapterNum)) {
+      if (isNaN(season) || isNaN(chapterNum) || isNaN(part)) {
         setLoading(false);
         return;
       }
-      const partNum = isNaN(part) ? 1 : part;
 
       try {
         const chaptersCol = collection(db, 'chapters');
@@ -41,7 +47,7 @@ export default function ChapterPage({ params }: ChapterPageProps) {
           chaptersCol, 
           where('seasonNumber', '==', season), 
           where('chapterNumber', '==', chapterNum),
-          where('partNumber', '==', partNum),
+          where('partNumber', '==', part),
           limit(1)
         );
         const snapshot = await getDocs(q);

@@ -1,45 +1,54 @@
-import { collection, getDocs, orderBy, query } from 'firebase/firestore';
+
+import { collection, getDocs, orderBy, query, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import ChapterList from '@/components/ChapterList';
 import type { Chapter } from '@/lib/types';
 
-async function getChapters(): Promise<Chapter[]> {
+interface ChapterGroup {
+  seasonNumber: number;
+  chapterNumber: number;
+  title: string;
+  summary: string;
+  coverImage: string;
+  partCount: number;
+  // We can add more fields here if needed, like the status of the latest part
+}
+
+async function getGroupedChapters(): Promise<ChapterGroup[]> {
   const chaptersCol = collection(db, 'chapters');
-  // Simplified query to order by seasonNumber only to prevent composite index error.
-  const q = query(chaptersCol, orderBy('seasonNumber', 'asc'));
+  // Fetch all chapters, ordered for easier processing
+  const q = query(chaptersCol, orderBy('seasonNumber', 'asc'), orderBy('chapterNumber', 'asc'), orderBy('partNumber', 'asc'));
   const chapterSnapshot = await getDocs(q);
-  const chaptersList = chapterSnapshot.docs.map(doc => {
-    const data = doc.data();
-    return {
-      docId: doc.id,
-      title: data.title,
-      summary: data.summary,
-      wordCount: data.wordCount,
-      releaseDate: data.releaseDate.toDate().toISOString(),
-      content: data.content,
-      seasonNumber: data.seasonNumber, // Removed incorrect default '|| 1'
-      chapterNumber: data.chapterNumber, // Removed incorrect default '|| 0'
-      partNumber: data.partNumber || 1,
-      status: data.status || 'private',
-      price: data.price || 0,
-      coverImage: data.coverImage || '/placeholder-cover.jpg',
-    };
-  });
-  
-  // Manual sort for chapter number after fetching
-  return chaptersList.sort((a, b) => {
-    if (a.seasonNumber === b.seasonNumber) {
-      if (a.chapterNumber === b.chapterNumber) {
-        return a.partNumber - b.partNumber;
-      }
-      return a.chapterNumber - b.chapterNumber;
+
+  const chapterMap = new Map<string, ChapterGroup>();
+
+  chapterSnapshot.docs.forEach(doc => {
+    const data = doc.data() as Chapter;
+    const groupId = `s${data.seasonNumber}c${data.chapterNumber}`;
+
+    if (!chapterMap.has(groupId)) {
+      // This is the first time we're seeing a part for this chapter.
+      // We assume it's Part 1 and use its details for the group.
+      chapterMap.set(groupId, {
+        seasonNumber: data.seasonNumber,
+        chapterNumber: data.chapterNumber,
+        title: data.title,
+        summary: data.summary,
+        coverImage: data.coverImage || '/placeholder-cover.jpg',
+        partCount: 0,
+      });
     }
-    return a.seasonNumber - b.seasonNumber;
+    
+    // Increment the part count for the chapter group
+    const group = chapterMap.get(groupId)!;
+    group.partCount += 1;
   });
+
+  return Array.from(chapterMap.values());
 }
 
 export default async function ChaptersPage() {
-  const chapters = await getChapters();
+  const chapters = await getGroupedChapters();
 
   return (
     <div className="space-y-8">
