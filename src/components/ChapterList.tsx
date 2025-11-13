@@ -13,6 +13,7 @@ import {
   DialogTitle,
   DialogFooter,
   DialogClose,
+  DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -361,3 +362,5 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
     </>
   );
 }
+
+    
