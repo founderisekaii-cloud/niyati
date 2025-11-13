@@ -107,7 +107,9 @@ export default function ChaptersAdminPage() {
   const status = watch('status');
   
   useEffect(() => {
+    // Simplified query to fetch all chapters without complex ordering
     const q = query(collection(db, 'chapters'));
+
     const unsubscribe = onSnapshot(
       q,
       snapshot => {
@@ -159,6 +161,7 @@ export default function ChaptersAdminPage() {
             }
         }
 
+        // Perform sorting in code
         finalGroups.sort((a, b) => {
             if (a.seasonNumber !== b.seasonNumber) {
                 return b.seasonNumber - a.seasonNumber;
@@ -507,3 +510,5 @@ export default function ChaptersAdminPage() {
     </div>
   );
 }
+
+    
