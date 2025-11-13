@@ -2,14 +2,14 @@
 'use client';
 
 import { notFound } from 'next/navigation';
-import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
+import { collection, getDocs, query, where, orderBy, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Chapter } from '@/lib/types';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { NiyatiVerseLogo } from '@/components/icons';
 import { Button } from '@/components/ui/button';
-import { BookOpen, Lock, DollarSign, List, Heart, MessageCircle, Eye, Sparkles } from 'lucide-react';
+import { BookOpen, Lock, DollarSign, List, Heart, MessageCircle, Eye, Sparkles, Edit, Trash, PlusCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -25,6 +25,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import Image from 'next/image';
+import { useAdmin } from '@/hooks/useAdmin';
 
 type ChapterPartsPageProps = {
   params: {
@@ -46,68 +47,70 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
   const [chapterDetails, setChapterDetails] = useState<{title: string, subtitle: string, summary: string, coverImage: string} | null>(null);
   const [loading, setLoading] = useState(true);
   const { user, loading: authLoading } = useAuth();
+  const { isAdmin } = useAdmin();
   const { toast } = useToast();
   const [isPartsOpen, setIsPartsOpen] = useState(true);
 
   const seasonNum = parseInt(params.season, 10);
   const chapterNum = parseInt(params.chapter, 10);
 
-  useEffect(() => {
-    async function getChapterParts() {
-      if (isNaN(seasonNum) || isNaN(chapterNum)) {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const chaptersCol = collection(db, 'chapters');
-        const q = query(
-          chaptersCol,
-          where('seasonNumber', '==', seasonNum),
-          where('chapterNumber', '==', chapterNum),
-          orderBy('partNumber', 'asc')
-        );
-        const snapshot = await getDocs(q);
-
-        if (snapshot.empty) {
-          setParts([]);
-        } else {
-          const partsData: Chapter[] = snapshot.docs.map(doc => {
-              const data = doc.data();
-              return {
-                docId: doc.id,
-                title: data.title,
-                subtitle: data.subtitle,
-                summary: data.summary,
-                wordCount: data.wordCount,
-                releaseDate: data.releaseDate.toDate().toISOString(),
-                content: '', // No need to fetch content for the list
-                seasonNumber: data.seasonNumber,
-                chapterNumber: data.chapterNumber,
-                partNumber: data.partNumber,
-                status: data.status || 'private',
-                price: data.price || 0,
-                coverImage: data.coverImage
-              }
-          });
-          setParts(partsData);
-          // Set chapter-wide details from Part 1
-          const part1 = partsData[0];
-          setChapterDetails({
-              title: part1.title,
-              subtitle: part1.subtitle || '',
-              summary: part1.summary,
-              coverImage: part1.coverImage || '/placeholder-cover.jpg'
-          });
-        }
-      } catch (error) {
-        console.error("Failed to fetch chapter parts:", error);
-        setParts([]);
-      } finally {
-        setLoading(false);
-      }
+  const getChapterParts = async () => {
+    if (isNaN(seasonNum) || isNaN(chapterNum)) {
+      setLoading(false);
+      return;
     }
 
+    try {
+      setLoading(true);
+      const chaptersCol = collection(db, 'chapters');
+      const q = query(
+        chaptersCol,
+        where('seasonNumber', '==', seasonNum),
+        where('chapterNumber', '==', chapterNum),
+        orderBy('partNumber', 'asc')
+      );
+      const snapshot = await getDocs(q);
+
+      if (snapshot.empty) {
+        setParts([]);
+      } else {
+        const partsData: Chapter[] = snapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+              docId: doc.id,
+              title: data.title,
+              subtitle: data.subtitle,
+              summary: data.summary,
+              wordCount: data.wordCount,
+              releaseDate: data.releaseDate?.toDate().toISOString() || new Date().toISOString(),
+              content: '', // No need to fetch content for the list
+              seasonNumber: data.seasonNumber,
+              chapterNumber: data.chapterNumber,
+              partNumber: data.partNumber,
+              status: data.status || 'private',
+              price: data.price || 0,
+              coverImage: data.coverImage
+            }
+        });
+        setParts(partsData);
+        const part1 = partsData[0];
+        setChapterDetails({
+            title: part1.title,
+            subtitle: part1.subtitle || '',
+            summary: part1.summary,
+            coverImage: part1.coverImage || `https://picsum.photos/seed/s${seasonNum}c${chapterNum}/400/400`
+        });
+      }
+    } catch (error) {
+      console.error("Failed to fetch chapter parts:", error);
+      toast({title: "Error", description: "Failed to load chapter parts.", variant: "destructive"})
+      setParts([]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
     getChapterParts();
   }, [seasonNum, chapterNum]);
 
@@ -123,8 +126,7 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
   }
 
   if (!chapterDetails) {
-    notFound();
-    return null;
+    return notFound();
   }
 
   const handleProtectedClick = () => {
@@ -133,6 +135,20 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
         description: "The payment system is not yet active. Please check back later to unlock this part.",
     });
   };
+
+  const handleDeletePart = async (part: Chapter) => {
+    if (!part.docId) return;
+    if (window.confirm(`Are you sure you want to delete Part ${part.partNumber}? This action cannot be undone.`)) {
+        try {
+            await deleteDoc(doc(db, 'chapters', part.docId));
+            toast({ title: "Success!", description: `Part ${part.partNumber} has been deleted.`});
+            getChapterParts(); // Refresh the list
+        } catch (error: any) {
+            console.error("Error deleting part:", error);
+            toast({ title: "Delete Failed", description: error.message, variant: "destructive"});
+        }
+    }
+  }
 
   const renderPartAction = (part: Chapter) => {
     const partUrl = `/chapters/${part.seasonNumber}/${part.chapterNumber}/${part.partNumber}`;
@@ -143,7 +159,7 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
             if (user) {
                 return <Button asChild><Link href={partUrl}>Read Part</Link></Button>
             }
-            return <Button asChild variant="secondary"><Link href="/login"><Lock className="mr-2"/>Sign In</Link></Button>
+            return <Button asChild variant="secondary"><Link href={`/login?redirect=${partUrl}`}><Lock className="mr-2"/>Sign In</Link></Button>
         case 'protected':
              return <Button onClick={handleProtectedClick}><DollarSign className="mr-2"/>Unlock (₹{part.price})</Button>
         default:
@@ -204,8 +220,18 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
                                     <MetaItem icon={Eye} label="Views" value={0} />
                                     <MetaItem icon={Sparkles} label="Price" value={part.status === 'protected' ? `₹${part.price}` : 'Free'} />
                                 </div>
-                                <div className="ml-auto mt-4 md:mt-0 md:ml-6 flex-shrink-0">
+                                <div className="ml-auto mt-4 md:mt-0 md:ml-6 flex-shrink-0 flex items-center gap-2">
                                     {renderPartAction(part)}
+                                    {isAdmin && (
+                                        <>
+                                            <Button variant="ghost" size="icon" onClick={() => alert('Edit part coming soon!')}>
+                                                <Edit className="h-4 w-4"/>
+                                            </Button>
+                                            <Button variant="ghost" size="icon" onClick={() => handleDeletePart(part)}>
+                                                <Trash className="h-4 w-4 text-destructive"/>
+                                            </Button>
+                                        </>
+                                    )}
                                 </div>
                             </Card>
                         ))}

@@ -4,71 +4,105 @@ import { collection, getDocs, orderBy, query, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import ChapterList from '@/components/ChapterList';
 import type { Chapter, ChapterGroup } from '@/lib/types';
+import { NiyatiVerseLogo } from '@/components/icons';
 
 async function getGroupedChapters(): Promise<ChapterGroup[]> {
-  const chaptersCol = collection(db, 'chapters');
-  // Fetch all chapters without complex ordering to avoid index errors
-  const q = query(chaptersCol, orderBy('releaseDate', 'desc'));
-  const chapterSnapshot = await getDocs(q);
+  try {
+    const chaptersCol = collection(db, 'chapters');
+    const q = query(chaptersCol); // Fetch all chapters without ordering
+    const chapterSnapshot = await getDocs(q);
 
-  const chapterMap = new Map<string, ChapterGroup & { parts: Chapter[] }>();
-
-  chapterSnapshot.docs.forEach(doc => {
-    const data = doc.data() as Chapter;
-    const groupId = `s${data.seasonNumber}c${data.chapterNumber}`;
-
-    if (!chapterMap.has(groupId)) {
-      // This is the first time we're seeing a part for this chapter.
-      chapterMap.set(groupId, {
-        seasonNumber: data.seasonNumber,
-        chapterNumber: data.chapterNumber,
-        title: data.title, // Placeholder, will be updated by Part 1
-        subtitle: data.subtitle, // Placeholder
-        summary: data.summary, // Placeholder
-        coverImage: data.coverImage || '/placeholder-cover.jpg', // Placeholder
-        partCount: 0,
-        status: data.status, // Placeholder
-        price: data.price, // Placeholder
-        parts: [],
-      });
+    if (chapterSnapshot.empty) {
+      return [
+        {
+          seasonNumber: 0,
+          chapterNumber: 0,
+          partCount: 1,
+          title: "The Awakening",
+          subtitle: "Every end is a new beginning.",
+          summary: "This is a sample chapter to demonstrate the layout and functionality. In a world governed by a cosmic, karma-based operating system, a young man named Kael begins to exhibit abilities that defy the predictions of the Niyati OS, drawing the attention of powerful forces and setting in motion events that could either reboot the system or shatter it forever.",
+          coverImage: "https://picsum.photos/seed/s0c0/400/400",
+          status: 'public',
+          price: 0,
+        }
+      ];
     }
-    
-    const group = chapterMap.get(groupId)!;
-    group.parts.push(data);
-  });
 
-  // Now process the groups to finalize details from part 1 and sort parts
-  const finalGroups: ChapterGroup[] = [];
-  for (const group of chapterMap.values()) {
-    // Sort parts to find the true Part 1
-    group.parts.sort((a, b) => a.partNumber - b.partNumber);
-    
-    const part1 = group.parts[0];
-    if (part1) {
-      finalGroups.push({
-        seasonNumber: group.seasonNumber,
-        chapterNumber: group.chapterNumber,
-        title: part1.title,
-        subtitle: part1.subtitle,
-        summary: part1.summary,
-        coverImage: part1.coverImage || `https://picsum.photos/seed/s${group.seasonNumber}c${group.chapterNumber}/400/400`,
-        partCount: group.parts.length,
-        status: part1.status, // Use status from part 1
-        price: part1.price, // Use price from part 1
-      });
+
+    const chapterMap = new Map<string, ChapterGroup & { parts: Chapter[], docIds: string[] }>();
+
+    chapterSnapshot.docs.forEach(doc => {
+      const data = doc.data() as Chapter;
+      const groupId = `s${data.seasonNumber}c${data.chapterNumber}`;
+
+      if (!chapterMap.has(groupId)) {
+        chapterMap.set(groupId, {
+          seasonNumber: data.seasonNumber,
+          chapterNumber: data.chapterNumber,
+          title: 'Loading...',
+          subtitle: '',
+          summary: '',
+          coverImage: '',
+          partCount: 0,
+          status: 'private',
+          price: 0,
+          parts: [],
+          docIds: []
+        });
+      }
+      
+      const group = chapterMap.get(groupId)!;
+      group.parts.push({ ...data, docId: doc.id });
+      group.docIds.push(doc.id);
+    });
+
+    const finalGroups: ChapterGroup[] = [];
+    for (const group of chapterMap.values()) {
+      group.parts.sort((a, b) => a.partNumber - b.partNumber);
+      
+      const part1 = group.parts[0];
+      if (part1) {
+        finalGroups.push({
+          seasonNumber: group.seasonNumber,
+          chapterNumber: group.chapterNumber,
+          title: part1.title,
+          subtitle: part1.subtitle,
+          summary: part1.summary,
+          coverImage: part1.coverImage || `https://picsum.photos/seed/s${group.seasonNumber}c${group.chapterNumber}/400/400`,
+          partCount: group.parts.length,
+          status: part1.status,
+          price: part1.price,
+          docIds: group.docIds,
+        });
+      }
     }
+
+    finalGroups.sort((a, b) => {
+      if (a.seasonNumber !== b.seasonNumber) {
+        return b.seasonNumber - a.seasonNumber;
+      }
+      return b.chapterNumber - a.chapterNumber;
+    });
+
+
+    return finalGroups;
+  } catch (error) {
+    console.error("Failed to get grouped chapters:", error);
+    // Return sample data on error to prevent crash
+    return [
+        {
+          seasonNumber: 0,
+          chapterNumber: 0,
+          partCount: 1,
+          title: "The Awakening (Error)",
+          subtitle: "Could not load chapters from the database.",
+          summary: "There was an error fetching the chapter list from the server. This is a sample card displayed as a fallback. Please check the console for more details.",
+          coverImage: "https://picsum.photos/seed/error/400/400",
+          status: 'public',
+          price: 0,
+        }
+      ];
   }
-
-  // Finally, sort the chapters themselves in code
-  finalGroups.sort((a, b) => {
-    if (a.seasonNumber !== b.seasonNumber) {
-      return b.seasonNumber - a.seasonNumber;
-    }
-    return b.chapterNumber - a.chapterNumber;
-  });
-
-
-  return finalGroups;
 }
 
 export default async function ChaptersPage() {
@@ -82,7 +116,7 @@ export default async function ChaptersPage() {
           Follow the journey of Kael, Lyra, and the cosmic intelligence, Niyati.
         </p>
       </div>
-      <ChapterList chapters={chapters} />
+      <ChapterList initialChapters={chapters} />
     </div>
   );
 }

@@ -29,4 +29,5 @@ export interface ChapterGroup {
   partCount: number;
   status: 'public' | 'private' | 'protected';
   price: number;
+  docIds?: string[]; // Add docIds for batch operations
 }

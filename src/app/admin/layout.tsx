@@ -1,17 +1,18 @@
+
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import {
-  BookOpen,
   CreditCard,
   Settings,
   LayoutDashboard,
   ShieldAlert,
+  BookOpen,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -26,10 +27,11 @@ import {
 } from '@/components/ui/sidebar';
 import { NiyatiVerseLogo } from '@/components/icons';
 import { useToast } from '@/hooks/use-toast';
+import { useAdmin } from '@/hooks/useAdmin';
 
 const menuItems = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/admin/chapters', label: 'Chapters', icon: BookOpen },
+  { href: '/chapters', label: 'Chapters', icon: BookOpen }, // Direct link to public chapters page
   { href: '/admin/payments', label: 'Payments', icon: CreditCard },
   { href: '/admin/settings', label: 'Settings', icon: Settings },
 ];
@@ -57,47 +59,30 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const { user, loading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const { isAdmin, loading: adminLoading } = useAdmin();
   const router = useRouter();
   const { toast } = useToast();
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
 
   useEffect(() => {
-    if (loading) return;
+    if (authLoading || adminLoading) return;
 
     if (!user) {
-      router.replace('/login');
+      router.replace('/login?redirect=/admin/dashboard');
       return;
     }
 
-    const checkAdminRole = async () => {
-      try {
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
-        if (userDoc.exists() && userDoc.data().role === 'admin') {
-          setIsAdmin(true);
-        } else {
-          setIsAdmin(false);
-          toast({
-              title: 'Access Denied',
-              description: 'You do not have permission to access the admin panel.',
-              variant: 'destructive'
-          });
-        }
-      } catch (error) {
-        console.error("Error checking admin role:", error);
-        setIsAdmin(false);
+    if (!isAdmin) {
         toast({
-          title: 'Error',
-          description: 'Could not verify your user role.',
-          variant: 'destructive'
+            title: 'Access Denied',
+            description: 'You do not have permission to access the admin panel.',
+            variant: 'destructive'
         });
-      }
-    };
+        router.replace('/chapters');
+    }
+  }, [user, authLoading, isAdmin, adminLoading, router, toast]);
 
-    checkAdminRole();
-  }, [user, loading, router, toast]);
-
-  if (loading || isAdmin === null) {
+  if (authLoading || adminLoading || !isAdmin) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <div className="flex flex-col items-center gap-4">
@@ -108,9 +93,6 @@ export default function AdminLayout({
     );
   }
 
-  if (!isAdmin) {
-      return <AdminAccessDenied />;
-  }
 
   return (
     <SidebarProvider>
