@@ -124,7 +124,7 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
     setIsFetchingAdminChapters(true);
     try {
       const chaptersCol = collection(db, 'chapters');
-      const q = query(chaptersCol, orderBy('seasonNumber', 'desc'), orderBy('chapterNumber', 'desc'));
+      const q = query(chaptersCol);
       const chapterSnapshot = await getDocs(q);
 
       const chapterMap = new Map<string, ChapterGroup & { parts: Chapter[], docIds: string[], totalLikes: number, totalComments: number, totalViews: number, publishedAt?: any }>();
@@ -270,17 +270,20 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
 
       try {
           const isPartOne = formData.partNumber === 1;
-          const shouldHaveHeaders = isPartOne || hasMetadata;
 
           const enrichInput: EnrichChapterInput = {
               fullContent: formData.content || '',
-              hasMetadataHeaders: shouldHaveHeaders,
-              isFormatted: true, 
+              hasMetadataHeaders: isPartOne || hasMetadata,
+              isFormatted: true,
           };
 
           toast({ description: "AI is processing the content..." });
           const enrichedData = await enrichChapterContent(enrichInput);
           
+          if (!enrichedData || !enrichedData.cleanedContent) {
+            throw new Error("AI enrichment failed to return valid data.");
+          }
+
           const finalCoverImage = `https://placehold.co/400x400/1A1A2E/FFD700?text=S${formData.seasonNumber}\\nC${formData.chapterNumber}`;
 
           const preview = {
@@ -355,6 +358,9 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
         wordCount: data.content?.split(/\s+/).length || 0,
         releaseDate: serverTimestamp() as any,
         publishedAt: null, // Always null on creation/edit
+        likes: (modalMode === 'edit' && editingChapter?.likes) || 0,
+        comments: (modalMode === 'edit' && editingChapter?.comments) || 0,
+        views: (modalMode === 'edit' && editingChapter?.views) || 0,
       };
       
       if (modalMode === 'edit' && data.docId) {
@@ -458,12 +464,13 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
                                 <SelectContent>
                                     <SelectItem value="private">Private (Paid/Members)</SelectItem>
                                     <SelectItem value="public">Public (Free for All)</SelectItem>
+                                    <SelectItem value="protected">Protected (Paywall)</SelectItem>
                                 </SelectContent>
                             </Select>
                         )}
                     />
                   </div>
-                  {status === 'private' && (
+                  {status === 'protected' && (
                     <div className="space-y-2">
                       <Label htmlFor="price">Price (₹)</Label>
                       <Input id="price" type="number" step="1" {...register('price')} />
@@ -704,4 +711,5 @@ export function SchedulePublicationDialog({ chapterGroup, onScheduled }: { chapt
         </Dialog>
     );
 }
+
 

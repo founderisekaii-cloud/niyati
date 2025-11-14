@@ -128,6 +128,7 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
               summary: data.summary,
               wordCount: data.wordCount,
               releaseDate: data.releaseDate?.toDate().toISOString() || new Date().toISOString(),
+              publishedAt: data.publishedAt?.toDate().toISOString() || null,
               content: data.content,
               seasonNumber: data.seasonNumber,
               chapterNumber: data.chapterNumber,
@@ -278,6 +279,7 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
               price: part1.price, // Copied from part 1
               isLastPart: addPartIsLast,
               releaseDate: serverTimestamp() as any,
+              publishedAt: null, // New parts are drafts
               likes: 0,
               comments: 0,
               views: 0,
@@ -365,14 +367,16 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
 
   const renderPartAction = (part: Chapter) => {
     const partUrl = `/chapters/${part.seasonNumber}/${part.chapterNumber}/${part.partNumber}`;
+    const isPublished = part.publishedAt && new Date(part.publishedAt) <= new Date();
+
+    if (!isPublished && !isAdmin) {
+        return <Button variant="secondary" disabled><Lock className="mr-2"/>Coming Soon</Button>;
+    }
+
     switch(part.status) {
         case 'public':
+        case 'private': // private is now a draft status, but accessible if published
             return <Button asChild><Link href={partUrl}>Read Part</Link></Button>
-        case 'private':
-            if (user) {
-                return <Button asChild><Link href={partUrl}>Read Part</Link></Button>
-            }
-            return <Button asChild variant="secondary"><Link href={`/login?redirect=${partUrl}`}><Lock className="mr-2"/>Sign In</Link></Button>
         case 'protected':
              return <Button onClick={handleFeatureComingSoon}><DollarSign className="mr-2"/>Unlock (₹{part.price})</Button>
         default:

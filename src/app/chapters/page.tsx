@@ -65,6 +65,7 @@ async function getGroupedChapters(): Promise<ChapterGroup[]> {
             status: 'public',
             price: 0,
             coverImage: "https://placehold.co/400x400/1A1A2E/FFD700?text=S0\\nC0",
+            isLastPart: true,
             likes: 0,
             comments: 0,
             views: 0,
