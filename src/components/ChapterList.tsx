@@ -151,42 +151,20 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
 
           const enrichInput: EnrichChapterInput = {
               fullContent: formData.content || '',
-              isFormatted: true, // Assume formatted by default, can be adjusted by user
-              hasMetadataHeaders: false, // Assume no headers by default
+              // For Part 1, we assume headers are present. For others, it's optional.
+              hasMetadataHeaders: formData.partNumber === 1,
+              isFormatted: true // Let's assume formatted to prevent unwanted changes initially. Can be a user option.
           };
 
-          if (formData.partNumber === 1 || modalMode === 'edit') {
-              toast({ description: "AI is generating title, summary..." });
-              const enrichedData = await enrichChapterContent(enrichInput);
-              finalTitle = enrichedData.title;
-              finalSubtitle = enrichedData.subtitle;
-              finalSummary = enrichedData.summary;
-              finalCleanedContent = enrichedData.cleanedContent;
-              finalCoverImage = `https://placehold.co/400x400/1A1A2E/FFD700?text=S${formData.seasonNumber}\\nC${formData.chapterNumber}`;
-
-          } else { // Subsequent parts
-              toast({ description: `Fetching details from Part 1...` });
-              const q = query(
-                  collection(db, 'chapters'),
-                  where('seasonNumber', '==', formData.seasonNumber),
-                  where('chapterNumber', '==', formData.chapterNumber),
-                  where('partNumber', '==', 1)
-              );
-              const part1Snapshot = await getDocs(q);
-              if (part1Snapshot.empty) {
-                  throw new Error(`Could not find Part 1 for Season ${formData.seasonNumber}, Chapter ${formData.chapterNumber} to copy details from.`);
-              }
-              const part1Data = part1Snapshot.docs[0].data();
-              finalTitle = part1Data.title;
-              finalSubtitle = part1Data.subtitle;
-              finalCoverImage = part1Data.coverImage;
-
-              // For subsequent parts, only generate summary, keep content as is
-              const summaryOnlyData = await enrichChapterContent({ ...enrichInput, isFormatted: true, hasMetadataHeaders: false });
-              finalSummary = summaryOnlyData.summary;
-              finalCleanedContent = formData.content;
-          }
+          toast({ description: "AI is processing the content..." });
+          const enrichedData = await enrichChapterContent(enrichInput);
           
+          finalTitle = enrichedData.title;
+          finalSubtitle = enrichedData.subtitle;
+          finalSummary = enrichedData.summary;
+          finalCleanedContent = enrichedData.cleanedContent;
+          finalCoverImage = enrichedData.coverImage || `https://placehold.co/400x400/1A1A2E/FFD700?text=S${formData.seasonNumber}\\nC${formData.chapterNumber}`;
+
           const preview = {
               title: finalTitle,
               subtitle: finalSubtitle,
@@ -204,7 +182,20 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
 
       } catch (error: any) {
           console.error("Error during preview generation:", error);
-          toast({ title: 'Preview Failed', description: error.message || 'Could not generate preview.', variant: 'destructive' });
+          toast({ title: 'AI Processing Failed', description: "Proceeding with manual entry. Please fill in the details.", variant: 'destructive' });
+          // Fallback to manual mode if AI fails
+          const preview = {
+              title: '',
+              subtitle: '',
+              summary: 'Could not generate summary.',
+              coverImage: `https://placehold.co/400x400/1A1A2E/FFD700?text=S${formData.seasonNumber}\\nC${formData.chapterNumber}`,
+          };
+          setPreviewData(preview);
+          setValue('title', '');
+          setValue('subtitle', '');
+          setValue('summary', 'Could not generate summary.');
+          setValue('coverImage', preview.coverImage);
+          setValue('content', formData.content); // Keep original content
       } finally {
           setIsPreviewLoading(false);
       }
@@ -221,7 +212,7 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
         let finalCoverImageUrl = data.coverImage || '';
 
         // Check if coverImage is a base64 string (from file upload)
-        if (finalCoverImageUrl.startsWith('data:image')) {
+        if (finalCoverImageUrl && finalCoverImageUrl.startsWith('data:image')) {
             const storageRef = ref(storage, `chapters/cover-s${data.seasonNumber}-c${data.chapterNumber}.jpg`);
             const uploadResult = await uploadString(storageRef, finalCoverImageUrl, 'data_url');
             finalCoverImageUrl = await getDownloadURL(uploadResult.ref);
@@ -399,8 +390,8 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
                     <Textarea id="summary" {...register('summary')} rows={4} />
                 </div>
                 <div className="space-y-2">
-                    <Label htmlFor="content">Cleaned Content (Read Only)</Label>
-                    <Textarea id="content" {...register('content')} rows={6} readOnly className="bg-muted/50" />
+                    <Label htmlFor="content">Cleaned Content (Editable)</Label>
+                    <Textarea id="content" {...register('content')} rows={6} className="bg-muted/50" />
                 </div>
              </div>
         )}
@@ -471,5 +462,7 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
     </>
   );
 }
+
+    
 
     
