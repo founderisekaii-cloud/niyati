@@ -1,0 +1,17 @@
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Allow anyone to subscribe to the mailing list
+    match /subscriptions/{subscriptionId} {
+      allow create: if true;
+    }
+
+    // Default deny all other reads/writes
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
