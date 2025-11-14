@@ -52,8 +52,7 @@ export default function ChapterPage({ params }: ChapterPageProps) {
             q = query(
               chaptersCol, 
               where('seasonNumber', '==', season), 
-              where('chapterNumber', '==', chapterNum),
-              orderBy('partNumber', 'asc')
+              where('chapterNumber', '==', chapterNum)
             );
         } else {
             // Fetch a single part
@@ -86,9 +85,14 @@ export default function ChapterPage({ params }: ChapterPageProps) {
                 partNumber: docData.partNumber,
                 status: docData.status || 'private',
                 price: docData.price || 0,
-                coverImage: docData.coverImage
+                coverImage: docData.coverImage,
+                isLastPart: docData.isLastPart || false,
               };
           });
+          // Sort here for the full chapter view
+          if(isFullChapterRead) {
+              chapterDocs.sort((a, b) => a.partNumber - b.partNumber);
+          }
           setChapters(chapterDocs);
         }
       } catch (error) {
@@ -122,13 +126,17 @@ export default function ChapterPage({ params }: ChapterPageProps) {
   const firstChapterPart = chapters[0];
 
   const hasAccess = () => {
-    if (firstChapterPart.status === 'public') {
+    // For full chapter view, check access on the first part.
+    const chapterToCheck = firstChapterPart;
+    
+    if (chapterToCheck.status === 'public') {
       return true;
     }
-    if (firstChapterPart.status === 'private' && user) {
+    if (chapterToCheck.status === 'private' && user) {
       return true;
     }
-    if (firstChapterPart.status === 'protected') {
+    // Access for protected chapters is handled by the action card
+    if (chapterToCheck.status === 'protected') {
        return false;
     }
     return false;

@@ -4,7 +4,7 @@
 import { notFound } from 'next/navigation';
 import { collection, getDocs, query, where, deleteDoc, doc, addDoc, serverTimestamp, updateDoc, writeBatch } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { Chapter, ChapterGroup } from '@/lib/types';
+import type { Chapter } from '@/lib/types';
 import { useEffect, useState, use } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { NiyatiVerseLogo } from '@/components/icons';
@@ -79,9 +79,8 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
   const [addPartPreview, setAddPartPreview] = useState<{ summary: string; cleanedContent: string; } | null>(null);
   const [addPartContent, setAddPartContent] = useState('');
   const [addPartIsLast, setAddPartIsLast] = useState(false);
-  const [addPartContentType, setAddPartContentType] = useState<'raw' | 'formatted'>('raw');
+  const [addPartContentType, setAddPartContentType] = useState<'raw' | 'formatted'>('formatted');
   const [addPartHasMetadata, setAddPartHasMetadata] = useState(false);
-
 
   const resolvedParams = use(params);
   const seasonNum = parseInt(resolvedParams.season, 10);
@@ -107,6 +106,7 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
 
       if (snapshot.empty) {
         setParts([]);
+        setChapterDetails(null);
       } else {
         const partsData: Chapter[] = snapshot.docs.map(doc => {
             const data = doc.data();
@@ -158,7 +158,7 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
     setAddPartContent('');
     setAddPartPreview(null);
     setAddPartIsLast(false);
-    setAddPartContentType('raw');
+    setAddPartContentType('formatted');
     setAddPartHasMetadata(false);
   }
 
@@ -170,21 +170,31 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
     setAddPartLoading(true);
     try {
         let contentToProcess = addPartContent;
-        // The enrich flow is designed to clean content, which is what we want.
-        // For formatting, we'll tell the AI in the prompt.
-        let promptHint = addPartContentType === 'raw' 
-            ? "Format this raw text into clean paragraphs. If it contains story name, title, or chapter headings, remove them."
-            : "Clean this pre-formatted text, removing any story name, title, or chapter headings at the start.";
+        
+        if (addPartContentType === 'formatted' && !addPartHasMetadata) {
+            // No AI processing needed, just generate a simple summary
+            setAddPartPreview({
+                summary: "Content for this part.",
+                cleanedContent: contentToProcess,
+            });
+            toast({ title: "Preview Ready!", description: "Content is ready for submission." });
+            return;
+        }
 
+        let promptContent = contentToProcess;
+        if(addPartContentType === 'formatted') {
+            promptContent = `[FORMATTED_CONTENT_FLAG] ${contentToProcess}`;
+        }
+        
         const enrichedData = await enrichChapterContent({ 
-            fullContent: contentToProcess,
-            // The flow doesn't directly use this, but it's good practice.
-            // The real logic is in the prompt modification which enrichChapterContent does.
+            fullContent: promptContent,
         });
+
+        const finalContent = addPartHasMetadata ? enrichedData.cleanedContent : contentToProcess;
         
         setAddPartPreview({
             summary: enrichedData.summary,
-            cleanedContent: enrichedData.cleanedContent
+            cleanedContent: finalContent
         });
         
         toast({ title: "Preview Ready!", description: "Review the generated summary and cleaned content." });
@@ -354,14 +364,14 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
                                     </div>
                                     <div className="space-y-2">
                                         <Label>Content Type</Label>
-                                        <RadioGroup defaultValue="raw" value={addPartContentType} onValueChange={(v: 'raw' | 'formatted') => setAddPartContentType(v)}>
+                                        <RadioGroup defaultValue="formatted" value={addPartContentType} onValueChange={(v: 'raw' | 'formatted') => setAddPartContentType(v)}>
                                             <div className="flex items-center space-x-2">
                                                 <RadioGroupItem value="raw" id="r-raw" />
                                                 <Label htmlFor="r-raw">Raw (Needs AI formatting)</Label>
                                             </div>
                                              <div className="flex items-center space-x-2">
                                                 <RadioGroupItem value="formatted" id="r-formatted" />
-                                                <Label htmlFor="r-formatted">Formatted (Already structured)</Label>
+                                                <Label htmlFor="r-formatted">Formatted (Upload as-is)</Label>
                                             </div>
                                         </RadioGroup>
                                     </div>
@@ -377,7 +387,7 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
                                         <Textarea value={addPartPreview.summary} rows={3} readOnly className="bg-muted/50" />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label>AI Cleaned & Formatted Content</Label>
+                                        <Label>Cleaned Content Preview</Label>
                                         <Textarea value={addPartPreview.cleanedContent} rows={8} readOnly className="bg-muted/50" />
                                     </div>
                                 </div>

@@ -9,8 +9,6 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { getStorage, ref, uploadString, getDownloadURL } from "firebase/storage";
-import { storage } from '@/lib/firebase';
 
 // 1. Define Input Schema
 const EnrichChapterInputSchema = z.object({
@@ -37,7 +35,7 @@ const generationPrompt = ai.definePrompt({
         title: z.string().describe("Extract the chapter title from the text in English. If no clear title is present, create a concise, compelling one based on the content."),
         subtitle: z.string().describe("Extract the single quote or tagline sentence that appears immediately after the title."),
         summary: z.string().describe("Generate a compelling, 3-sentence summary in English, suitable for a chapter listing page. It should be engaging and concise."),
-        cleanedContent: z.string().describe("Return the main body of the chapter content after removing the primary title, the subtitle, and any other introductory headings found at the beginning of the text."),
+        cleanedContent: z.string().describe("Return the main body of the chapter content. IMPORTANT: Only remove the primary title, the subtitle, and any other introductory headings IF THEY ARE PRESENT. If they are not present, return the content as-is without any changes to formatting or paragraph structure."),
         imagePrompt: z.string().describe("Generate a short, descriptive prompt (max 15 words) for an AI image generator. The prompt should capture the main theme, a key character, or a pivotal scene from the chapter content. Example: 'A lone warrior standing on a cliff overlooking a futuristic city at dusk.'"),
     })},
     prompt: `You are a master storyteller and editor. Your primary task is to process a raw chapter text and extract or generate specific pieces of metadata.
@@ -46,11 +44,11 @@ const generationPrompt = ai.definePrompt({
 
     Perform the following tasks based on the provided content:
 
-    1.  **Extract Title:** Find the main title of the chapter (e.g., "LET’S BEGIN THE STORY").
-    2.  **Extract Subtitle:** Find the italicized quote or tagline that comes directly after the title.
-    3.  **Generate Summary:** Create a compelling, 3-sentence summary of the entire chapter's content. This should be a good teaser for a reader.
-    4.  **Clean Content:** Return ONLY the main body of the story. You must remove the story name ("Niyati"), the season/chapter line, the main title, and the subtitle from the beginning of the text. The returned content should start directly with the first paragraph of the actual story.
-    5.  **Generate Image Prompt:** Based on the cleaned content, create a short, evocative prompt for an AI image generator that visually represents a key theme or scene.
+    1.  **Extract Title:** Find the main title of the chapter (e.g., "LET’S BEGIN THE STORY"). If not found, create one.
+    2.  **Extract Subtitle:** Find the italicized quote or tagline that comes directly after the title. If not found, leave it blank.
+    3.  **Generate Summary:** Create a compelling, 3-sentence summary of the entire chapter's content.
+    4.  **Clean Content:** Return ONLY the main body of the story. If you find the story name ("Niyati"), the season/chapter line, the main title, and the subtitle at the beginning, you MUST remove them. If these elements are NOT present, you MUST return the content EXACTLY as it was provided, without altering any formatting, line breaks, or paragraph structure.
+    5.  **Generate Image Prompt:** Based on the content, create a short, evocative prompt for an AI image generator.
 
     Full Chapter Content:
     {{{fullContent}}}
@@ -70,7 +68,7 @@ const enrichChapterFlow = ai.defineFlow(
     const textGenResult = await generationPrompt(input);
     const { title, subtitle, summary, cleanedContent, imagePrompt } = textGenResult.output!;
 
-    if (!title || !subtitle || summary === undefined || cleanedContent === undefined || !imagePrompt) {
+    if (!title || subtitle === undefined || summary === undefined || cleanedContent === undefined || !imagePrompt) {
         throw new Error("Failed to generate all required text fields from AI.");
     }
     
@@ -81,13 +79,11 @@ const enrichChapterFlow = ai.defineFlow(
       const { media } = await ai.generate({
         model: 'googleai/imagen-4.0-fast-generate-001',
         prompt: imagePrompt,
-        config: {
-          responseMimeType: 'image/jpeg',
-        },
       });
       
       if (media && media.url) {
-        coverImage = media.url; // This will be a data URI
+        // This will be a Base64 data URI, which will be handled by the client
+        coverImage = media.url; 
       } else {
         throw new Error('AI image generation returned no media.');
       }

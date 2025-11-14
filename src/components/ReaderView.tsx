@@ -64,7 +64,8 @@ export default function ReaderView({ chapters }: ReaderViewProps) {
   }, []);
 
   const getFormattedContentForChapter = (chapter: Chapter) => {
-    return chapter.content.split('\n').filter(p => p.trim() !== '').map(p => `<p>${p}</p>`).join('');
+    // Replace newline characters with <br /> tags to preserve paragraph breaks
+    return chapter.content.replace(/\n/g, '<br />');
   };
 
   const getTranslatedTitle = () => {
@@ -142,19 +143,19 @@ export default function ReaderView({ chapters }: ReaderViewProps) {
         .dark .dark-theme-override .prose { color: #E0E0E0; }
         
         .dark-theme-override .prose p, .dark-theme-override h1, .dark-theme-override h2,
-        .dark-theme-override .prose-headings, .dark-theme-override .prose-body { color: #E0E0E0 !important; }
+        .dark-theme-override .prose-headings, .dark-theme-override .prose-body, .dark-theme-override .prose article { color: #E0E0E0 !important; }
         
         .sepia-theme-override .prose p, .sepia-theme-override h1, .sepia-theme-override h2,
-        .sepia-theme-override .prose-headings, .sepia-theme-override .prose-body { color: #5b4636 !important; }
+        .sepia-theme-override .prose-headings, .sepia-theme-override .prose-body, .sepia-theme-override .prose article { color: #5b4636 !important; }
 
         .prose.font-serif {
             font-family: 'Alegreya', serif !important;
         }
 
-        .prose.prose-size-sm p { font-size: 0.8rem; line-height: 1.6; }
-        .prose.prose-size-base p { font-size: 1rem; line-height: 1.7; }
-        .prose.prose-size-lg p { font-size: 1.15rem; line-height: 1.8; }
-        .prose.prose-size-xl p { font-size: 1.3rem; line-height: 1.9; }
+        .prose.prose-size-sm p, .prose.prose-size-sm article { font-size: 0.8rem; line-height: 1.6; }
+        .prose.prose-size-base p, .prose.prose-size-base article { font-size: 1rem; line-height: 1.7; }
+        .prose.prose-size-lg p, .prose.prose-size-lg article { font-size: 1.15rem; line-height: 1.8; }
+        .prose.prose-size-xl p, .prose.prose-size-xl article { font-size: 1.3rem; line-height: 1.9; }
 
       `}</style>
       <div className="relative z-10">
@@ -195,7 +196,6 @@ export default function ReaderView({ chapters }: ReaderViewProps) {
                     `prose-size-${fontSize}`,
                     'font-serif',
                     theme === 'system' ? 'dark:prose-invert' : '',
-                    'prose-p:mb-6'
                   )}
                   dangerouslySetInnerHTML={{ __html: getFormattedContentForChapter(chapter) }}
                 />
