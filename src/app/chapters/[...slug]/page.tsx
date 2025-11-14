@@ -55,8 +55,7 @@ export default function ChapterPage({ params }: ChapterPageProps) {
             q = query(
               chaptersCol, 
               where('seasonNumber', '==', season), 
-              where('chapterNumber', '==', chapterNum),
-              orderBy('partNumber', 'asc')
+              where('chapterNumber', '==', chapterNum)
             );
         } else {
             // Fetch a single part
@@ -101,6 +100,12 @@ export default function ChapterPage({ params }: ChapterPageProps) {
                 views: docData.views || 0,
               };
           });
+
+          // Sort on the client to avoid composite index requirement
+          if (isFullChapterRead) {
+            chapterDocs.sort((a, b) => a.partNumber - b.partNumber);
+          }
+
           setChapters(chapterDocs);
         }
       } catch (error) {
