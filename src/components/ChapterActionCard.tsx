@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Chapter } from "@/lib/types";
@@ -23,16 +24,17 @@ export default function ChapterActionCard({ chapter, user }: ChapterActionCardPr
         });
     };
     
-    const renderPrivateView = () => (
+    // This view is shown for unpublished content to non-admins
+    const renderUnpublishedView = () => (
         <Card className="max-w-xl mx-auto my-12">
             <CardHeader className="items-center text-center">
                 <ShieldAlert className="w-12 h-12 text-primary mb-4" />
-                <CardTitle>Access Restricted</CardTitle>
-                <CardDescription>This chapter is currently a draft and not available for public viewing.</CardDescription>
+                <CardTitle>Chapter Not Available</CardTitle>
+                <CardDescription>This chapter has not been published yet.</CardDescription>
             </CardHeader>
             <CardContent>
                 <p className="text-center text-muted-foreground">
-                    Only administrators can view this content. Once published, it will be available here.
+                    This content is still being worked on. Please check back later.
                 </p>
             </CardContent>
             <CardFooter className="flex justify-center">
@@ -66,19 +68,12 @@ export default function ChapterActionCard({ chapter, user }: ChapterActionCardPr
         </Card>
     );
 
-    if (chapter.status === 'private') {
-        return renderPrivateView();
-    }
-
+    // If a chapter is "protected" (paid), show the paywall.
     if (chapter.status === 'protected') {
         return renderProtectedView();
     }
-
-    // Fallback for any other unhandled cases (like public but access check failed)
-    return (
-        <div className="text-center my-12">
-            <h2 className="text-2xl font-bold">Access Denied</h2>
-            <p className="text-muted-foreground">You do not have permission to view this content.</p>
-        </div>
-    );
+    
+    // If it's not protected but still inaccessible, it must be an unpublished draft.
+    // This is the default case for non-admins trying to access content without a past publishedAt date.
+    return renderUnpublishedView();
 }

@@ -1,9 +1,10 @@
 
+
 'use client';
 
 import { notFound } from 'next/navigation';
 import ReaderView from '@/components/ReaderView';
-import { collection, getDocs, query, where, limit, orderBy } from 'firebase/firestore';
+import { collection, getDocs, query, where, limit, orderBy, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Chapter } from '@/lib/types';
 import { useEffect, useState, use } from 'react';
@@ -82,6 +83,7 @@ export default function ChapterPage({ params }: ChapterPageProps) {
                 summary: docData.summary,
                 wordCount: docData.wordCount,
                 releaseDate: docData.releaseDate.toDate().toISOString(),
+                publishedAt: docData.publishedAt?.toDate().toISOString() || null,
                 content: docData.content,
                 seasonNumber: docData.seasonNumber,
                 chapterNumber: docData.chapterNumber,
@@ -128,32 +130,25 @@ export default function ChapterPage({ params }: ChapterPageProps) {
   const firstChapterPart = chapters[0];
 
   const hasAccess = () => {
-    const chapterToCheck = firstChapterPart;
-    
     // Admin can see everything
     if (isAdmin) {
       return true;
     }
     
-    // Public chapters are visible to all
-    if (chapterToCheck.status === 'public') {
-      return true;
+    // For regular users, check the publishedAt date
+    const isPublished = firstChapterPart.publishedAt && new Date(firstChapterPart.publishedAt) <= new Date();
+    
+    if (isPublished) {
+        // If it's a protected chapter, the action card will handle it, but we grant access to the page itself.
+        if (firstChapterPart.status === 'protected') {
+            // A real implementation would check for purchase history here.
+            // For now, we show the action card to prompt purchase/login.
+            return false;
+        }
+        return true;
     }
 
-    // Private chapters are drafts, only for admins (already handled above)
-    // So if a non-admin gets here, they shouldn't see it.
-    if (chapterToCheck.status === 'private') {
-      return false;
-    }
-    
-    // For protected content, the action card will handle it.
-    // Let's assume for now if they reach this page they have access,
-    // but the card should be the gate.
-    if (chapterToCheck.status === 'protected') {
-       // A real implementation would check for purchase history here.
-       // For now, we show the action card to prompt purchase/login.
-       return false;
-    }
+    // If not published and not admin, no access.
     return false;
   };
   

@@ -1,9 +1,13 @@
 
+
 'use server';
 
 import { autoApproveUpiPayment } from '@/ai/flows/auto-approve-upi-payments';
 import { z } from 'zod';
 import { PDFDocument, rgb, StandardFonts, degrees } from 'pdf-lib';
+import { Chapter, ChapterGroup } from '@/lib/types';
+import { db } from '@/lib/firebase';
+import { writeBatch, doc, Timestamp } from 'firebase/firestore';
 
 const paymentSchema = z.object({
   chapterId: z.string(),
@@ -257,4 +261,25 @@ export async function generatePdf(chapterData: ChapterPdfData): Promise<string> 
 
     const pdfBytes = await pdfDoc.save();
     return Buffer.from(pdfBytes).toString('base64');
+}
+
+
+export async function scheduleChapterPublication(chapterGroup: ChapterGroup, publishAt: Date) {
+    if (!chapterGroup.docIds || chapterGroup.docIds.length === 0) {
+        throw new Error("No document IDs found for this chapter group.");
+    }
+    const batch = writeBatch(db);
+    const publishTimestamp = Timestamp.fromDate(publishAt);
+
+    chapterGroup.docIds.forEach(id => {
+        const docRef = doc(db, 'chapters', id);
+        batch.update(docRef, { publishedAt: publishTimestamp });
+    });
+
+    await batch.commit();
+
+    // Here you would trigger a notification to subscribed users.
+    // This requires a backend setup (e.g., Cloud Function) to listen for scheduled jobs
+    // or a third-party service. For now, we'll just log it.
+    console.log(`Chapter ${chapterGroup.seasonNumber}-${chapterGroup.chapterNumber} scheduled for publication at ${publishAt}.`);
 }

@@ -1,11 +1,12 @@
 
+
 'use client';
 
 import type { Chapter, ChapterGroup } from '@/lib/types';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { BookOpen, Heart, MessageCircle, List, Eye, Sparkles, Edit, Trash, MoreVertical } from 'lucide-react';
+import { BookOpen, Heart, MessageCircle, List, Eye, Sparkles, Edit, Trash, MoreVertical, Send, Clock } from 'lucide-react';
 import { useAdmin } from '@/hooks/useAdmin';
 import {
   DropdownMenu,
@@ -13,14 +14,21 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuPortal,
+  DropdownMenuSubContent
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
+import { SchedulePublicationDialog } from '@/components/ChapterList';
+import { scheduleChapterPublication } from '@/app/actions';
 
 
 type ChapterCardProps = {
   chapterGroup: ChapterGroup;
   onDelete: () => void;
   onEditRequest: (chapter: Chapter) => void;
+  onPublish: () => void;
 };
 
 const MetaItem = ({ icon: Icon, label, value, onClick }: { icon: React.ElementType, label: string, value: string | number, onClick?: () => void }) => (
@@ -31,7 +39,7 @@ const MetaItem = ({ icon: Icon, label, value, onClick }: { icon: React.ElementTy
 );
 
 
-export default function ChapterCard({ chapterGroup, onDelete, onEditRequest }: ChapterCardProps) {
+export default function ChapterCard({ chapterGroup, onDelete, onEditRequest, onPublish }: ChapterCardProps) {
   const { isAdmin } = useAdmin();
   const { toast } = useToast();
   const chapterUrl = `/chapters/${chapterGroup.seasonNumber}/${chapterGroup.chapterNumber}`;
@@ -51,13 +59,26 @@ export default function ChapterCard({ chapterGroup, onDelete, onEditRequest }: C
   }
 
   const handleEdit = () => {
-    // We assume the first part holds the canonical details for the group
     if (chapterGroup.parts && chapterGroup.parts[0]) {
       onEditRequest(chapterGroup.parts[0]);
     } else {
       console.error("Cannot edit: part 1 data is missing from chapter group.");
     }
   }
+
+  const handlePublishNow = async () => {
+    if (window.confirm(`Are you sure you want to publish S${chapterGroup.seasonNumber} C${chapterGroup.chapterNumber} now?`)) {
+      try {
+        await scheduleChapterPublication(chapterGroup, new Date());
+        toast({ title: "Success!", description: "Chapter has been published." });
+        onPublish();
+      } catch (error: any) {
+        toast({ title: "Publish Failed", description: error.message, variant: "destructive" });
+      }
+    }
+  };
+  
+  const isPublished = chapterGroup.publishedAt && new Date(chapterGroup.publishedAt) <= new Date();
 
 
   return (
@@ -78,9 +99,20 @@ export default function ChapterCard({ chapterGroup, onDelete, onEditRequest }: C
         </div>
 
         <div className="flex flex-col flex-grow w-full sm:w-3/4">
-          <p className="text-sm font-semibold text-primary/90">
-            Season {chapterGroup.seasonNumber} | Chapter {chapterGroup.chapterNumber}
-          </p>
+          <div className="flex items-center gap-2">
+            <p className="text-sm font-semibold text-primary/90">
+                Season {chapterGroup.seasonNumber} | Chapter {chapterGroup.chapterNumber}
+            </p>
+            {!isPublished && isAdmin && (
+                <span className="text-xs font-bold text-yellow-500 bg-yellow-500/10 px-2 py-0.5 rounded-full">Draft</span>
+            )}
+            {chapterGroup.publishedAt && new Date(chapterGroup.publishedAt) > new Date() && isAdmin && (
+                 <span className="text-xs font-bold text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <Clock className="size-3"/>
+                    Scheduled
+                 </span>
+            )}
+          </div>
           <h3 className="text-2xl font-bold text-primary font-headline mt-1">
              <Link href={chapterUrl}>{chapterGroup.title}</Link>
           </h3>
@@ -107,6 +139,22 @@ export default function ChapterCard({ chapterGroup, onDelete, onEditRequest }: C
             <MetaItem icon={Sparkles} label="Price" value={getPriceDisplay()} />
          </div>
          <div className="flex items-center gap-2">
+            {isAdmin && !isPublished && (
+                 <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button size="sm" variant="secondary">
+                            <Send className="mr-2 h-4 w-4" />
+                            Publish
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={handlePublishNow}>
+                            Publish Now
+                        </DropdownMenuItem>
+                        <SchedulePublicationDialog chapterGroup={chapterGroup} onScheduled={onPublish} />
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            )}
             <Button asChild size="sm">
               <Link href={chapterUrl}><BookOpen className="mr-2 h-4 w-4" />View Chapter</Link>
             </Button>

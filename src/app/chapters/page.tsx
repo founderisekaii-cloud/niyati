@@ -1,6 +1,6 @@
 
 
-import { collection, getDocs, orderBy, query, where } from 'firebase/firestore';
+import { collection, getDocs, orderBy, query, where, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import ChapterList from '@/components/ChapterList';
 import type { Chapter, ChapterGroup } from '@/lib/types';
@@ -12,34 +12,31 @@ import { doc, getDoc } from 'firebase/firestore';
 
 
 async function getIsAdmin() {
-  const user = auth.currentUser;
-  if (!user) return false;
-  try {
-    const userDoc = await getDoc(doc(db, 'users', user.uid));
-    return userDoc.exists() && userDoc.data().role === 'admin';
-  } catch (error) {
-    console.error("Error checking admin status:", error);
-    return false;
-  }
+  // This function runs on the server, so we can't use client-side auth state.
+  // In a real app with server-side rendering and auth, you'd get the user from the session.
+  // For this context, we will assume an admin check happens.
+  // To make this work for demonstration, we will rely on a client-side check for now.
+  // The 'isAdmin' prop will be passed down to the client component.
+  return false; // Placeholder for server-side check.
 }
 
 async function getGroupedChapters(): Promise<ChapterGroup[]> {
-  const isAdmin = await getIsAdmin();
+  // This server-side function fetches chapters. We will now filter by publish date.
+  // Regular users only see chapters published in the past.
   try {
     const chaptersCol = collection(db, 'chapters');
-    let q;
-
-    // Admins see all chapters (private/drafts included)
-    // Regular users only see public or protected chapters
-    if (isAdmin) {
-        q = query(chaptersCol);
-    } else {
-        q = query(chaptersCol, where('status', 'in', ['public', 'protected']));
-    }
+    
+    // Query for chapters that are published (publishedAt is in the past or now)
+    const q = query(
+        chaptersCol, 
+        where('publishedAt', '<=', Timestamp.now()),
+        orderBy('publishedAt', 'desc')
+    );
 
     const chapterSnapshot = await getDocs(q);
 
     if (chapterSnapshot.empty) {
+      // Return a sample if the database is empty
       return [
         {
           seasonNumber: 0,
@@ -51,7 +48,7 @@ async function getGroupedChapters(): Promise<ChapterGroup[]> {
           coverImage: "https://placehold.co/400x400/1A1A2E/FFD700?text=S0\\nC0",
           status: 'public',
           price: 0,
-           likes: 0,
+          likes: 0,
           comments: 0,
           views: 0,
           parts: [{
@@ -77,7 +74,7 @@ async function getGroupedChapters(): Promise<ChapterGroup[]> {
     }
 
 
-    const chapterMap = new Map<string, ChapterGroup & { parts: Chapter[], docIds: string[], totalLikes: number, totalComments: number, totalViews: number }>();
+    const chapterMap = new Map<string, ChapterGroup & { parts: Chapter[], docIds: string[], totalLikes: number, totalComments: number, totalViews: number, publishedAt?: any }>();
 
     chapterSnapshot.docs.forEach(doc => {
       const data = doc.data();
@@ -94,6 +91,7 @@ async function getGroupedChapters(): Promise<ChapterGroup[]> {
           partCount: 0,
           status: 'private',
           price: 0,
+          publishedAt: null,
           parts: [],
           docIds: [],
           totalLikes: 0,
@@ -111,6 +109,7 @@ async function getGroupedChapters(): Promise<ChapterGroup[]> {
         ...data,
         docId: doc.id,
         releaseDate: data.releaseDate?.toDate().toISOString() || new Date().toISOString(),
+        publishedAt: data.publishedAt?.toDate().toISOString() || null,
       } as Chapter;
 
       group.parts.push(chapterPart);
@@ -118,6 +117,9 @@ async function getGroupedChapters(): Promise<ChapterGroup[]> {
       group.totalLikes += data.likes || 0;
       group.totalComments += data.comments || 0;
       group.totalViews += data.views || 0;
+      if (!group.publishedAt) {
+          group.publishedAt = chapterPart.publishedAt;
+      }
     });
 
     const finalGroups: ChapterGroup[] = [];
@@ -136,6 +138,7 @@ async function getGroupedChapters(): Promise<ChapterGroup[]> {
           partCount: group.parts.length,
           status: part1.status,
           price: part1.price,
+          publishedAt: group.publishedAt,
           likes: group.totalLikes,
           comments: group.totalComments,
           views: group.totalViews,
@@ -144,7 +147,8 @@ async function getGroupedChapters(): Promise<ChapterGroup[]> {
         });
       }
     }
-
+    
+    // Sort by season and chapter number in descending order
     finalGroups.sort((a, b) => {
       if (a.seasonNumber !== b.seasonNumber) {
         return b.seasonNumber - a.seasonNumber;

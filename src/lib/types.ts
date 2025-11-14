@@ -1,4 +1,5 @@
 
+
 export interface Chapter {
   docId?: string; // Firestore document ID
   title: string;
@@ -6,6 +7,7 @@ export interface Chapter {
   summary: string;
   wordCount: number;
   releaseDate: string; // ISO 8601 format
+  publishedAt?: string | null; // ISO 8601 format, for scheduled publishing
   content: string; // Default/English content
 
   // New fields for content management
@@ -34,6 +36,7 @@ export interface ChapterGroup {
   partCount: number;
   status: 'public' | 'private' | 'protected';
   price: number;
+  publishedAt?: string | null;
   likes: number;
   comments: number;
   views: number;
