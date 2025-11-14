@@ -33,9 +33,10 @@ import {
   getDocs,
   writeBatch,
 } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { db, storage } from '@/lib/firebase';
+import { ref, uploadString, getDownloadURL } from 'firebase/storage';
 import { useToast } from '@/hooks/use-toast';
-import { enrichChapterContent } from '@/ai/flows/enrich-chapter-flow';
+import { enrichChapterContent, type EnrichChapterInput } from '@/ai/flows/enrich-chapter-flow';
 import {
   Select,
   SelectContent,
@@ -77,6 +78,8 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
   const { toast } = useToast();
   const [previewData, setPreviewData] = useState<Partial<ChapterFormData> | null>(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
     register,
@@ -133,7 +136,7 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
     setEditingChapter(null);
   }
 
-  const handlePreview = async () => {
+ const handlePreview = async () => {
       const isValid = await trigger(["seasonNumber", "chapterNumber", "partNumber", "content", "status"]);
       if (!isValid) {
           toast({ title: "Validation Error", description: "Please fill in all required fields before previewing.", variant: 'destructive'});
@@ -146,16 +149,22 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
       try {
           let finalTitle, finalSubtitle, finalSummary, finalCoverImage, finalCleanedContent;
 
+          const enrichInput: EnrichChapterInput = {
+              fullContent: formData.content || '',
+              isFormatted: true, // Assume formatted by default, can be adjusted by user
+              hasMetadataHeaders: false, // Assume no headers by default
+          };
+
           if (formData.partNumber === 1 || modalMode === 'edit') {
               toast({ description: "AI is generating title, summary..." });
-              const enrichedData = await enrichChapterContent({ fullContent: formData.content || '' });
+              const enrichedData = await enrichChapterContent(enrichInput);
               finalTitle = enrichedData.title;
               finalSubtitle = enrichedData.subtitle;
               finalSummary = enrichedData.summary;
               finalCleanedContent = enrichedData.cleanedContent;
-              // Generate placeholder image URL instead of AI image
               finalCoverImage = `https://placehold.co/400x400/1A1A2E/FFD700?text=S${formData.seasonNumber}\\nC${formData.chapterNumber}`;
-          } else {
+
+          } else { // Subsequent parts
               toast({ description: `Fetching details from Part 1...` });
               const q = query(
                   collection(db, 'chapters'),
@@ -170,9 +179,12 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
               const part1Data = part1Snapshot.docs[0].data();
               finalTitle = part1Data.title;
               finalSubtitle = part1Data.subtitle;
-              finalSummary = part1Data.summary;
               finalCoverImage = part1Data.coverImage;
-              finalCleanedContent = formData.content; // For subsequent parts, content doesn't need cleaning.
+
+              // For subsequent parts, only generate summary, keep content as is
+              const summaryOnlyData = await enrichChapterContent({ ...enrichInput, isFormatted: true, hasMetadataHeaders: false });
+              finalSummary = summaryOnlyData.summary;
+              finalCleanedContent = formData.content;
           }
           
           const preview = {
@@ -181,11 +193,12 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
               summary: finalSummary,
               coverImage: finalCoverImage,
           };
+
           setPreviewData(preview);
           setValue('title', finalTitle);
           setValue('subtitle', finalSubtitle);
           setValue('summary', finalSummary);
-          setValue('coverImage', finalCoverImage);
+          setValue('coverImage', formData.coverImage || finalCoverImage); // Prioritize existing image on edit
           setValue('content', finalCleanedContent); // Use cleaned content for submission
           toast({ title: "Preview Ready!", description: "You can now review and edit the generated content."});
 
@@ -202,9 +215,19 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
         toast({ title: "Cannot Submit", description: "Please generate a preview before submitting.", variant: "destructive"});
         return;
     }
-
+  
     setLoading(true);
     try {
+        let finalCoverImageUrl = data.coverImage || '';
+
+        // Check if coverImage is a base64 string (from file upload)
+        if (finalCoverImageUrl.startsWith('data:image')) {
+            const storageRef = ref(storage, `chapters/cover-s${data.seasonNumber}-c${data.chapterNumber}.jpg`);
+            const uploadResult = await uploadString(storageRef, finalCoverImageUrl, 'data_url');
+            finalCoverImageUrl = await getDownloadURL(uploadResult.ref);
+            toast({ description: "Cover image uploaded successfully." });
+        }
+
       const chapterPayload = {
         seasonNumber: data.seasonNumber,
         chapterNumber: data.chapterNumber,
@@ -215,7 +238,7 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
         title: data.title || 'Untitled',
         subtitle: data.subtitle || '',
         summary: data.summary || '',
-        coverImage: data.coverImage || `https://placehold.co/400x400/1A1A2E/FFD700?text=S${data.seasonNumber}\\nC${data.chapterNumber}`,
+        coverImage: finalCoverImageUrl,
         wordCount: data.content?.split(/\s+/).length || 0,
         releaseDate: serverTimestamp(),
       };
@@ -263,6 +286,19 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
         }
     }
   }
+
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setValue('coverImage', reader.result as string);
+        setPreviewData(prev => ({...prev, coverImage: reader.result as string}));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
 
   const renderForm = () => (
       <form onSubmit={handleSubmit(handleFinalSubmit)} className="space-y-4">
@@ -320,12 +356,32 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
         ) : (
              <div className="space-y-6 animate-in fade-in-0">
                 <div className="space-y-2">
-                    <Label htmlFor="coverImage">Cover Image URL (Google Drive Link)</Label>
-                    <Input id="coverImage" {...register('coverImage')} placeholder="Paste a public Google Drive image link here..." />
-                     {errors.coverImage && <p className="text-sm text-destructive">{errors.coverImage.message}</p>}
-                    <p className="text-xs text-muted-foreground">
-                        If left blank, a placeholder with the season/chapter number will be used.
-                    </p>
+                    <Label>Cover Image Preview</Label>
+                    <div className="flex items-center gap-4">
+                      {currentCoverImage && (
+                        <Image
+                            unoptimized
+                            src={currentCoverImage}
+                            alt="Cover preview"
+                            width={100}
+                            height={100}
+                            className="rounded-md object-cover aspect-square border"
+                        />
+                      )}
+                      <div className="flex flex-col gap-2">
+                        <Button type="button" size="sm" onClick={() => fileInputRef.current?.click()}>
+                          <Upload className="mr-2" /> Upload Custom Image
+                        </Button>
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleImageUpload}
+                            className="hidden"
+                            accept="image/png, image/jpeg, image/webp"
+                        />
+                         <Input {...register('coverImage')} placeholder="Or paste an image URL" />
+                      </div>
+                    </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                      <div className="space-y-2">
@@ -415,3 +471,5 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
     </>
   );
 }
+
+    
