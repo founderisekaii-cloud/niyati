@@ -38,12 +38,17 @@ const generationPrompt = ai.definePrompt({
         cleanedContent: z.string().describe("Return the main body of the chapter content after removing the primary title, the subtitle, and any other introductory headings found at the beginning of the text."),
         imagePrompt: z.string().describe("Based on the summary, create a short, visually descriptive prompt for an AI image generator. Focus on key characters, settings, and mood. Example: 'A lone warrior standing on a glowing crystal cliff overlooking a cosmic nebula, epic fantasy art'.")
     })},
-    prompt: `You are a master storyteller and editor. Read the full chapter content provided below and perform the following tasks:
-    1.  **Title Generation (English):** Extract the title from the text. The title is likely the main heading. If no explicit title exists, create a concise, compelling one in English.
-    2.  **Subtitle Extraction:** After the title, there is often a quote or a tagline in italics or quotes. Extract this single sentence as the subtitle.
-    3.  **Summary Generation (English):** Generate a compelling, 3-sentence summary in English suitable for a chapter listing page description.
-    4.  **Content Cleaning:** Return the main body of the content. It is crucial that you remove the title, the subtitle, and any other introductory headings from the beginning of the text. The returned content should start directly with the first paragraph of the story.
-    5.  **Image Prompt Generation:** Based on the summary you just generated, create a visually descriptive prompt (around 15-20 words) for an AI image generator. This prompt should capture the essence of the chapter's mood, setting, and key elements.
+    prompt: `You are a master storyteller and editor. Your primary task is to process a raw chapter text and extract or generate specific pieces of metadata.
+
+    The user will provide the full, unformatted text of a chapter. It typically starts with the story name ("Niyati"), followed by the season/chapter ("Season X – Chapter Y"), then a title for the chapter (e.g., "LET'S BEGIN THE STORY"), and then an italicized subtitle/quote (e.g., "Sometimes what we think..."). The rest is the story content.
+
+    Perform the following tasks based on the provided content:
+
+    1.  **Extract Title:** Find the main title of the chapter (e.g., "LET’S BEGIN THE STORY").
+    2.  **Extract Subtitle:** Find the italicized quote or tagline that comes directly after the title.
+    3.  **Generate Summary:** Create a compelling, 3-sentence summary of the entire chapter's content. This should be a good teaser for a reader.
+    4.  **Clean Content:** Return ONLY the main body of the story. You must remove the story name ("Niyati"), the season/chapter line, the main title, and the subtitle from the beginning of the text. The returned content should start directly with the first paragraph of the actual story.
+    5.  **Generate Image Prompt:** Based on the summary you just created, write a visually descriptive prompt (15-25 words) for an AI image generator to create a cover image. It should capture the core mood, setting, and characters of the chapter.
 
     Full Chapter Content:
     {{{fullContent}}}
@@ -76,7 +81,9 @@ const enrichChapterFlow = ai.defineFlow(
       },
     });
 
-    if (!media?.url) {
+    const coverImage = media?.url;
+
+    if (!coverImage) {
       // Fallback to a placeholder if image generation fails
       console.warn("AI Image generation failed, falling back to placeholder.");
       return {
@@ -84,7 +91,7 @@ const enrichChapterFlow = ai.defineFlow(
         subtitle,
         summary,
         cleanedContent,
-        coverImage: 'https://picsum.photos/seed/placeholder/400/400',
+        coverImage: `https://picsum.photos/seed/${title.replace(/\s+/g, '-')}/400/400`,
       };
     }
 
@@ -94,7 +101,7 @@ const enrichChapterFlow = ai.defineFlow(
       subtitle,
       summary,
       cleanedContent,
-      coverImage: media.url, // This is a data URI
+      coverImage, // This is a data URI
     };
   }
 );

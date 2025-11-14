@@ -94,12 +94,12 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
   const status = watch('status');
 
   const resetForm = () => {
-    reset({ status: 'private', price: 0, content: '', partNumber: 1 });
+    reset({ seasonNumber: undefined, chapterNumber: undefined, partNumber: 1, status: 'private', price: 0, content: '' });
     setPreviewData(null);
   }
 
   const handlePreview = async () => {
-      const isValid = await trigger(["seasonNumber", "chapterNumber", "partNumber", "content"]);
+      const isValid = await trigger(["seasonNumber", "chapterNumber", "partNumber", "content", "status"]);
       if (!isValid) {
           toast({ title: "Validation Error", description: "Please fill in all required fields before previewing.", variant: 'destructive'});
           return;
@@ -109,15 +109,16 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
       const formData = watch();
 
       try {
-          let finalTitle, finalSubtitle, finalSummary, finalCoverImage;
+          let finalTitle, finalSubtitle, finalSummary, finalCoverImage, finalCleanedContent;
 
           if (formData.partNumber === 1) {
-              toast({ description: "AI is generating title, subtitle, summary, and cover image..." });
+              toast({ description: "AI is generating title, summary, and cover image..." });
               const enrichedData = await enrichChapterContent({ fullContent: formData.content });
               finalTitle = enrichedData.title;
               finalSubtitle = enrichedData.subtitle;
               finalSummary = enrichedData.summary;
               finalCoverImage = enrichedData.coverImage;
+              finalCleanedContent = enrichedData.cleanedContent;
           } else {
               toast({ description: `Fetching details from Part 1...` });
               const q = query(
@@ -135,10 +136,10 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
               finalSubtitle = part1Data.subtitle;
               finalSummary = part1Data.summary;
               finalCoverImage = part1Data.coverImage;
+              finalCleanedContent = formData.content; // For subsequent parts, content doesn't need cleaning.
           }
           
           const preview = {
-              ...formData,
               title: finalTitle,
               subtitle: finalSubtitle,
               summary: finalSummary,
@@ -149,6 +150,7 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
           setValue('subtitle', finalSubtitle);
           setValue('summary', finalSummary);
           setValue('coverImage', finalCoverImage);
+          setValue('content', finalCleanedContent); // Use cleaned content for submission
           toast({ title: "Preview Ready!", description: "You can now review and edit the generated content."});
 
       } catch (error: any) {
@@ -232,28 +234,29 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
 
   const renderForm = () => (
       <form onSubmit={handleSubmit(handleFinalSubmit)} className="space-y-4">
-        {!previewData && (
+        {!previewData ? (
+             // STEP 1: Initial user input form
              <div className="space-y-4 animate-in fade-in-0">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="seasonNumber">Season Number</Label>
+                    <Label htmlFor="seasonNumber">Season Number*</Label>
                     <Input id="seasonNumber" type="number" {...register('seasonNumber')} />
                     {errors.seasonNumber && <p className="text-sm text-destructive">{errors.seasonNumber.message}</p>}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="chapterNumber">Chapter Number</Label>
+                    <Label htmlFor="chapterNumber">Chapter Number*</Label>
                     <Input id="chapterNumber" type="number" {...register('chapterNumber')} />
                     {errors.chapterNumber && <p className="text-sm text-destructive">{errors.chapterNumber.message}</p>}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="partNumber">Part Number</Label>
+                    <Label htmlFor="partNumber">Part Number*</Label>
                     <Input id="partNumber" type="number" {...register('partNumber')} />
                     {errors.partNumber && <p className="text-sm text-destructive">{errors.partNumber.message}</p>}
                   </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="status">Status</Label>
+                    <Label htmlFor="status">Status*</Label>
                     <Controller
                         name="status"
                         control={control}
@@ -278,36 +281,40 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="content">Full Chapter Content</Label>
-                  <Textarea id="content" {...register('content')} rows={10} placeholder={ "Paste the entire chapter content here. The AI will generate the title, summary, and clean the content."} />
+                  <Label htmlFor="content">Full Chapter Content*</Label>
+                  <Textarea id="content" {...register('content')} rows={10} placeholder={ "Paste the entire chapter content here. For Part 1, the AI will generate the title, subtitle, summary, and cover image. For other parts, it will copy these details from Part 1."} />
                   {errors.content && <p className="text-sm text-destructive">{errors.content.message}</p>}
                 </div>
              </div>
-        )}
+        ) : (
+             // STEP 2: Review and Edit form
+             <div className="space-y-6 animate-in fade-in-0">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="md:col-span-1 space-y-2">
+                        <Label>Cover Image (AI Generated)</Label>
+                        <Image src={previewData.coverImage || ''} alt="Generated cover" width={200} height={200} className="rounded-md border aspect-square object-cover w-full" />
+                        <Input {...register('coverImage')} className="hidden" />
+                    </div>
+                    <div className="md:col-span-2 space-y-4">
+                         <div className="space-y-2">
+                            <Label htmlFor="title">Title (AI Extracted)</Label>
+                            <Input id="title" {...register('title')} />
+                        </div>
+                         <div className="space-y-2">
+                            <Label htmlFor="subtitle">Subtitle (AI Extracted)</Label>
+                            <Input id="subtitle" {...register('subtitle')} />
+                        </div>
+                    </div>
+                </div>
 
-        {previewData && (
-             <div className="space-y-4 animate-in fade-in-0">
                 <div className="space-y-2">
-                    <Label>Cover Image</Label>
-                    <Image src={previewData.coverImage || ''} alt="Generated cover" width={200} height={200} className="rounded-md border aspect-square object-cover" />
-                    <Input {...register('coverImage')} className="hidden" />
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="title">Title</Label>
-                    <Input id="title" {...register('title')} />
-                </div>
-                 <div className="space-y-2">
-                    <Label htmlFor="subtitle">Subtitle</Label>
-                    <Input id="subtitle" {...register('subtitle')} />
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="summary">Summary (Description)</Label>
+                    <Label htmlFor="summary">Description / Summary (AI Generated)</Label>
                     <Textarea id="summary" {...register('summary')} rows={4} />
                 </div>
              </div>
         )}
 
-        <DialogFooter>
+        <DialogFooter className="pt-4">
           <DialogClose asChild>
             <Button variant="outline" type="button" onClick={() => { setIsNewChapterOpen(false); resetForm(); }}>Cancel</Button>
           </DialogClose>
@@ -318,10 +325,15 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
                 Preview & Generate
             </Button>
           ) : (
+            <>
+            <Button variant="ghost" type="button" onClick={() => setPreviewData(null)} disabled={loading}>
+                Back to Edit
+            </Button>
             <Button type="submit" disabled={loading}>
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Submit Chapter
             </Button>
+            </>
           )}
         </DialogFooter>
       </form>
@@ -342,9 +354,9 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
                   New Chapter / Part
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-3xl">
+              <DialogContent className="max-w-4xl">
                 <DialogHeader>
-                  <DialogTitle>{previewData ? 'Review and Submit Chapter' : 'Add a New Chapter'}</DialogTitle>
+                  <DialogTitle>{previewData ? 'Review and Submit Chapter' : 'Add a New Chapter / Part'}</DialogTitle>
                 </DialogHeader>
                 {renderForm()}
               </DialogContent>
@@ -362,5 +374,3 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
     </>
   );
 }
-
-    
