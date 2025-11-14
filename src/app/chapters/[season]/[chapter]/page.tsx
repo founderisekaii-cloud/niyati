@@ -113,8 +113,7 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
       const q = query(
         chaptersCol,
         where('seasonNumber', '==', seasonNum),
-        where('chapterNumber', '==', chapterNum),
-        orderBy('partNumber', 'asc')
+        where('chapterNumber', '==', chapterNum)
       );
       const snapshot = await getDocs(q);
 
@@ -145,6 +144,8 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
               views: data.views || 0,
             }
         });
+        
+        partsData.sort((a, b) => a.partNumber - b.partNumber);
                 
         setParts(partsData);
         const part1 = partsData[0];
@@ -700,3 +701,6 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
 
     
 
+
+
+    
