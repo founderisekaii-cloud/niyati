@@ -111,14 +111,14 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
       setLoading(true);
       const chaptersCol = collection(db, 'chapters');
       // Simplified query to avoid composite index requirement
-      const q = query(chaptersCol, where('seasonNumber', '==', seasonNum));
+      const q = query(chaptersCol, where('seasonNumber', '==', seasonNum), where('chapterNumber', '==', chapterNum));
       const snapshot = await getDocs(q);
 
       if (snapshot.empty) {
         setParts([]);
         setChapterDetails(null);
       } else {
-        const allPartsForSeason: Chapter[] = snapshot.docs.map(doc => {
+        const partsData: Chapter[] = snapshot.docs.map(doc => {
             const data = doc.data();
             return {
               docId: doc.id,
@@ -142,26 +142,18 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
             }
         });
         
-        // Manual filtering for chapter number
-        const partsData = allPartsForSeason.filter(p => p.chapterNumber === chapterNum);
+        partsData.sort((a, b) => a.partNumber - b.partNumber);
+                
+        setParts(partsData);
+        const part1 = partsData[0];
+        const combinedSummary = partsData.map(p => p.summary).filter(Boolean).join(' ');
 
-        if (partsData.length === 0) {
-             setParts([]);
-             setChapterDetails(null);
-        } else {
-            partsData.sort((a, b) => a.partNumber - b.partNumber);
-                    
-            setParts(partsData);
-            const part1 = partsData[0];
-            const combinedSummary = partsData.map(p => p.summary).filter(Boolean).join(' ');
-
-            setChapterDetails({
-                title: part1.title,
-                subtitle: part1.subtitle || '',
-                summary: combinedSummary,
-                coverImage: part1.coverImage || `https://picsum.photos/seed/${seasonNum}-${chapterNum}/400/400`
-            });
-        }
+        setChapterDetails({
+            title: part1.title,
+            subtitle: part1.subtitle || '',
+            summary: combinedSummary,
+            coverImage: part1.coverImage || `https://picsum.photos/seed/${seasonNum}-${chapterNum}/400/400`
+        });
       }
     } catch (error: any) {
       console.error("Failed to fetch chapter parts:", error);
@@ -175,7 +167,7 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
 
   useEffect(() => {
     getChapterParts();
-  }, [seasonNum, chapterNum, resolvedParams]);
+  }, [seasonNum, chapterNum]);
 
   const resetAddPartForm = () => {
     setAddPartContent('');
@@ -710,3 +702,4 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
 
 
     
+
