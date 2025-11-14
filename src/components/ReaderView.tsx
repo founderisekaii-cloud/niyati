@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -187,7 +188,7 @@ export default function ReaderView({ chapters }: ReaderViewProps) {
         
         {chapters.map((chapter, index) => (
              <div key={chapter.docId || index}>
-                {!isFullChapterView && (
+                {isFullChapterView && (
                     <div className="text-center my-8">
                         <h3 className="text-2xl font-bold font-headline tracking-widest" style={{ color: '#E573E5' }}>
                             PART {chapter.partNumber}
@@ -205,7 +206,7 @@ export default function ReaderView({ chapters }: ReaderViewProps) {
                   )}
                   dangerouslySetInnerHTML={{ __html: chapter.content.replace(/\n/g, '<br />') }}
                 />
-                 {(isFullChapterView && index < chapters.length - 1) && <div className="my-8" />}
+                 {(isFullChapterView && index < chapters.length - 1) && <Separator className="my-12 bg-border/20"/>}
             </div>
         ))}
         

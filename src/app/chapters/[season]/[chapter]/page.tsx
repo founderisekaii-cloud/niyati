@@ -113,7 +113,7 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
       const q = query(
         chaptersCol,
         where('seasonNumber', '==', seasonNum),
-        where('chapterNumber', '==', chapterNum)
+        where('chapterNumber', '==', chapterNum),
       );
       const snapshot = await getDocs(q);
 
@@ -705,5 +705,3 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
 
 
     
-
-
