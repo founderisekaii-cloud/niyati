@@ -1,7 +1,7 @@
 
 'use client';
 
-import { notFound, useParams } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import ReaderView from '@/components/ReaderView';
 import { collection, getDocs, query, where, limit } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -24,6 +24,7 @@ export default function ChapterPage({ params }: ChapterPageProps) {
   
   const resolvedParams = use(params);
   const { slug } = resolvedParams;
+
 
   if (!slug || slug.length !== 3) {
     // This page is now ONLY for reading a specific part.
@@ -98,6 +99,7 @@ export default function ChapterPage({ params }: ChapterPageProps) {
 
   if (!chapter) {
     notFound();
+    return null;
   }
 
   const hasAccess = () => {

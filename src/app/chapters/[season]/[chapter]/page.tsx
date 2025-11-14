@@ -5,17 +5,18 @@ import { notFound } from 'next/navigation';
 import { collection, getDocs, query, where, orderBy, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Chapter } from '@/lib/types';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, use } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { NiyatiVerseLogo } from '@/components/icons';
 import { Button } from '@/components/ui/button';
-import { BookOpen, Lock, DollarSign, List, Heart, MessageCircle, Eye, Sparkles, Edit, Trash, PlusCircle } from 'lucide-react';
+import { BookOpen, Lock, DollarSign, List, Heart, MessageCircle, Eye, Sparkles, Edit, Trash, MoreVertical } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -26,6 +27,12 @@ import {
 } from "@/components/ui/collapsible"
 import Image from 'next/image';
 import { useAdmin } from '@/hooks/useAdmin';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 type ChapterPartsPageProps = {
   params: {
@@ -51,8 +58,9 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
   const { toast } = useToast();
   const [isPartsOpen, setIsPartsOpen] = useState(true);
 
-  const seasonNum = parseInt(params.season, 10);
-  const chapterNum = parseInt(params.chapter, 10);
+  const resolvedParams = use(params);
+  const seasonNum = parseInt(resolvedParams.season, 10);
+  const chapterNum = parseInt(resolvedParams.chapter, 10);
 
   const getChapterParts = async () => {
     if (isNaN(seasonNum) || isNaN(chapterNum)) {
@@ -66,8 +74,7 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
       const q = query(
         chaptersCol,
         where('seasonNumber', '==', seasonNum),
-        where('chapterNumber', '==', chapterNum),
-        orderBy('partNumber', 'asc')
+        where('chapterNumber', '==', chapterNum)
       );
       const snapshot = await getDocs(q);
 
@@ -92,6 +99,9 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
               coverImage: data.coverImage
             }
         });
+        
+        partsData.sort((a,b) => a.partNumber - b.partNumber);
+        
         setParts(partsData);
         const part1 = partsData[0];
         setChapterDetails({
@@ -189,22 +199,23 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
                     <CardContent className="p-0 mt-4 flex-grow">
                         <p className="text-muted-foreground line-clamp-6">{chapterDetails.summary}</p>
                     </CardContent>
+                    <CardFooter className="p-0 mt-4">
+                         <Button variant="outline" asChild>
+                            <Link href={`${chapterDetails.title.toLowerCase().replace(/\s+/g, '-')}`}>
+                                Read Full Chapter
+                            </Link>
+                         </Button>
+                    </CardFooter>
                 </div>
             </div>
         </Card>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Collapsible open={isPartsOpen} onOpenChange={setIsPartsOpen} className="space-y-4">
             <CollapsibleTrigger asChild>
-                <Button variant="outline" onClick={() => setIsPartsOpen(!isPartsOpen)} className="w-full">
-                    <List className="mr-2" /> {isPartsOpen ? 'Hide Parts' : 'Read Parts'}
+                <Button variant="outline" className="w-full">
+                    <List className="mr-2" /> {isPartsOpen ? 'Hide Parts' : 'Show Parts'}
                 </Button>
             </CollapsibleTrigger>
-             <Button variant="secondary" className="w-full" disabled>
-                Read Full Chapter
-            </Button>
-        </div>
-
-        <Collapsible open={isPartsOpen} onOpenChange={setIsPartsOpen}>
             <CollapsibleContent className="space-y-4 animate-in fade-in-0">
                  {parts.length > 0 ? (
                     <div className="space-y-3">
@@ -223,14 +234,23 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
                                 <div className="ml-auto mt-4 md:mt-0 md:ml-6 flex-shrink-0 flex items-center gap-2">
                                     {renderPartAction(part)}
                                     {isAdmin && (
-                                        <>
-                                            <Button variant="ghost" size="icon" onClick={() => alert('Edit part coming soon!')}>
-                                                <Edit className="h-4 w-4"/>
-                                            </Button>
-                                            <Button variant="ghost" size="icon" onClick={() => handleDeletePart(part)}>
-                                                <Trash className="h-4 w-4 text-destructive"/>
-                                            </Button>
-                                        </>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" size="icon">
+                                                    <MoreVertical className="h-4 w-4"/>
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                <DropdownMenuItem onClick={() => alert('Edit part coming soon!')}>
+                                                    <Edit className="mr-2 h-4 w-4" />
+                                                    <span>Edit Part</span>
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => handleDeletePart(part)} className="text-destructive">
+                                                    <Trash className="mr-2 h-4 w-4" />
+                                                    <span>Delete Part</span>
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
                                     )}
                                 </div>
                             </Card>
