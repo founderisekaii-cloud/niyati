@@ -57,11 +57,11 @@ type ChapterPartsPageProps = {
   };
 };
 
-const MetaItem = ({ icon: Icon, label, value }: { icon: React.ElementType, label: string, value: string | number }) => (
-    <div className="flex items-center gap-1.5 text-muted-foreground" title={label}>
+const MetaItem = ({ icon: Icon, label, value, onClick }: { icon: React.ElementType, label: string, value: string | number, onClick?: () => void }) => (
+    <Button variant="ghost" size="sm" className="flex items-center gap-1.5 text-muted-foreground" title={label} onClick={onClick}>
         <Icon className="size-4 text-primary/80" />
         <span className="text-sm font-medium">{value}</span>
-    </div>
+    </Button>
 );
 
 
@@ -136,6 +136,9 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
               price: data.price || 0,
               coverImage: data.coverImage,
               isLastPart: data.isLastPart || false,
+              likes: data.likes || 0,
+              comments: data.comments || 0,
+              views: data.views || 0,
             }
         });
         
@@ -149,7 +152,7 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
             title: part1.title,
             subtitle: part1.subtitle || '',
             summary: combinedSummary,
-            coverImage: part1.coverImage || `https://placehold.co/400x400/1A1A2E/FFD700?text=S${seasonNum}\\nC${chapterNum}`
+            coverImage: part1.coverImage || `https://picsum.photos/seed/${seasonNum}-${chapterNum}/400/400`
         });
       }
     } catch (error: any) {
@@ -275,6 +278,9 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
               price: part1.price, // Copied from part 1
               isLastPart: addPartIsLast,
               releaseDate: serverTimestamp() as any,
+              likes: 0,
+              comments: 0,
+              views: 0,
           };
 
           await addDoc(collection(db, 'chapters'), newPartPayload);
@@ -336,10 +342,10 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
     return notFound();
   }
 
-  const handleProtectedClick = () => {
+  const handleFeatureComingSoon = () => {
     toast({
         title: "Coming Soon!",
-        description: "The payment system is not yet active. Please check back later to unlock this part.",
+        description: "This feature is under development. Thank you for your patience!",
     });
   };
 
@@ -368,7 +374,7 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
             }
             return <Button asChild variant="secondary"><Link href={`/login?redirect=${partUrl}`}><Lock className="mr-2"/>Sign In</Link></Button>
         case 'protected':
-             return <Button onClick={handleProtectedClick}><DollarSign className="mr-2"/>Unlock (₹{part.price})</Button>
+             return <Button onClick={handleFeatureComingSoon}><DollarSign className="mr-2"/>Unlock (₹{part.price})</Button>
         default:
             return null;
     }
@@ -501,10 +507,10 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
                                     <p className="text-sm text-muted-foreground mt-1">{part.wordCount.toLocaleString()} words</p>
                                     {part.summary && <p className="text-sm text-muted-foreground mt-2 italic line-clamp-2">"{part.summary}"</p>}
                                 </div>
-                                <div className="flex items-center gap-4 mx-auto md:mx-0 md:ml-4 flex-shrink-0">
-                                    <MetaItem icon={Heart} label="Likes" value={0} />
-                                    <MetaItem icon={MessageCircle} label="Comments" value={0} />
-                                    <MetaItem icon={Eye} label="Views" value={0} />
+                                <div className="flex items-center gap-1 mx-auto md:mx-0 md:ml-4 flex-shrink-0">
+                                    <MetaItem icon={Heart} label="Likes" value={part.likes || 0} onClick={handleFeatureComingSoon}/>
+                                    <MetaItem icon={MessageCircle} label="Comments" value={part.comments || 0} onClick={handleFeatureComingSoon}/>
+                                    <MetaItem icon={Eye} label="Views" value={part.views || 0} onClick={handleFeatureComingSoon}/>
                                     <MetaItem icon={Sparkles} label="Price" value={part.status === 'protected' ? `₹${part.price}` : 'Free'} />
                                 </div>
                                 <div className="ml-auto mt-4 md:mt-0 md:ml-6 flex-shrink-0 flex items-center gap-2 self-center">
@@ -581,7 +587,7 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
                                     </div>
                                     <div className="space-y-2">
                                         <Label>Content Preview</Label>
-                                        <Textarea value={editPartPreview.cleanedContent} rows={8} readOnly className="bg-muted/50" />
+                                        <Textarea value={editPartPreview.cleanedContent} onChange={(e) => setEditPartPreview({...editPartPreview!, cleanedContent: e.target.value})} rows={8}  />
                                     </div>
                                 </div>
                             )}

@@ -14,6 +14,8 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
+import { useToast } from '@/hooks/use-toast';
+
 
 type ChapterCardProps = {
   chapterGroup: ChapterGroup;
@@ -21,17 +23,25 @@ type ChapterCardProps = {
   onEditRequest: (chapter: Chapter) => void;
 };
 
-const MetaItem = ({ icon: Icon, label, value }: { icon: React.ElementType, label: string, value: string | number }) => (
-    <div className="flex items-center gap-1.5" title={label}>
+const MetaItem = ({ icon: Icon, label, value, onClick }: { icon: React.ElementType, label: string, value: string | number, onClick?: () => void }) => (
+    <Button variant="ghost" size="sm" className="flex items-center gap-1.5 text-muted-foreground px-2" title={label} onClick={onClick}>
         <Icon className="size-4 text-primary/80" />
         <span className="text-xs font-medium">{value}</span>
-    </div>
+    </Button>
 );
 
 
 export default function ChapterCard({ chapterGroup, onDelete, onEditRequest }: ChapterCardProps) {
   const { isAdmin } = useAdmin();
+  const { toast } = useToast();
   const chapterUrl = `/chapters/${chapterGroup.seasonNumber}/${chapterGroup.chapterNumber}`;
+
+  const handleFeatureComingSoon = () => {
+    toast({
+        title: "Coming Soon!",
+        description: "This feature is under development. Thank you for your patience!",
+    });
+  };
 
   const getPriceDisplay = () => {
     if (chapterGroup.status === 'protected' && chapterGroup.price > 0) {
@@ -89,10 +99,10 @@ export default function ChapterCard({ chapterGroup, onDelete, onEditRequest }: C
       </div>
 
       <div className="flex items-center justify-between mt-auto bg-muted/30 border-t px-4 sm:px-6 py-3">
-         <div className="flex items-center gap-4 text-muted-foreground">
-            <MetaItem icon={Heart} label="Likes" value={0} />
-            <MetaItem icon={MessageCircle} label="Comments" value={0} />
-            <MetaItem icon={Eye} label="Views" value={0} />
+         <div className="flex items-center gap-1 text-muted-foreground">
+            <MetaItem icon={Heart} label="Likes" value={chapterGroup.likes || 0} onClick={handleFeatureComingSoon} />
+            <MetaItem icon={MessageCircle} label="Comments" value={chapterGroup.comments || 0} onClick={handleFeatureComingSoon} />
+            <MetaItem icon={Eye} label="Views" value={chapterGroup.views || 0} onClick={handleFeatureComingSoon} />
             <MetaItem icon={List} label="Parts" value={chapterGroup.partCount} />
             <MetaItem icon={Sparkles} label="Price" value={getPriceDisplay()} />
          </div>

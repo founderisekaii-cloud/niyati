@@ -5,6 +5,7 @@ import { db } from '@/lib/firebase';
 import ChapterList from '@/components/ChapterList';
 import type { Chapter, ChapterGroup } from '@/lib/types';
 import { NiyatiVerseLogo } from '@/components/icons';
+import SubscribeCard from '@/components/SubscribeCard';
 
 async function getGroupedChapters(): Promise<ChapterGroup[]> {
   try {
@@ -24,6 +25,9 @@ async function getGroupedChapters(): Promise<ChapterGroup[]> {
           coverImage: "https://placehold.co/400x400/1A1A2E/FFD700?text=S0\\nC0",
           status: 'public',
           price: 0,
+           likes: 0,
+          comments: 0,
+          views: 0,
           parts: [{
             docId: 'sample-doc-id',
             title: "The Awakening",
@@ -38,13 +42,16 @@ async function getGroupedChapters(): Promise<ChapterGroup[]> {
             status: 'public',
             price: 0,
             coverImage: "https://placehold.co/400x400/1A1A2E/FFD700?text=S0\\nC0",
+            likes: 0,
+            comments: 0,
+            views: 0,
           }]
         }
       ];
     }
 
 
-    const chapterMap = new Map<string, ChapterGroup & { parts: Chapter[], docIds: string[] }>();
+    const chapterMap = new Map<string, ChapterGroup & { parts: Chapter[], docIds: string[], totalLikes: number, totalComments: number, totalViews: number }>();
 
     chapterSnapshot.docs.forEach(doc => {
       const data = doc.data();
@@ -62,7 +69,13 @@ async function getGroupedChapters(): Promise<ChapterGroup[]> {
           status: 'private',
           price: 0,
           parts: [],
-          docIds: []
+          docIds: [],
+          totalLikes: 0,
+          totalComments: 0,
+          totalViews: 0,
+          likes: 0,
+          comments: 0,
+          views: 0,
         });
       }
       
@@ -76,6 +89,9 @@ async function getGroupedChapters(): Promise<ChapterGroup[]> {
 
       group.parts.push(chapterPart);
       group.docIds.push(doc.id);
+      group.totalLikes += data.likes || 0;
+      group.totalComments += data.comments || 0;
+      group.totalViews += data.views || 0;
     });
 
     const finalGroups: ChapterGroup[] = [];
@@ -94,6 +110,9 @@ async function getGroupedChapters(): Promise<ChapterGroup[]> {
           partCount: group.parts.length,
           status: part1.status,
           price: part1.price,
+          likes: group.totalLikes,
+          comments: group.totalComments,
+          views: group.totalViews,
           docIds: group.docIds,
           parts: group.parts, // Pass all parts for editing
         });
@@ -123,6 +142,9 @@ async function getGroupedChapters(): Promise<ChapterGroup[]> {
           coverImage: "https://placehold.co/400x400/1A1A2E/FFD700?text=Error",
           status: 'public',
           price: 0,
+          likes: 0,
+          comments: 0,
+          views: 0,
         }
       ];
   }
@@ -136,12 +158,14 @@ export default async function ChaptersPage() {
       <div className="text-center">
         <h1 className="text-4xl font-bold font-headline text-primary">All Chapters</h1>
         <p className="mt-2 text-lg text-muted-foreground">
-          Delve into a reality where every choice is a line of code, and destiny itself is learning.
+          Every choice is a thread in the code of reality. Where will yours lead?
         </p>
       </div>
       <ChapterList initialChapters={chapters} />
+      <SubscribeCard />
     </div>
   );
 }
 
     
+
