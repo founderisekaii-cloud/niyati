@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Mail, Bell, Loader2 } from 'lucide-react';
+import { Mail, Bell, Loader2, Phone } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useActionState } from 'react';
 import { handleSubscription } from '@/app/actions';
@@ -14,6 +14,7 @@ export default function SubscribeCard() {
   const { toast } = useToast();
   const [formState, formAction, isPending] = useActionState(handleSubscription, { message: '' });
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
 
   useEffect(() => {
     if (formState.message) {
@@ -29,6 +30,7 @@ export default function SubscribeCard() {
           description: formState.message,
         });
         setEmail(''); // Clear input on success
+        setPhone(''); // Clear input on success
       }
     }
   }, [formState, toast]);
@@ -47,12 +49,12 @@ export default function SubscribeCard() {
             Never Miss an Update
         </CardTitle>
         <CardDescription>
-          Subscribe to get notified via email when new chapters are released.
+          Subscribe to get notified via email or WhatsApp when new chapters are released.
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row w-full max-w-lg mx-auto items-center space-y-2 sm:space-y-0 sm:space-x-2">
-          <div className="relative flex-grow w-full">
+        <form onSubmit={handleSubmit} className="w-full max-w-lg mx-auto space-y-4">
+          <div className="relative">
              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
              <Input 
                 type="email" 
@@ -64,7 +66,18 @@ export default function SubscribeCard() {
                 required
             />
           </div>
-          <Button type="submit" disabled={isPending} className="w-full sm:w-auto">
+          <div className="relative">
+             <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+             <Input 
+                type="tel" 
+                name="phone"
+                placeholder="WhatsApp Number (Optional)" 
+                className="pl-10"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+            />
+          </div>
+          <Button type="submit" disabled={isPending} className="w-full">
             {isPending && <Loader2 className="mr-2 animate-spin" />}
             Subscribe
           </Button>

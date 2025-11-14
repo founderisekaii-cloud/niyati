@@ -282,6 +282,7 @@ export async function scheduleChapterPublication(docIds: string[], publishAt: Da
 
 const subscribeSchema = z.object({
   email: z.string().email('Please enter a valid email address.'),
+  phone: z.string().optional(),
 });
 
 export async function handleSubscription(
@@ -290,6 +291,7 @@ export async function handleSubscription(
 ): Promise<{ message: string; error?: boolean }> {
   const validatedFields = subscribeSchema.safeParse({
     email: formData.get('email'),
+    phone: formData.get('phone'),
   });
 
   if (!validatedFields.success) {
@@ -299,16 +301,24 @@ export async function handleSubscription(
     };
   }
   
-  const { email } = validatedFields.data;
+  const { email, phone } = validatedFields.data;
 
   try {
-    await addDoc(collection(db, 'subscriptions'), {
+    const subscriptionData: { email: string; phone?: string; subscribedAt: any } = {
       email: email,
       subscribedAt: serverTimestamp(),
-    });
-    return {
-      message: `Thank you! ${email} has been added to our mailing list.`,
     };
+    if (phone) {
+        subscriptionData.phone = phone;
+    }
+    await addDoc(collection(db, 'subscriptions'), subscriptionData);
+    
+    let message = `Thank you! ${email} has been added to our mailing list.`;
+    if(phone) {
+        message += ` We will also notify you on WhatsApp at ${phone}.`
+    }
+
+    return { message };
   } catch (error: any) {
     console.error('Subscription error:', error);
     // Avoid exposing detailed internal errors to the user
