@@ -103,7 +103,8 @@ export async function generatePdf(chapterData: ChapterPdfData): Promise<string> 
     const timesRomanBoldFont = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
 
     const { title, subtitle, seasonNumber, chapterNumber, partNumber, content } = chapterData;
-    const cleanContent = content.replace(/<br\s*\/?>/gi, '\n').replace(/<p>.*?<\/p>/g, '$&\n').replace(/<[^>]*>?/gm, '').replace(/[^\x00-\x7F]/g, "");
+    // Correctly process HTML tags to preserve paragraphs and line breaks, without removing special characters.
+    const cleanContent = content.replace(/<br\s*\/?>/gi, '\n').replace(/<p>/gi, '').replace(/<\/p>/gi, '\n');
 
     let page = pdfDoc.addPage();
     const { width, height } = page.getSize();
@@ -210,7 +211,7 @@ export async function generatePdf(chapterData: ChapterPdfData): Promise<string> 
     }
     y -= 40;
 
-    // Draw Part Number (Pink)
+    // Draw Part Number (Pink) - Corrected Logic
     const partText = partNumber === null ? 'Full Chapter' : `PART ${partNumber}`;
     const partWidth = timesRomanBoldFont.widthOfTextAtSize(partText, 20);
     page.drawText(partText, {
