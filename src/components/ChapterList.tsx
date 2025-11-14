@@ -5,7 +5,7 @@ import type { Chapter, ChapterGroup } from '@/lib/types';
 import ChapterCard from '@/components/ChapterCard';
 import { useAdmin } from '@/hooks/useAdmin';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Loader2 } from 'lucide-react';
+import { PlusCircle, Loader2, RefreshCw } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -25,6 +25,8 @@ import { z } from 'zod';
 import {
   collection,
   addDoc,
+  updateDoc,
+  doc,
   serverTimestamp,
   query,
   where,
@@ -47,6 +49,7 @@ type ChapterListProps = {
 };
 
 const chapterSchema = z.object({
+  docId: z.string().optional(),
   seasonNumber: z.coerce.number().min(0, 'Season number is required.'),
   chapterNumber: z.coerce.number().min(0, 'Chapter number is required.'),
   partNumber: z.coerce.number().min(1, 'Part number is required.'),
@@ -61,11 +64,14 @@ const chapterSchema = z.object({
 
 type ChapterFormData = z.infer<typeof chapterSchema>;
 
-
 export default function ChapterList({ initialChapters }: ChapterListProps) {
   const { isAdmin } = useAdmin();
-  const [isNewChapterOpen, setIsNewChapterOpen] = useState(false);
   const [chapters, setChapters] = useState(initialChapters);
+  
+  // State for Create/Edit Modal
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<'new' | 'edit'>('new');
+  const [editingChapter, setEditingChapter] = useState<Partial<Chapter> | null>(null);
 
   // Form state
   const [loading, setLoading] = useState(false);
@@ -92,10 +98,39 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
   });
 
   const status = watch('status');
+  const formContent = watch('content');
+
+  const openNewChapterDialog = () => {
+    resetForm();
+    setModalMode('new');
+    setIsModalOpen(true);
+  }
+  
+  const openEditChapterDialog = (chapter: Chapter) => {
+    if (!chapter.docId) {
+        toast({ title: "Error", description: "Cannot edit a chapter without an ID.", variant: "destructive" });
+        return;
+    }
+    setModalMode('edit');
+    setEditingChapter(chapter);
+    reset({
+        ...chapter,
+        price: chapter.price || 0,
+    });
+    setPreviewData({
+        title: chapter.title,
+        subtitle: chapter.subtitle,
+        summary: chapter.summary,
+        coverImage: chapter.coverImage,
+    });
+    setIsModalOpen(true);
+  }
+
 
   const resetForm = () => {
     reset({ seasonNumber: undefined, chapterNumber: undefined, partNumber: 1, status: 'private', price: 0, content: '' });
     setPreviewData(null);
+    setEditingChapter(null);
   }
 
   const handlePreview = async () => {
@@ -111,9 +146,9 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
       try {
           let finalTitle, finalSubtitle, finalSummary, finalCoverImage, finalCleanedContent;
 
-          if (formData.partNumber === 1) {
+          if (formData.partNumber === 1 || modalMode === 'edit') {
               toast({ description: "AI is generating title, summary, and cover image..." });
-              const enrichedData = await enrichChapterContent({ fullContent: formData.content });
+              const enrichedData = await enrichChapterContent({ fullContent: formData.content || '' });
               finalTitle = enrichedData.title;
               finalSubtitle = enrichedData.subtitle;
               finalSummary = enrichedData.summary;
@@ -161,11 +196,38 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
       }
   }
 
+  const handleRegenerateImage = async () => {
+    const currentSummary = watch('summary');
+    if (!currentSummary) {
+        toast({ title: "Cannot Regenerate", description: "A summary is required to generate an image.", variant: "destructive" });
+        return;
+    }
+    setIsPreviewLoading(true);
+    toast({ description: "AI is creating a new image..." });
+     try {
+        // We can reuse the existing flow but only use the image generation part
+        const enrichedData = await enrichChapterContent({ fullContent: currentSummary }); // Use summary as prompt source
+        setValue('coverImage', enrichedData.coverImage);
+        setPreviewData(prev => ({...prev, coverImage: enrichedData.coverImage}));
+        toast({ title: "Image Regenerated!" });
+     } catch (error: any) {
+        console.error("Error regenerating image:", error);
+        toast({ title: 'Image Generation Failed', description: error.message, variant: 'destructive'});
+     } finally {
+        setIsPreviewLoading(false);
+     }
+  }
+
 
   const handleFinalSubmit = async (data: ChapterFormData) => {
+    if (!previewData) {
+        toast({ title: "Cannot Submit", description: "Please generate a preview before submitting.", variant: "destructive"});
+        return;
+    }
+
     setLoading(true);
     try {
-      const newChapterData = {
+      const chapterPayload = {
         seasonNumber: data.seasonNumber,
         chapterNumber: data.chapterNumber,
         partNumber: data.partNumber,
@@ -176,48 +238,24 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
         subtitle: data.subtitle || '',
         summary: data.summary || '',
         coverImage: data.coverImage || '',
-        wordCount: data.content.split(/\s+/).length,
+        wordCount: data.content?.split(/\s+/).length || 0,
         releaseDate: serverTimestamp(),
       };
-
-      const docRef = await addDoc(collection(db, 'chapters'), newChapterData);
       
-      toast({
-        title: 'Success!',
-        description: `Chapter "${newChapterData.title}" (Part ${newChapterData.partNumber}) has been added.`,
-      });
-      
-      // Manually update the local state to show the new chapter/part
-      const groupId = `s${data.seasonNumber}c${data.chapterNumber}`;
-      const existingGroupIndex = chapters.findIndex(c => c.seasonNumber === data.seasonNumber && c.chapterNumber === data.chapterNumber);
-
-      if (existingGroupIndex > -1) {
-        const updatedChapters = [...chapters];
-        const existingGroup = updatedChapters[existingGroupIndex];
-        existingGroup.partCount += 1;
-        existingGroup.docIds = [...(existingGroup.docIds || []), docRef.id];
-        setChapters(updatedChapters);
+      if (modalMode === 'edit' && data.docId) {
+        const docRef = doc(db, 'chapters', data.docId);
+        await updateDoc(docRef, chapterPayload);
+        toast({ title: 'Success!', description: `Chapter "${chapterPayload.title}" has been updated.` });
       } else {
-        const newGroup: ChapterGroup = {
-           seasonNumber: data.seasonNumber,
-            chapterNumber: data.chapterNumber,
-            partCount: 1,
-            title: newChapterData.title,
-            subtitle: newChapterData.subtitle,
-            summary: newChapterData.summary,
-            coverImage: newChapterData.coverImage || `https://picsum.photos/seed/${groupId}/400/400`,
-            status: newChapterData.status,
-            price: newChapterData.price,
-            docIds: [docRef.id],
-        }
-        setChapters([newGroup, ...chapters].sort((a,b) => b.seasonNumber - a.seasonNumber || b.chapterNumber - a.chapterNumber));
+        const docRef = await addDoc(collection(db, 'chapters'), chapterPayload);
+        toast({ title: 'Success!', description: `Chapter "${chapterPayload.title}" (Part ${chapterPayload.partNumber}) has been added.` });
       }
-
-      resetForm();
-      setIsNewChapterOpen(false);
       
+      // Full reload to ensure all data is fresh from the server
+      window.location.reload();
+
     } catch (error: any) {
-       console.error('Error adding new chapter:', error);
+       console.error('Error submitting chapter:', error);
         toast({
             title: 'Operation Failed',
             description: error.message || 'Could not process the chapter.',
@@ -250,7 +288,7 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="partNumber">Part Number*</Label>
-                    <Input id="partNumber" type="number" {...register('partNumber')} />
+                    <Input id="partNumber" type="number" {...register('partNumber')} disabled={modalMode === 'edit'} />
                     {errors.partNumber && <p className="text-sm text-destructive">{errors.partNumber.message}</p>}
                   </div>
                 </div>
@@ -282,7 +320,7 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="content">Full Chapter Content*</Label>
-                  <Textarea id="content" {...register('content')} rows={10} placeholder={ "Paste the entire chapter content here. For Part 1, the AI will generate the title, subtitle, summary, and cover image. For other parts, it will copy these details from Part 1."} />
+                  <Textarea id="content" {...register('content')} rows={10} placeholder={ "Paste the entire chapter content here. The AI will generate metadata from this. For Part 1, it generates everything new. For subsequent parts, it copies details from Part 1."} />
                   {errors.content && <p className="text-sm text-destructive">{errors.content.message}</p>}
                 </div>
              </div>
@@ -292,7 +330,12 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="md:col-span-1 space-y-2">
                         <Label>Cover Image (AI Generated)</Label>
-                        <Image src={previewData.coverImage || ''} alt="Generated cover" width={200} height={200} className="rounded-md border aspect-square object-cover w-full" />
+                         <div className="relative">
+                            <Image src={watch('coverImage') || '/placeholder.svg'} alt="Generated cover" width={200} height={200} className="rounded-md border aspect-square object-cover w-full" />
+                            <Button type="button" size="icon" variant="outline" className="absolute top-2 right-2" onClick={handleRegenerateImage} disabled={isPreviewLoading}>
+                                {isPreviewLoading ? <Loader2 className="h-4 w-4 animate-spin"/> : <RefreshCw className="h-4 w-4" />}
+                            </Button>
+                        </div>
                         <Input {...register('coverImage')} className="hidden" />
                     </div>
                     <div className="md:col-span-2 space-y-4">
@@ -311,16 +354,20 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
                     <Label htmlFor="summary">Description / Summary (AI Generated)</Label>
                     <Textarea id="summary" {...register('summary')} rows={4} />
                 </div>
+                <div className="space-y-2">
+                    <Label htmlFor="content">Cleaned Content (Read Only)</Label>
+                    <Textarea id="content" {...register('content')} rows={6} readOnly className="bg-muted/50" />
+                </div>
              </div>
         )}
 
         <DialogFooter className="pt-4">
           <DialogClose asChild>
-            <Button variant="outline" type="button" onClick={() => { setIsNewChapterOpen(false); resetForm(); }}>Cancel</Button>
+            <Button variant="outline" type="button" onClick={() => { setIsModalOpen(false); resetForm(); }}>Cancel</Button>
           </DialogClose>
           
           {!previewData ? (
-             <Button type="button" disabled={isPreviewLoading} onClick={handlePreview}>
+             <Button type="button" disabled={isPreviewLoading || !formContent} onClick={handlePreview}>
                 {isPreviewLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Preview & Generate
             </Button>
@@ -331,7 +378,7 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
             </Button>
             <Button type="submit" disabled={loading}>
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Submit Chapter
+                {modalMode === 'new' ? 'Submit Chapter' : 'Save Changes'}
             </Button>
             </>
           )}
@@ -344,19 +391,24 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
     <div className="space-y-6">
       {isAdmin && (
         <div className="text-center">
-            <Dialog open={isNewChapterOpen} onOpenChange={(isOpen) => {
-                setIsNewChapterOpen(isOpen);
+            <Dialog open={isModalOpen} onOpenChange={(isOpen) => {
+                setIsModalOpen(isOpen);
                 if (!isOpen) resetForm();
             }}>
               <DialogTrigger asChild>
-                <Button>
+                <Button onClick={openNewChapterDialog}>
                   <PlusCircle className="mr-2 h-4 w-4" />
                   New Chapter / Part
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-4xl">
                 <DialogHeader>
-                  <DialogTitle>{previewData ? 'Review and Submit Chapter' : 'Add a New Chapter / Part'}</DialogTitle>
+                  <DialogTitle>
+                    {modalMode === 'new' 
+                        ? (previewData ? 'Review and Submit Chapter' : 'Add a New Chapter / Part')
+                        : (previewData ? 'Review and Edit Chapter' : 'Edit Chapter Details')
+                    }
+                  </DialogTitle>
                 </DialogHeader>
                 {renderForm()}
               </DialogContent>
@@ -368,9 +420,12 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
             key={`${chapter.seasonNumber}-${chapter.chapterNumber}`} 
             chapterGroup={chapter}
             onDelete={handleDeleteChapterGroup} 
+            onEditRequest={(part) => openEditChapterDialog(part)}
         />
       ))}
     </div>
     </>
   );
 }
+
+    

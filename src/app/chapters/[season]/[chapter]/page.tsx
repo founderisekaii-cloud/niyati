@@ -2,7 +2,7 @@
 'use client';
 
 import { notFound } from 'next/navigation';
-import { collection, getDocs, query, where, orderBy, deleteDoc, doc } from 'firebase/firestore';
+import { collection, getDocs, query, where, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Chapter } from '@/lib/types';
 import { useEffect, useState, use } from 'react';
@@ -90,7 +90,7 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
               summary: data.summary,
               wordCount: data.wordCount,
               releaseDate: data.releaseDate?.toDate().toISOString() || new Date().toISOString(),
-              content: '', // No need to fetch content for the list
+              content: data.content,
               seasonNumber: data.seasonNumber,
               chapterNumber: data.chapterNumber,
               partNumber: data.partNumber,
@@ -122,7 +122,7 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
 
   useEffect(() => {
     getChapterParts();
-  }, [seasonNum, chapterNum]);
+  }, [seasonNum, chapterNum, resolvedParams]);
 
   if (loading || authLoading) {
     return (
@@ -264,3 +264,5 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
     </div>
   );
 }
+
+    

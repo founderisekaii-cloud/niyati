@@ -1,7 +1,7 @@
 
 'use client';
 
-import type { ChapterGroup } from '@/lib/types';
+import type { Chapter, ChapterGroup } from '@/lib/types';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -13,14 +13,17 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
-import { writeBatch, doc } from 'firebase/firestore';
+import { writeBatch, doc, getDocs, collection, query, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { useState } from 'react';
 
 type ChapterCardProps = {
   chapterGroup: ChapterGroup;
   onDelete: (season: number, chapter: number) => void;
+  onEditRequest: (chapter: Chapter) => void;
 };
 
 const MetaItem = ({ icon: Icon, label, value }: { icon: React.ElementType, label: string, value: string | number }) => (
@@ -31,7 +34,7 @@ const MetaItem = ({ icon: Icon, label, value }: { icon: React.ElementType, label
 );
 
 
-export default function ChapterCard({ chapterGroup, onDelete }: ChapterCardProps) {
+export default function ChapterCard({ chapterGroup, onDelete, onEditRequest }: ChapterCardProps) {
   const { t } = useTranslation();
   const { isAdmin } = useAdmin();
   const { toast } = useToast();
@@ -62,6 +65,28 @@ export default function ChapterCard({ chapterGroup, onDelete }: ChapterCardProps
             console.error(error);
             toast({title: "Error", description: `Failed to delete chapter group: ${error.message}`, variant: "destructive"});
         }
+    }
+  }
+
+  const handleEditPart1 = async () => {
+    if (!chapterGroup.docIds) return;
+    try {
+        const q = query(
+            collection(db, 'chapters'),
+            where('seasonNumber', '==', chapterGroup.seasonNumber),
+            where('chapterNumber', '==', chapterGroup.chapterNumber),
+            where('partNumber', '==', 1),
+        );
+        const snapshot = await getDocs(q);
+        if (snapshot.empty) {
+            toast({ title: "Error", description: "Could not find Part 1 to edit.", variant: "destructive" });
+            return;
+        }
+        const doc = snapshot.docs[0];
+        const chapterData = { docId: doc.id, ...doc.data() } as Chapter;
+        onEditRequest(chapterData);
+    } catch(e: any) {
+        toast({ title: "Error", description: `Could not fetch part 1: ${e.message}`, variant: "destructive"});
     }
   }
 
@@ -122,10 +147,11 @@ export default function ChapterCard({ chapterGroup, onDelete }: ChapterCardProps
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => alert('Edit coming soon!')}>
+                        <DropdownMenuItem onClick={handleEditPart1}>
                             <Edit className="mr-2 h-4 w-4" />
-                            <span>Edit Chapter Details</span>
+                            <span>Edit Details (from Part 1)</span>
                         </DropdownMenuItem>
+                        <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={handleDelete} className="text-destructive">
                             <Trash className="mr-2 h-4 w-4" />
                             <span>Delete Chapter Group</span>
@@ -138,3 +164,5 @@ export default function ChapterCard({ chapterGroup, onDelete }: ChapterCardProps
     </div>
   );
 }
+
+    
