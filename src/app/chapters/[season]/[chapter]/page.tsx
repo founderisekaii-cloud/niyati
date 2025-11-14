@@ -110,8 +110,11 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
     try {
       setLoading(true);
       const chaptersCol = collection(db, 'chapters');
-      // Simplified query to avoid composite index requirement
-      const q = query(chaptersCol, where('seasonNumber', '==', seasonNum), where('chapterNumber', '==', chapterNum));
+      const q = query(
+        chaptersCol,
+        where('seasonNumber', '==', seasonNum),
+        where('chapterNumber', '==', chapterNum)
+      );
       const snapshot = await getDocs(q);
 
       if (snapshot.empty) {
@@ -702,4 +705,5 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
 
 
     
+
 
