@@ -68,31 +68,30 @@ const enrichChapterFlow = ai.defineFlow(
     const textGenResult = await generationPrompt(input);
     const { title, subtitle, summary, cleanedContent, imagePrompt } = textGenResult.output!;
 
-    if (!title || !subtitle || !summary || cleanedContent === undefined || !imagePrompt) {
+    if (!title || !subtitle || summary === undefined || cleanedContent === undefined || !imagePrompt) {
         throw new Error("Failed to generate all required text fields from AI.");
     }
     
-    // Step 2: Generate the cover image using the prompt from step 1
-    const { media } = await ai.generate({
-      model: 'googleai/imagen-4.0-fast-generate-001',
-      prompt: imagePrompt,
-      config: {
-          aspectRatio: '1:1', // Generate a square image
-      },
-    });
+    let coverImage: string | undefined;
+    try {
+        // Step 2: Generate the cover image using the prompt from step 1
+        const { media } = await ai.generate({
+          model: 'googleai/imagen-4.0-fast-generate-001',
+          prompt: imagePrompt,
+          config: {
+              aspectRatio: '1:1', // Generate a square image
+          },
+        });
+        coverImage = media?.url;
+    } catch (error) {
+        console.warn("AI Image generation failed. This might be due to billing not being enabled. Falling back to placeholder.", error);
+        coverImage = undefined;
+    }
 
-    const coverImage = media?.url;
 
     if (!coverImage) {
       // Fallback to a placeholder if image generation fails
-      console.warn("AI Image generation failed, falling back to placeholder.");
-      return {
-        title,
-        subtitle,
-        summary,
-        cleanedContent,
-        coverImage: `https://picsum.photos/seed/${title.replace(/\s+/g, '-')}/400/400`,
-      };
+      coverImage = `https://picsum.photos/seed/${title.replace(/\s+/g, '-')}/400/400`;
     }
 
     // Step 3: Return all generated content
@@ -101,7 +100,7 @@ const enrichChapterFlow = ai.defineFlow(
       subtitle,
       summary,
       cleanedContent,
-      coverImage, // This is a data URI
+      coverImage, // This is a data URI or a placeholder URL
     };
   }
 );
