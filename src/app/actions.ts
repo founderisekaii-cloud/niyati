@@ -264,22 +264,17 @@ export async function generatePdf(chapterData: ChapterPdfData): Promise<string> 
 }
 
 
-export async function scheduleChapterPublication(chapterGroup: ChapterGroup, publishAt: Date) {
-    if (!chapterGroup.docIds || chapterGroup.docIds.length === 0) {
-        throw new Error("No document IDs found for this chapter group.");
+export async function scheduleChapterPublication(docIds: string[], publishAt: Date | null) {
+    if (!docIds || docIds.length === 0) {
+        throw new Error("No document IDs provided for the operation.");
     }
     const batch = writeBatch(db);
-    const publishTimestamp = Timestamp.fromDate(publishAt);
+    const publishTimestamp = publishAt ? Timestamp.fromDate(publishAt) : null;
 
-    chapterGroup.docIds.forEach(id => {
+    docIds.forEach(id => {
         const docRef = doc(db, 'chapters', id);
         batch.update(docRef, { publishedAt: publishTimestamp });
     });
 
     await batch.commit();
-
-    // Here you would trigger a notification to subscribed users.
-    // This requires a backend setup (e.g., Cloud Function) to listen for scheduled jobs
-    // or a third-party service. For now, we'll just log it.
-    console.log(`Chapter ${chapterGroup.seasonNumber}-${chapterGroup.chapterNumber} scheduled for publication at ${publishAt}.`);
 }

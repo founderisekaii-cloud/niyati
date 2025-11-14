@@ -124,7 +124,7 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
     setIsFetchingAdminChapters(true);
     try {
       const chaptersCol = collection(db, 'chapters');
-      const q = query(chaptersCol);
+      const q = query(chaptersCol, orderBy('seasonNumber', 'desc'), orderBy('chapterNumber', 'desc'));
       const chapterSnapshot = await getDocs(q);
 
       const chapterMap = new Map<string, ChapterGroup & { parts: Chapter[], docIds: string[], totalLikes: number, totalComments: number, totalViews: number, publishedAt?: any }>();
@@ -483,10 +483,10 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
                   <Textarea id="content" {...register('content')} rows={10} placeholder={ "Paste the entire chapter content here. The AI will generate metadata from this. For Part 1, it generates everything new. For subsequent parts, it copies details from Part 1."} />
                   {errors.content && <p className="text-sm text-destructive">{errors.content.message}</p>}
                 </div>
-                {!isPartOne && (
-                     <div className="flex items-center space-x-2">
-                        <Checkbox id="has-metadata" checked={hasMetadata} onCheckedChange={(c) => setHasMetadata(c as boolean)} />
-                        <Label htmlFor="has-metadata">Content includes Title/Story Name headers (AI will remove them).</Label>
+                 {!isPartOne && (
+                    <div className="flex items-center space-x-2">
+                        <Checkbox id="has-metadata-new" checked={hasMetadata} onCheckedChange={(c) => setHasMetadata(c as boolean)} />
+                        <Label htmlFor="has-metadata-new">Content includes Title/Story Name headers (AI will remove them).</Label>
                     </div>
                 )}
              </div>
@@ -529,21 +529,21 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                      <div className="space-y-2">
                         <Label htmlFor="title">Title (AI Extracted/Editable)</Label>
-                        <Input id="title" {...register('title')} />
+                        <Controller name="title" control={control} render={({ field }) => <Input id="title" {...field} value={field.value ?? ''} />} />
                     </div>
                      <div className="space-y-2">
                         <Label htmlFor="subtitle">Subtitle (AI Extracted/Editable)</Label>
-                        <Input id="subtitle" {...register('subtitle')} />
+                        <Controller name="subtitle" control={control} render={({ field }) => <Input id="subtitle" {...field} value={field.value ?? ''} />} />
                     </div>
                 </div>
 
                 <div className="space-y-2">
                     <Label htmlFor="summary">Description / Summary (AI Generated/Editable)</Label>
-                    <Textarea id="summary" {...register('summary')} rows={4} />
+                    <Controller name="summary" control={control} render={({ field }) => <Textarea id="summary" rows={4} {...field} value={field.value ?? ''} />} />
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="content">Cleaned Content (Editable)</Label>
-                    <Textarea id="content" {...register('content')} rows={6} />
+                    <Controller name="content" control={control} render={({ field }) => <Textarea id="content" rows={6} {...field} value={field.value ?? ''} />} />
                 </div>
              </div>
         )}
@@ -617,7 +617,7 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
   );
 }
 
-export function SchedulePublicationDialog({ chapterGroup, onScheduled }: { chapterGroup: ChapterGroup, onScheduled: () => void }) {
+export function SchedulePublicationDialog({ docIds, onScheduled, trigger, triggerLabel }: { docIds: string[], onScheduled: () => void, trigger?: "button" | "menuitem", triggerLabel?: string }) {
     const [date, setDate] = useState<Date>();
     const [time, setTime] = useState('10:00');
     const [loading, setLoading] = useState(false);
@@ -641,8 +641,8 @@ export function SchedulePublicationDialog({ chapterGroup, onScheduled }: { chapt
 
         setLoading(true);
         try {
-            await scheduleChapterPublication(chapterGroup, publishDateTime);
-            toast({ title: "Success!", description: `Chapter scheduled for ${format(publishDateTime, "PPP 'at' p")}.` });
+            await scheduleChapterPublication(docIds, publishDateTime);
+            toast({ title: "Success!", description: `Content scheduled for ${format(publishDateTime, "PPP 'at' p")}.` });
             onScheduled();
             setOpen(false);
         } catch (error: any) {
@@ -652,16 +652,22 @@ export function SchedulePublicationDialog({ chapterGroup, onScheduled }: { chapt
         }
     };
 
+    const TriggerComponent = trigger === "menuitem" 
+      ? (
+        <button className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full text-left">
+          {triggerLabel || "Schedule for Later..."}
+        </button>
+      )
+      : <Button variant="outline">{triggerLabel || "Schedule for Later..."}</Button>;
+
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <button className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full text-left">
-                    Schedule for Later...
-                </button>
+                {TriggerComponent}
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
-                    <DialogTitle>Schedule Chapter</DialogTitle>
+                    <DialogTitle>Schedule Publication</DialogTitle>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                     <div className="space-y-2">
@@ -711,5 +717,6 @@ export function SchedulePublicationDialog({ chapterGroup, onScheduled }: { chapt
         </Dialog>
     );
 }
+
 
 

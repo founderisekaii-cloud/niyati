@@ -6,7 +6,7 @@ import type { Chapter, ChapterGroup } from '@/lib/types';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { BookOpen, Heart, MessageCircle, List, Eye, Sparkles, Edit, Trash, MoreVertical, Send, Clock } from 'lucide-react';
+import { BookOpen, Heart, MessageCircle, List, Eye, Sparkles, Edit, Trash, MoreVertical, Send, Clock, XCircle } from 'lucide-react';
 import { useAdmin } from '@/hooks/useAdmin';
 import {
   DropdownMenu,
@@ -67,13 +67,27 @@ export default function ChapterCard({ chapterGroup, onDelete, onEditRequest, onP
   }
 
   const handlePublishNow = async () => {
+    if (!chapterGroup.docIds) return;
     if (window.confirm(`Are you sure you want to publish S${chapterGroup.seasonNumber} C${chapterGroup.chapterNumber} now?`)) {
       try {
-        await scheduleChapterPublication(chapterGroup, new Date());
+        await scheduleChapterPublication(chapterGroup.docIds, new Date());
         toast({ title: "Success!", description: "Chapter has been published." });
         onPublish();
       } catch (error: any) {
         toast({ title: "Publish Failed", description: error.message, variant: "destructive" });
+      }
+    }
+  };
+
+  const handleUnpublishNow = async () => {
+    if (!chapterGroup.docIds) return;
+    if (window.confirm(`Are you sure you want to unpublish S${chapterGroup.seasonNumber} C${chapterGroup.chapterNumber}? It will become a draft.`)) {
+      try {
+        await scheduleChapterPublication(chapterGroup.docIds, null);
+        toast({ title: "Success!", description: "Chapter has been unpublished." });
+        onPublish(); // onPublish actually just re-fetches the chapters
+      } catch (error: any) {
+        toast({ title: "Unpublish Failed", description: error.message, variant: "destructive" });
       }
     }
   };
@@ -112,6 +126,9 @@ export default function ChapterCard({ chapterGroup, onDelete, onEditRequest, onP
                     Scheduled
                  </span>
             )}
+            {isPublished && isAdmin && (
+                <span className="text-xs font-bold text-green-500 bg-green-500/10 px-2 py-0.5 rounded-full">Published</span>
+            )}
           </div>
           <h3 className="text-2xl font-bold text-primary font-headline mt-1">
              <Link href={chapterUrl}>{chapterGroup.title}</Link>
@@ -139,19 +156,31 @@ export default function ChapterCard({ chapterGroup, onDelete, onEditRequest, onP
             <MetaItem icon={Sparkles} label="Price" value={getPriceDisplay()} />
          </div>
          <div className="flex items-center gap-2">
-            {isAdmin && !isPublished && (
+            {isAdmin && (
                  <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button size="sm" variant="secondary">
-                            <Send className="mr-2 h-4 w-4" />
-                            Publish
-                        </Button>
+                      <Button size="sm" variant={isPublished ? "destructive" : "secondary"}>
+                          {isPublished ? <XCircle className="mr-2 h-4 w-4" /> : <Send className="mr-2 h-4 w-4" />}
+                          {isPublished ? 'Unpublish' : 'Publish'}
+                      </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={handlePublishNow}>
-                            Publish Now
-                        </DropdownMenuItem>
-                        <SchedulePublicationDialog chapterGroup={chapterGroup} onScheduled={onPublish} />
+                       {isPublished ? (
+                          <DropdownMenuItem onClick={handleUnpublishNow}>
+                              Unpublish Now
+                          </DropdownMenuItem>
+                       ) : (
+                          <>
+                            <DropdownMenuItem onClick={handlePublishNow}>
+                                Publish Now
+                            </DropdownMenuItem>
+                            <SchedulePublicationDialog
+                              docIds={chapterGroup.docIds || []}
+                              onScheduled={onPublish}
+                              trigger="menuitem"
+                            />
+                          </>
+                       )}
                     </DropdownMenuContent>
                 </DropdownMenu>
             )}

@@ -3,14 +3,14 @@
 'use client';
 
 import { notFound } from 'next/navigation';
-import { collection, getDocs, query, where, deleteDoc, doc, addDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { collection, getDocs, query, where, deleteDoc, doc, addDoc, serverTimestamp, updateDoc, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Chapter } from '@/lib/types';
 import { useEffect, useState, use } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { NiyatiVerseLogo } from '@/components/icons';
 import { Button } from '@/components/ui/button';
-import { BookOpen, Lock, DollarSign, List, Heart, MessageCircle, Eye, Sparkles, Edit, Trash, MoreVertical, PlusCircle, Loader2 } from 'lucide-react';
+import { BookOpen, Lock, DollarSign, List, Heart, MessageCircle, Eye, Sparkles, Edit, Trash, MoreVertical, PlusCircle, Loader2, Send, Clock } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -48,6 +48,8 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { enrichChapterContent, type EnrichChapterInput } from '@/ai/flows/enrich-chapter-flow';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { SchedulePublicationDialog } from '@/components/ChapterList';
+import { scheduleChapterPublication } from '@/app/actions';
 
 
 type ChapterPartsPageProps = {
@@ -111,7 +113,8 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
       const q = query(
         chaptersCol,
         where('seasonNumber', '==', seasonNum),
-        where('chapterNumber', '==', chapterNum)
+        where('chapterNumber', '==', chapterNum),
+        orderBy('partNumber', 'asc')
       );
       const snapshot = await getDocs(q);
 
@@ -142,9 +145,7 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
               views: data.views || 0,
             }
         });
-        
-        partsData.sort((a,b) => a.partNumber - b.partNumber);
-        
+                
         setParts(partsData);
         const part1 = partsData[0];
         const combinedSummary = partsData.map(p => p.summary).filter(Boolean).join(' ');
@@ -365,6 +366,51 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
     }
   }
 
+  const handlePublishNow = async (part: Chapter) => {
+    if (!part.docId) return;
+    if (window.confirm(`Are you sure you want to publish S${part.seasonNumber} C${part.chapterNumber} P${part.partNumber} now?`)) {
+      try {
+        await scheduleChapterPublication([part.docId], new Date());
+        toast({ title: "Success!", description: "Part has been published." });
+        getChapterParts();
+      } catch (error: any) {
+        toast({ title: "Publish Failed", description: error.message, variant: "destructive" });
+      }
+    }
+  };
+
+  const handleUnpublishNow = async (part: Chapter) => {
+    if (!part.docId) return;
+    if (window.confirm(`Are you sure you want to unpublish S${part.seasonNumber} C${part.chapterNumber} P${part.partNumber}? It will become a draft.`)) {
+      try {
+        await scheduleChapterPublication([part.docId], null);
+        toast({ title: "Success!", description: "Part has been unpublished." });
+        getChapterParts();
+      } catch (error: any) {
+        toast({ title: "Unpublish Failed", description: error.message, variant: "destructive" });
+      }
+    }
+  };
+
+  const PartStatusIndicator = ({ part }: { part: Chapter }) => {
+    const isPublished = part.publishedAt && new Date(part.publishedAt) <= new Date();
+    const isScheduled = part.publishedAt && new Date(part.publishedAt) > new Date();
+
+    if (isPublished) {
+      return <span className="text-xs font-bold text-green-500 bg-green-500/10 px-2 py-0.5 rounded-full">Published</span>;
+    }
+    if (isScheduled) {
+      return (
+        <span className="text-xs font-bold text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded-full flex items-center gap-1">
+          <Clock className="size-3"/>
+          Scheduled
+        </span>
+      );
+    }
+    return <span className="text-xs font-bold text-yellow-500 bg-yellow-500/10 px-2 py-0.5 rounded-full">Draft</span>;
+  };
+
+
   const renderPartAction = (part: Chapter) => {
     const partUrl = `/chapters/${part.seasonNumber}/${part.chapterNumber}/${part.partNumber}`;
     const isPublished = part.publishedAt && new Date(part.publishedAt) <= new Date();
@@ -504,10 +550,15 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
             <CollapsibleContent className="space-y-4 animate-in fade-in-0">
                  {parts.length > 0 ? (
                     <div className="space-y-3">
-                        {parts.map(part => (
+                        {parts.map(part => {
+                          const isPublished = part.publishedAt && new Date(part.publishedAt) <= new Date();
+                          return (
                             <Card key={part.docId} className="flex flex-col md:flex-row items-start p-4">
                                 <div className="flex-grow mb-4 md:mb-0">
-                                    <h4 className="text-lg font-bold">Part {part.partNumber}</h4>
+                                    <div className="flex items-center gap-4">
+                                      <h4 className="text-lg font-bold">Part {part.partNumber}</h4>
+                                      {isAdmin && <PartStatusIndicator part={part} />}
+                                    </div>
                                     <p className="text-sm text-muted-foreground mt-1">{part.wordCount.toLocaleString()} words</p>
                                     {part.summary && <p className="text-sm text-muted-foreground mt-2 italic line-clamp-2">"{part.summary}"</p>}
                                 </div>
@@ -527,6 +578,23 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
+                                              {!isPublished ? (
+                                                  <>
+                                                    <DropdownMenuItem onClick={() => handlePublishNow(part)}>
+                                                        Publish Now
+                                                    </DropdownMenuItem>
+                                                    <SchedulePublicationDialog
+                                                      docIds={[part.docId!]}
+                                                      onScheduled={getChapterParts}
+                                                      trigger="menuitem"
+                                                      triggerLabel="Schedule for Later..."
+                                                    />
+                                                  </>
+                                              ) : (
+                                                  <DropdownMenuItem onClick={() => handleUnpublishNow(part)}>
+                                                      Unpublish Now
+                                                  </DropdownMenuItem>
+                                              )}
                                                 <DropdownMenuItem onClick={() => openEditDialog(part)}>
                                                     <Edit className="mr-2 h-4 w-4" />
                                                     <span>Edit Part</span>
@@ -540,7 +608,8 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
                                     )}
                                 </div>
                             </Card>
-                        ))}
+                          )
+                        })}
                     </div>
                 ) : (
                     <p className="text-muted-foreground text-center py-4">No parts found for this chapter.</p>
@@ -630,3 +699,4 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
     
 
     
+
