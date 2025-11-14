@@ -57,10 +57,13 @@ export default function ReaderView({ chapters }: ReaderViewProps) {
   const totalWordCount = chapters.reduce((total, chap) => total + chap.wordCount, 0);
 
   const fullChapterContent = useMemo(() => {
+    // Combine content from all parts for one continuous story.
+    // The replace logic handles paragraph breaks within the content.
     return chapters
-      .map(chapter => chapter.content.replace(/\n/g, '<br />'))
-      .join(isFullChapterView ? '<br /><br />' : '');
-  }, [chapters, isFullChapterView]);
+      .map(chapter => chapter.content)
+      .join('<br /><br />') // Join parts with paragraph breaks
+      .replace(/\n/g, '<br />');
+  }, [chapters]);
 
   useEffect(() => {
     const handleContextmenu = (e: MouseEvent) => {
@@ -186,29 +189,16 @@ export default function ReaderView({ chapters }: ReaderViewProps) {
 
         <Separator className="my-8 bg-border/50" />
         
-        {chapters.map((chapter, index) => (
-             <div key={chapter.docId || index}>
-                {isFullChapterView && (
-                    <div className="text-center my-8">
-                        <h3 className="text-2xl font-bold font-headline tracking-widest" style={{ color: '#E573E5' }}>
-                            PART {chapter.partNumber}
-                        </h3>
-                    </div>
-                )}
-
-                <article
-                  className={cn(
-                    "prose max-w-none",
-                    'text-muted-foreground',
-                    `prose-size-${fontSize}`,
-                    'font-serif',
-                    theme === 'system' ? 'dark:prose-invert' : '',
-                  )}
-                  dangerouslySetInnerHTML={{ __html: chapter.content.replace(/\n/g, '<br />') }}
-                />
-                 {(isFullChapterView && index < chapters.length - 1) && <Separator className="my-12 bg-border/20"/>}
-            </div>
-        ))}
+        <article
+          className={cn(
+            "prose max-w-none",
+            'text-muted-foreground',
+            `prose-size-${fontSize}`,
+            'font-serif',
+            theme === 'system' ? 'dark:prose-invert' : '',
+          )}
+          dangerouslySetInnerHTML={{ __html: fullChapterContent }}
+        />
         
       </div>
        <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">

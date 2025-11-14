@@ -31,7 +31,7 @@ export default function ChapterPage({ params }: ChapterPageProps) {
   const isFullChapterRead = slug.length === 3 && slug[2] === 'all';
   const isSinglePartRead = slug.length === 3 && slug[2] !== 'all';
 
-  if (!isFullChapterRead && !isSinglePartRead) {
+  if (slug.length !== 3) {
     notFound();
     return null;
   }
@@ -60,6 +60,10 @@ export default function ChapterPage({ params }: ChapterPageProps) {
             );
         } else {
             // Fetch a single part
+             if (part === null || isNaN(part)) {
+                setLoading(false);
+                return;
+            }
             q = query(
               chaptersCol, 
               where('seasonNumber', '==', season), 
@@ -108,7 +112,7 @@ export default function ChapterPage({ params }: ChapterPageProps) {
     }
 
     getChapterData();
-  }, [slug, season, chapterNum, part, isFullChapterRead]);
+  }, [season, chapterNum, part, isFullChapterRead]);
 
 
   if (loading || authLoading || adminLoading) {
