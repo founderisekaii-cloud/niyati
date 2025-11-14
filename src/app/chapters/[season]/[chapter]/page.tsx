@@ -90,6 +90,8 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
   const [editPartPreview, setEditPartPreview] = useState<{ summary: string; cleanedContent: string; } | null>(null);
   const [editPartContent, setEditPartContent] = useState('');
   const [editPartIsLast, setEditPartIsLast] = useState(false);
+  const [editPartIsRaw, setEditPartIsRaw] = useState(false);
+  const [editPartHasMetadata, setEditPartHasMetadata] = useState(false);
 
   const resolvedParams = use(params);
   const seasonNum = parseInt(resolvedParams.season, 10);
@@ -150,7 +152,7 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
             coverImage: part1.coverImage || `https://placehold.co/400x400/1A1A2E/FFD700?text=S${seasonNum}\\nC${chapterNum}`
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to fetch chapter parts:", error);
       toast({title: "Error", description: "Failed to load chapter parts.", variant: "destructive"})
       setParts([]);
@@ -175,6 +177,8 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
     setEditingPart(part);
     setEditPartContent(part.content);
     setEditPartIsLast(part.isLastPart || false);
+    setEditPartIsRaw(false); // Default to formatted for edits
+    setEditPartHasMetadata(false); // Default to no metadata for edits
     setEditPartPreview({ summary: part.summary, cleanedContent: part.content });
     setIsEditPartModalOpen(true);
   }
@@ -184,6 +188,8 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
     setEditPartContent('');
     setEditPartPreview(null);
     setEditPartIsLast(false);
+    setEditPartIsRaw(false);
+    setEditPartHasMetadata(false);
   }
 
   const handleAddPartPreview = async () => {
@@ -223,11 +229,10 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
     }
     setEditPartLoading(true);
     try {
-        // For edits, we assume the content is already formatted and headers are removed.
         const input: EnrichChapterInput = {
             fullContent: editPartContent,
-            isFormatted: true,
-            hasMetadataHeaders: false 
+            isFormatted: !editPartIsRaw, 
+            hasMetadataHeaders: editPartHasMetadata
         };
         
         const enrichedData = await enrichChapterContent(input);
@@ -544,22 +549,35 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
                 </DialogHeader>
                 {editingPart && (
                     <>
-                         <div className="space-y-4 py-4">
-                             <div className="space-y-2">
-                                <Label htmlFor="editPartContent">Part Content</Label>
-                                <Textarea id="editPartContent" value={editPartContent} onChange={(e) => {
-                                    setEditPartContent(e.target.value);
-                                    // Invalidate preview if content changes
-                                    if(editPartPreview?.cleanedContent !== e.target.value) {
-                                       setEditPartPreview(null);
-                                    }
-                                }} rows={12} />
-                            </div>
-                             {editPartPreview && (
+                         {!editPartPreview ? (
+                                <div className="space-y-4 py-4">
+                                     <div className="space-y-2">
+                                        <Label htmlFor="editPartContent">Part Content</Label>
+                                        <Textarea id="editPartContent" value={editPartContent} onChange={(e) => setEditPartContent(e.target.value)} rows={12} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Content Type</Label>
+                                        <RadioGroup value={editPartIsRaw ? 'raw' : 'formatted'} onValueChange={(v) => setEditPartIsRaw(v === 'raw')}>
+                                            <div className="flex items-center space-x-2">
+                                                <RadioGroupItem value="raw" id="edit-r-raw" />
+                                                <Label htmlFor="edit-r-raw">Raw (Needs AI formatting)</Label>
+                                            </div>
+                                             <div className="flex items-center space-x-2">
+                                                <RadioGroupItem value="formatted" id="edit-r-formatted" />
+                                                <Label htmlFor="edit-r-formatted">Formatted (Upload as-is)</Label>
+                                            </div>
+                                        </RadioGroup>
+                                    </div>
+                                     <div className="flex items-center space-x-2">
+                                        <Checkbox id="edit-has-metadata" checked={editPartHasMetadata} onCheckedChange={(c) => setEditPartHasMetadata(c as boolean)} />
+                                        <Label htmlFor="edit-has-metadata">Content includes Title/Story Name headers (AI will remove them).</Label>
+                                    </div>
+                                </div>
+                            ) : (
                                 <div className="space-y-4 py-4 animate-in fade-in-0">
                                     <div className="space-y-2">
                                         <Label>AI Generated Summary</Label>
-                                        <Textarea value={editPartPreview.summary} onChange={(e) => setEditPartPreview({...editPartPreview, summary: e.target.value})} rows={3} />
+                                        <Textarea value={editPartPreview.summary} onChange={(e) => setEditPartPreview({...editPartPreview!, summary: e.target.value})} rows={3} />
                                     </div>
                                     <div className="space-y-2">
                                         <Label>Content Preview</Label>
@@ -567,11 +585,12 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
                                     </div>
                                 </div>
                             )}
-                            <div className="flex items-center space-x-2">
-                                <Checkbox id="edit-is-last-part" checked={editPartIsLast} onCheckedChange={(c) => setEditPartIsLast(c as boolean)} />
-                                <Label htmlFor="edit-is-last-part">Is this the final part of the chapter?</Label>
-                            </div>
+
+                        <div className="flex items-center space-x-2">
+                            <Checkbox id="edit-is-last-part" checked={editPartIsLast} onCheckedChange={(c) => setEditPartIsLast(c as boolean)} />
+                            <Label htmlFor="edit-is-last-part">Is this the final part of the chapter?</Label>
                         </div>
+
                         <DialogFooter>
                             <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
                             {!editPartPreview ? (
@@ -580,10 +599,13 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
                                     Refresh Summary with AI
                                 </Button>
                             ) : (
-                                <Button onClick={handleEditPartSubmit} disabled={editPartLoading}>
-                                    {editPartLoading && <Loader2 className="mr-2 animate-spin"/>}
-                                    Save Changes
-                                </Button>
+                                <>
+                                    <Button variant="ghost" onClick={() => setEditPartPreview(null)}>Back to Edit</Button>
+                                    <Button onClick={handleEditPartSubmit} disabled={editPartLoading}>
+                                        {editPartLoading && <Loader2 className="mr-2 animate-spin"/>}
+                                        Save Changes
+                                    </Button>
+                                </>
                             )}
                         </DialogFooter>
                     </>
@@ -594,5 +616,7 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
   );
 }
 
+
+    
 
     
