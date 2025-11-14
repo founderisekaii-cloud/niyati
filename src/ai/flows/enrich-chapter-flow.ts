@@ -1,4 +1,3 @@
-
 'use server';
 
 /**
@@ -24,7 +23,6 @@ const EnrichChapterOutputSchema = z.object({
   subtitle: z.string().describe("A one-sentence quote or tagline for the chapter, found just below the title."),
   summary: z.string().describe('A compelling, 3-sentence summary of the chapter in English.'),
   cleanedContent: z.string().describe('The chapter content. If hasMetadataHeaders is true, the main title, subtitle, and any redundant headings are removed. If isFormatted is true, original formatting is preserved.'),
-  coverImage: z.string().describe('URL of the generated cover image for the chapter.'),
 });
 export type EnrichChapterOutput = z.infer<typeof EnrichChapterOutputSchema>;
 
@@ -99,7 +97,6 @@ const enrichChapterFlow = ai.defineFlow(
         let subtitle = '';
         let summary = '';
         let cleanedContent = input.fullContent;
-        let coverImage = '';
 
         if (input.isFormatted && !input.hasMetadataHeaders) {
             const summaryResult = await summaryOnlyPrompt({ fullContent: input.fullContent });
@@ -122,27 +119,21 @@ const enrichChapterFlow = ai.defineFlow(
             summary = output.summary;
             cleanedContent = output.cleanedContent;
         }
-        
-        const seed = (title || 'chapter').replace(/\s+/g, '-').toLowerCase();
-        coverImage = `https://picsum.photos/seed/${seed}/400/400`;
 
         return {
           title,
           subtitle,
           summary,
           cleanedContent,
-          coverImage,
         };
     } catch (error: any) {
         console.error("Error in enrichChapterFlow:", error);
         // Graceful fallback: return original content and sensible defaults
-        const seed = ('chapter').replace(/\s+/g, '-').toLowerCase();
         return {
             title: 'AI Processing Failed',
             subtitle: '',
             summary: 'Could not generate summary due to an error. Please try again or enter manually.',
             cleanedContent: input.fullContent, // IMPORTANT: Return original content on failure
-            coverImage: `https://picsum.photos/seed/${seed}/400/400`
         };
     }
   }
@@ -153,5 +144,3 @@ const enrichChapterFlow = ai.defineFlow(
 export async function enrichChapterContent(input: EnrichChapterInput): Promise<EnrichChapterOutput> {
   return await enrichChapterFlow(input);
 }
-
-    

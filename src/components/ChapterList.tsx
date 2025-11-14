@@ -45,6 +45,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import Image from 'next/image';
+import { Checkbox } from '@/components/ui/checkbox';
 
 type ChapterListProps = {
   initialChapters: ChapterGroup[];
@@ -78,6 +79,8 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
   const { toast } = useToast();
   const [previewData, setPreviewData] = useState<Partial<ChapterFormData> | null>(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  const [hasMetadata, setHasMetadata] = useState(false);
+
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -102,6 +105,7 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
   const status = watch('status');
   const formContent = watch('content');
   const currentCoverImage = watch('coverImage');
+  const partNumber = watch('partNumber');
 
   const openNewChapterDialog = () => {
     resetForm();
@@ -116,6 +120,7 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
     }
     setModalMode('edit');
     setEditingChapter(chapter);
+    setHasMetadata(false);
     reset({
         ...chapter,
         price: chapter.price || 0,
@@ -134,6 +139,7 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
     reset({ seasonNumber: undefined, chapterNumber: undefined, partNumber: 1, status: 'private', price: 0, content: '' });
     setPreviewData(null);
     setEditingChapter(null);
+    setHasMetadata(false);
   }
 
  const handlePreview = async () => {
@@ -147,54 +153,51 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
       const formData = watch();
 
       try {
-          let finalTitle, finalSubtitle, finalSummary, finalCoverImage, finalCleanedContent;
+          const partNum = formData.partNumber || 1;
+          const shouldHaveHeaders = partNum === 1 || hasMetadata;
 
           const enrichInput: EnrichChapterInput = {
               fullContent: formData.content || '',
-              // For Part 1, we assume headers are present. For others, it's optional.
-              hasMetadataHeaders: formData.partNumber === 1,
-              isFormatted: true // Let's assume formatted to prevent unwanted changes initially. Can be a user option.
+              hasMetadataHeaders: shouldHaveHeaders,
+              isFormatted: true,
           };
 
           toast({ description: "AI is processing the content..." });
           const enrichedData = await enrichChapterContent(enrichInput);
           
-          finalTitle = enrichedData.title;
-          finalSubtitle = enrichedData.subtitle;
-          finalSummary = enrichedData.summary;
-          finalCleanedContent = enrichedData.cleanedContent;
-          finalCoverImage = enrichedData.coverImage || `https://placehold.co/400x400/1A1A2E/FFD700?text=S${formData.seasonNumber}\\nC${formData.chapterNumber}`;
+          const finalCoverImage = formData.coverImage || `https://placehold.co/400x400/1A1A2E/FFD700?text=S${formData.seasonNumber}\\nC${formData.chapterNumber}`;
 
           const preview = {
-              title: finalTitle,
-              subtitle: finalSubtitle,
-              summary: finalSummary,
+              title: enrichedData.title,
+              subtitle: enrichedData.subtitle,
+              summary: enrichedData.summary,
               coverImage: finalCoverImage,
           };
 
           setPreviewData(preview);
-          setValue('title', finalTitle);
-          setValue('subtitle', finalSubtitle);
-          setValue('summary', finalSummary);
-          setValue('coverImage', formData.coverImage || finalCoverImage); // Prioritize existing image on edit
-          setValue('content', finalCleanedContent); // Use cleaned content for submission
+          setValue('title', enrichedData.title);
+          setValue('subtitle', enrichedData.subtitle);
+          setValue('summary', enrichedData.summary);
+          setValue('coverImage', finalCoverImage);
+          setValue('content', enrichedData.cleanedContent); // Use cleaned content for submission
           toast({ title: "Preview Ready!", description: "You can now review and edit the generated content."});
 
       } catch (error: any) {
           console.error("Error during preview generation:", error);
           toast({ title: 'AI Processing Failed', description: "Proceeding with manual entry. Please fill in the details.", variant: 'destructive' });
-          // Fallback to manual mode if AI fails
+          const formData = watch();
+          const finalCoverImage = formData.coverImage || `https://placehold.co/400x400/1A1A2E/FFD700?text=S${formData.seasonNumber}\\nC${formData.chapterNumber}`;
           const preview = {
               title: '',
               subtitle: '',
               summary: 'Could not generate summary.',
-              coverImage: `https://placehold.co/400x400/1A1A2E/FFD700?text=S${formData.seasonNumber}\\nC${formData.chapterNumber}`,
+              coverImage: finalCoverImage,
           };
           setPreviewData(preview);
           setValue('title', '');
           setValue('subtitle', '');
           setValue('summary', 'Could not generate summary.');
-          setValue('coverImage', preview.coverImage);
+          setValue('coverImage', finalCoverImage);
           setValue('content', formData.content); // Keep original content
       } finally {
           setIsPreviewLoading(false);
@@ -211,9 +214,10 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
     try {
         let finalCoverImageUrl = data.coverImage || '';
 
-        // Check if coverImage is a base64 string (from file upload)
         if (finalCoverImageUrl && finalCoverImageUrl.startsWith('data:image')) {
-            const storageRef = ref(storage, `chapters/cover-s${data.seasonNumber}-c${data.chapterNumber}.jpg`);
+            toast({ description: "Uploading cover image..." });
+            const storagePath = `chapters/cover-s${data.seasonNumber}-c${data.chapterNumber}.jpg`;
+            const storageRef = ref(storage, storagePath);
             const uploadResult = await uploadString(storageRef, finalCoverImageUrl, 'data_url');
             finalCoverImageUrl = await getDownloadURL(uploadResult.ref);
             toast({ description: "Cover image uploaded successfully." });
@@ -281,6 +285,14 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      if (file.size > 1024 * 1024) { // 1MB size limit
+        toast({
+            title: "Image too large",
+            description: "Please upload an image smaller than 1MB.",
+            variant: "destructive",
+        });
+        return;
+      }
       const reader = new FileReader();
       reader.onloadend = () => {
         setValue('coverImage', reader.result as string);
@@ -343,11 +355,17 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
                   <Textarea id="content" {...register('content')} rows={10} placeholder={ "Paste the entire chapter content here. The AI will generate metadata from this. For Part 1, it generates everything new. For subsequent parts, it copies details from Part 1."} />
                   {errors.content && <p className="text-sm text-destructive">{errors.content.message}</p>}
                 </div>
+                {partNumber > 1 && (
+                     <div className="flex items-center space-x-2">
+                        <Checkbox id="has-metadata" checked={hasMetadata} onCheckedChange={(c) => setHasMetadata(c as boolean)} />
+                        <Label htmlFor="has-metadata">Content includes Title/Story Name headers (AI will remove them).</Label>
+                    </div>
+                )}
              </div>
         ) : (
              <div className="space-y-6 animate-in fade-in-0">
                 <div className="space-y-2">
-                    <Label>Cover Image Preview</Label>
+                    <Label>Cover Image</Label>
                     <div className="flex items-center gap-4">
                       {currentCoverImage && (
                         <Image
@@ -359,7 +377,7 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
                             className="rounded-md object-cover aspect-square border"
                         />
                       )}
-                      <div className="flex flex-col gap-2">
+                      <div className="flex flex-col gap-2 w-full">
                         <Button type="button" size="sm" onClick={() => fileInputRef.current?.click()}>
                           <Upload className="mr-2" /> Upload Custom Image
                         </Button>
@@ -391,7 +409,7 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="content">Cleaned Content (Editable)</Label>
-                    <Textarea id="content" {...register('content')} rows={6} className="bg-muted/50" />
+                    <Textarea id="content" {...register('content')} rows={6} />
                 </div>
              </div>
         )}
@@ -404,7 +422,7 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
           {!previewData ? (
              <Button type="button" disabled={isPreviewLoading || !formContent} onClick={handlePreview}>
                 {isPreviewLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Preview & Generate
+                Preview & Generate with AI
             </Button>
           ) : (
             <>
@@ -463,6 +481,3 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
   );
 }
 
-    
-
-    
