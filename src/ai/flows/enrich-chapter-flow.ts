@@ -4,9 +4,11 @@
  * @fileOverview Implements a Genkit flow to enrich chapter content using AI.
  * This flow can take raw or pre-formatted chapter text. It can generate a title,
  * subtitle, and summary, and can optionally clean metadata headers from the content.
+ * It uses OpenAI as a fallback if Gemini fails.
  */
 
 import { ai } from '@/ai/genkit';
+import { generate } from 'genkit';
 import { z } from 'zod';
 
 // 1. Define Input Schema
@@ -91,44 +93,51 @@ const enrichChapterFlow = ai.defineFlow(
     outputSchema: EnrichChapterOutputSchema,
   },
   async (input) => {
-    
+    let title = 'Untitled';
+    let subtitle = '';
+    let summary = '';
+    let cleanedContent = input.fullContent;
+
     try {
-        let title = 'Untitled';
-        let subtitle = '';
-        let summary = '';
-        let cleanedContent = input.fullContent;
+      if (input.isFormatted && !input.hasMetadataHeaders) {
+        // This case is simple enough that we don't need a fallback.
+        // It's for pre-formatted content where we only extract summary.
+        const summaryResult = await summaryOnlyPrompt({ fullContent: input.fullContent });
+        summary = summaryResult.output?.summary || "Summary could not be generated.";
+        const lines = input.fullContent.split('\n');
+        title = lines[0] || 'Untitled';
+        subtitle = lines[1] && lines[1].startsWith('"') ? lines[1] : '';
 
-        if (input.isFormatted && !input.hasMetadataHeaders) {
-            const summaryResult = await summaryOnlyPrompt({ fullContent: input.fullContent });
-            summary = summaryResult.output?.summary || "Summary could not be generated.";
-            
-            // For formatted, no-header content, we just need the title and subtitle.
-            // A simpler regex-like approach can be safer than full AI processing.
-            const lines = input.fullContent.split('\n');
-            title = lines[0] || 'Untitled';
-            subtitle = lines[1] && lines[1].startsWith('"') ? lines[1] : '';
-
-        } else {
-            const textGenResult = await generationPrompt(input);
-            const output = textGenResult.output;
-            if (!output) {
-                throw new Error("Failed to generate all required text fields from AI.");
-            }
-            title = output.title;
-            subtitle = output.subtitle;
-            summary = output.summary;
-            cleanedContent = output.cleanedContent;
+      } else {
+        // This is the main, complex case that needs a fallback.
+        let textGenResult;
+        try {
+          // Attempt 1: Use the default model (Gemini)
+          console.log("Attempting chapter enrichment with default model (Gemini)...");
+          textGenResult = await generationPrompt(input);
+        } catch (geminiError: any) {
+          // Attempt 2: Fallback to OpenAI if Gemini fails
+          console.warn("Gemini model failed:", geminiError.message, "Switching to OpenAI fallback.");
+          textGenResult = await generate({
+            prompt: generationPrompt.prompt,
+            model: 'openai/gpt-4o', // Explicitly use an OpenAI model
+            input: input,
+            output: generationPrompt.output,
+          });
         }
 
-        return {
-          title,
-          subtitle,
-          summary,
-          cleanedContent,
-        };
+        const output = textGenResult.output;
+        if (!output) {
+            throw new Error("Failed to generate all required text fields from AI.");
+        }
+        title = output.title;
+        subtitle = output.subtitle;
+        summary = output.summary;
+        cleanedContent = output.cleanedContent;
+      }
     } catch (error: any) {
-        console.error("Error in enrichChapterFlow:", error);
-        // Graceful fallback: return original content and sensible defaults
+        console.error("Error in enrichChapterFlow (after fallback attempt):", error);
+        // Graceful fallback if both AI providers fail: return original content and sensible defaults
         return {
             title: 'AI Processing Failed',
             subtitle: '',
@@ -136,6 +145,13 @@ const enrichChapterFlow = ai.defineFlow(
             cleanedContent: input.fullContent, // IMPORTANT: Return original content on failure
         };
     }
+
+    return {
+      title,
+      subtitle,
+      summary,
+      cleanedContent,
+    };
   }
 );
 
