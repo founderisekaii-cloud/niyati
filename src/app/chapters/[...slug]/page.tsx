@@ -10,6 +10,7 @@ import { useEffect, useState, use } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { NiyatiVerseLogo } from '@/components/icons';
 import ChapterActionCard from '@/components/ChapterActionCard';
+import { useAdmin } from '@/hooks/useAdmin';
 
 type ChapterPageProps = {
     params: {
@@ -21,6 +22,7 @@ export default function ChapterPage({ params }: ChapterPageProps) {
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [loading, setLoading] = useState(true);
   const { user, loading: authLoading } = useAuth();
+  const { isAdmin, loading: adminLoading } = useAdmin();
   
   const resolvedParams = use(params);
   const { slug } = resolvedParams;
@@ -52,7 +54,8 @@ export default function ChapterPage({ params }: ChapterPageProps) {
             q = query(
               chaptersCol, 
               where('seasonNumber', '==', season), 
-              where('chapterNumber', '==', chapterNum)
+              where('chapterNumber', '==', chapterNum),
+              orderBy('partNumber', 'asc')
             );
         } else {
             // Fetch a single part
@@ -87,12 +90,11 @@ export default function ChapterPage({ params }: ChapterPageProps) {
                 price: docData.price || 0,
                 coverImage: docData.coverImage,
                 isLastPart: docData.isLastPart || false,
+                likes: docData.likes || 0,
+                comments: docData.comments || 0,
+                views: docData.views || 0,
               };
           });
-          // Sort here for the full chapter view
-          if(isFullChapterRead) {
-              chapterDocs.sort((a, b) => a.partNumber - b.partNumber);
-          }
           setChapters(chapterDocs);
         }
       } catch (error) {
@@ -107,7 +109,7 @@ export default function ChapterPage({ params }: ChapterPageProps) {
   }, [slug, season, chapterNum, part, isFullChapterRead]);
 
 
-  if (loading || authLoading) {
+  if (loading || authLoading || adminLoading) {
     return (
       <div className="flex h-[60vh] w-full items-center justify-center">
         <div className="flex flex-col items-center gap-4">
@@ -126,24 +128,36 @@ export default function ChapterPage({ params }: ChapterPageProps) {
   const firstChapterPart = chapters[0];
 
   const hasAccess = () => {
-    // For full chapter view, check access on the first part.
     const chapterToCheck = firstChapterPart;
     
+    // Admin can see everything
+    if (isAdmin) {
+      return true;
+    }
+    
+    // Public chapters are visible to all
     if (chapterToCheck.status === 'public') {
       return true;
     }
-    if (chapterToCheck.status === 'private' && user) {
-      return true;
+
+    // Private chapters are drafts, only for admins (already handled above)
+    // So if a non-admin gets here, they shouldn't see it.
+    if (chapterToCheck.status === 'private') {
+      return false;
     }
-    // Access for protected chapters is handled by the action card
+    
+    // For protected content, the action card will handle it.
+    // Let's assume for now if they reach this page they have access,
+    // but the card should be the gate.
     if (chapterToCheck.status === 'protected') {
+       // A real implementation would check for purchase history here.
+       // For now, we show the action card to prompt purchase/login.
        return false;
     }
     return false;
   };
   
   if (!hasAccess()) {
-    // Show the action card for the first part to control access
     return <ChapterActionCard chapter={firstChapterPart} user={user} />;
   }
   

@@ -6,11 +6,37 @@ import ChapterList from '@/components/ChapterList';
 import type { Chapter, ChapterGroup } from '@/lib/types';
 import { NiyatiVerseLogo } from '@/components/icons';
 import SubscribeCard from '@/components/SubscribeCard';
+import { auth } from '@/lib/firebase';
+import { get } from 'http';
+import { doc, getDoc } from 'firebase/firestore';
+
+
+async function getIsAdmin() {
+  const user = auth.currentUser;
+  if (!user) return false;
+  try {
+    const userDoc = await getDoc(doc(db, 'users', user.uid));
+    return userDoc.exists() && userDoc.data().role === 'admin';
+  } catch (error) {
+    console.error("Error checking admin status:", error);
+    return false;
+  }
+}
 
 async function getGroupedChapters(): Promise<ChapterGroup[]> {
+  const isAdmin = await getIsAdmin();
   try {
     const chaptersCol = collection(db, 'chapters');
-    const q = query(chaptersCol); // Fetch all chapters without ordering
+    let q;
+
+    // Admins see all chapters (private/drafts included)
+    // Regular users only see public or protected chapters
+    if (isAdmin) {
+        q = query(chaptersCol);
+    } else {
+        q = query(chaptersCol, where('status', 'in', ['public', 'protected']));
+    }
+
     const chapterSnapshot = await getDocs(q);
 
     if (chapterSnapshot.empty) {
@@ -166,6 +192,3 @@ export default async function ChaptersPage() {
     </div>
   );
 }
-
-    
-

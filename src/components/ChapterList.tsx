@@ -62,7 +62,7 @@ const chapterSchema = z.object({
   title: z.string().optional(),
   subtitle: z.string().optional(),
   summary: z.string().optional(),
-  coverImage: z.string().url().optional().or(z.literal('')),
+  coverImage: z.string().optional(),
 });
 
 type ChapterFormData = z.infer<typeof chapterSchema>;
@@ -130,6 +130,7 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
         subtitle: chapter.subtitle,
         summary: chapter.summary,
         coverImage: chapter.coverImage,
+        content: chapter.content
     });
     setIsModalOpen(true);
   }
@@ -159,19 +160,20 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
           const enrichInput: EnrichChapterInput = {
               fullContent: formData.content || '',
               hasMetadataHeaders: shouldHaveHeaders,
-              isFormatted: true,
+              isFormatted: true, // Assuming content from this dialog is typically formatted
           };
 
           toast({ description: "AI is processing the content..." });
           const enrichedData = await enrichChapterContent(enrichInput);
           
-          const finalCoverImage = formData.coverImage || `https://placehold.co/400x400/1A1A2E/FFD700?text=S${formData.seasonNumber}\\nC${formData.chapterNumber}`;
+          const finalCoverImage = `https://placehold.co/400x400/1A1A2E/FFD700?text=S${formData.seasonNumber}\\nC${formData.chapterNumber}`;
 
           const preview = {
               title: enrichedData.title,
               subtitle: enrichedData.subtitle,
               summary: enrichedData.summary,
               coverImage: finalCoverImage,
+              content: enrichedData.cleanedContent,
           };
 
           setPreviewData(preview);
@@ -186,12 +188,13 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
           console.error("Error during preview generation:", error);
           toast({ title: 'AI Processing Failed', description: "Proceeding with manual entry. Please fill in the details.", variant: 'destructive' });
           const formData = watch();
-          const finalCoverImage = formData.coverImage || `https://placehold.co/400x400/1A1A2E/FFD700?text=S${formData.seasonNumber}\\nC${formData.chapterNumber}`;
+          const finalCoverImage = `https://placehold.co/400x400/1A1A2E/FFD700?text=S${formData.seasonNumber}\\nC${formData.chapterNumber}`;
           const preview = {
               title: '',
               subtitle: '',
               summary: 'Could not generate summary.',
               coverImage: finalCoverImage,
+              content: formData.content, // Keep original content
           };
           setPreviewData(preview);
           setValue('title', '');
@@ -285,14 +288,14 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      if (file.size > 1024 * 1024) { // 1MB size limit
-        toast({
-            title: "Image too large",
-            description: "Please upload an image smaller than 1MB.",
-            variant: "destructive",
-        });
-        return;
-      }
+        if (file.size > 1024 * 1024 * 2) { // 2MB limit
+            toast({
+                title: "Image too large",
+                description: "Please upload an image smaller than 2MB.",
+                variant: "destructive",
+            });
+            return;
+        }
       const reader = new FileReader();
       reader.onloadend = () => {
         setValue('coverImage', reader.result as string);
@@ -334,9 +337,9 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
                             <Select onValueChange={field.onChange} value={field.value}>
                                 <SelectTrigger id="status"><SelectValue placeholder="Select status" /></SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="private">Private (Sign-in required)</SelectItem>
-                                    <SelectItem value="public">Public (Free for all)</SelectItem>
-                                    <SelectItem value="protected">Protected (Requires payment)</SelectItem>
+                                    <SelectItem value="private">Private (Draft, Admin only)</SelectItem>
+                                    <SelectItem value="public">Public (Published)</SelectItem>
+                                    <SelectItem value="protected">Protected (Paywall)</SelectItem>
                                 </SelectContent>
                             </Select>
                         )}
@@ -480,4 +483,3 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
     </>
   );
 }
-

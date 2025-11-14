@@ -4,7 +4,7 @@ import { Chapter } from "@/lib/types";
 import { User } from "firebase/auth";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Lock, CreditCard, LogIn } from "lucide-react";
+import { Lock, CreditCard, LogIn, ShieldAlert } from "lucide-react";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
 
@@ -26,20 +26,19 @@ export default function ChapterActionCard({ chapter, user }: ChapterActionCardPr
     const renderPrivateView = () => (
         <Card className="max-w-xl mx-auto my-12">
             <CardHeader className="items-center text-center">
-                <Lock className="w-12 h-12 text-primary mb-4" />
-                <CardTitle>Content Locked</CardTitle>
-                <CardDescription>This chapter is available to registered members only.</CardDescription>
+                <ShieldAlert className="w-12 h-12 text-primary mb-4" />
+                <CardTitle>Access Restricted</CardTitle>
+                <CardDescription>This chapter is currently a draft and not available for public viewing.</CardDescription>
             </CardHeader>
             <CardContent>
                 <p className="text-center text-muted-foreground">
-                    Please sign in to your account to read this chapter. If you don't have an account, signing up is free and easy.
+                    Only administrators can view this content. Once published, it will be available here.
                 </p>
             </CardContent>
             <CardFooter className="flex justify-center">
-                <Button asChild>
-                    <Link href="/login">
-                        <LogIn className="mr-2" />
-                        Sign In to Continue
+                 <Button asChild variant="outline">
+                    <Link href="/chapters">
+                        Back to Chapters
                     </Link>
                 </Button>
             </CardFooter>
@@ -67,7 +66,7 @@ export default function ChapterActionCard({ chapter, user }: ChapterActionCardPr
         </Card>
     );
 
-    if (chapter.status === 'private' && !user) {
+    if (chapter.status === 'private') {
         return renderPrivateView();
     }
 
@@ -75,7 +74,7 @@ export default function ChapterActionCard({ chapter, user }: ChapterActionCardPr
         return renderProtectedView();
     }
 
-    // Fallback for any other unhandled cases
+    // Fallback for any other unhandled cases (like public but access check failed)
     return (
         <div className="text-center my-12">
             <h2 className="text-2xl font-bold">Access Denied</h2>
