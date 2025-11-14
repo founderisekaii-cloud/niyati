@@ -124,7 +124,9 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
     setIsFetchingAdminChapters(true);
     try {
       const chaptersCol = collection(db, 'chapters');
-      const q = query(chaptersCol, orderBy('seasonNumber', 'desc'), orderBy('chapterNumber', 'desc'));
+      // Use a less complex query to avoid needing a composite index.
+      // We will sort in the client.
+      const q = query(chaptersCol, orderBy('seasonNumber', 'desc'));
       const chapterSnapshot = await getDocs(q);
 
       const chapterMap = new Map<string, ChapterGroup & { parts: Chapter[], docIds: string[], totalLikes: number, totalComments: number, totalViews: number, publishedAt?: any }>();
@@ -199,11 +201,9 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
           });
         }
       }
-
-      finalGroups.sort((a, b) => {
-        if (a.seasonNumber !== b.seasonNumber) return b.seasonNumber - a.seasonNumber;
-        return b.chapterNumber - a.chapterNumber;
-      });
+      
+      // Secondary sort in client
+      finalGroups.sort((a, b) => b.chapterNumber - a.chapterNumber);
 
       setChapters(finalGroups);
 
@@ -717,6 +717,7 @@ export function SchedulePublicationDialog({ docIds, onScheduled, trigger, trigge
         </Dialog>
     );
 }
+
 
 
 
