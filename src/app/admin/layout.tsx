@@ -13,6 +13,7 @@ import {
   LayoutDashboard,
   ShieldAlert,
   BookOpen,
+  Megaphone,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -33,6 +34,7 @@ const menuItems = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/chapters', label: 'Chapters', icon: BookOpen }, // Direct link to public chapters page
   { href: '/admin/payments', label: 'Payments', icon: CreditCard },
+  { href: '/admin/announcements', label: 'Announcements', icon: Megaphone },
   { href: '/admin/settings', label: 'Settings', icon: Settings },
 ];
 
