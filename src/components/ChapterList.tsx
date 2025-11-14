@@ -33,7 +33,8 @@ import {
   getDocs,
   writeBatch,
 } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { db, storage } from '@/lib/firebase';
+import { ref as storageRef, uploadString, getDownloadURL } from 'firebase/storage';
 import { useToast } from '@/hooks/use-toast';
 import { enrichChapterContent } from '@/ai/flows/enrich-chapter-flow';
 import {
@@ -242,6 +243,18 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
 
     setLoading(true);
     try {
+      let coverImageUrl = data.coverImage || '';
+
+      // Check if the cover image is a new base64 upload
+      if (coverImageUrl.startsWith('data:image')) {
+        toast({ description: "Uploading cover image to storage..." });
+        const imagePath = `chapters/s${data.seasonNumber}c${data.chapterNumber}/cover.jpg`;
+        const imageRef = storageRef(storage, imagePath);
+        const uploadResult = await uploadString(imageRef, coverImageUrl, 'data_url');
+        coverImageUrl = await getDownloadURL(uploadResult.ref);
+        toast({ title: "Image uploaded!" });
+      }
+
       const chapterPayload = {
         seasonNumber: data.seasonNumber,
         chapterNumber: data.chapterNumber,
@@ -252,7 +265,7 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
         title: data.title || 'Untitled',
         subtitle: data.subtitle || '',
         summary: data.summary || '',
-        coverImage: data.coverImage || '',
+        coverImage: coverImageUrl,
         wordCount: data.content?.split(/\s+/).length || 0,
         releaseDate: serverTimestamp(),
       };
@@ -470,5 +483,3 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
     </>
   );
 }
-
-    
