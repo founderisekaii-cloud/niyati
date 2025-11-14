@@ -24,6 +24,21 @@ async function getGroupedChapters(): Promise<ChapterGroup[]> {
           coverImage: "https://picsum.photos/seed/s0c0/400/400",
           status: 'public',
           price: 0,
+          parts: [{
+            docId: 'sample-doc-id',
+            title: "The Awakening",
+            subtitle: "Every end is a new beginning.",
+            summary: "This is a sample chapter to demonstrate the layout and functionality. In a world governed by a cosmic, karma-based operating system, a young man named Kael begins to exhibit abilities that defy the predictions of the Niyati OS, drawing the attention of powerful forces and setting in motion events that could either reboot the system or shatter it forever.",
+            wordCount: 150,
+            releaseDate: new Date().toISOString(),
+            content: "The story begins here...",
+            seasonNumber: 0,
+            chapterNumber: 0,
+            partNumber: 1,
+            status: 'public',
+            price: 0,
+            coverImage: "https://picsum.photos/seed/s0c0/400/400",
+          }]
         }
       ];
     }
@@ -32,7 +47,7 @@ async function getGroupedChapters(): Promise<ChapterGroup[]> {
     const chapterMap = new Map<string, ChapterGroup & { parts: Chapter[], docIds: string[] }>();
 
     chapterSnapshot.docs.forEach(doc => {
-      const data = doc.data() as Chapter;
+      const data = doc.data() as Omit<Chapter, 'docId'>;
       const groupId = `s${data.seasonNumber}c${data.chapterNumber}`;
 
       if (!chapterMap.has(groupId)) {
@@ -73,6 +88,7 @@ async function getGroupedChapters(): Promise<ChapterGroup[]> {
           status: part1.status,
           price: part1.price,
           docIds: group.docIds,
+          parts: group.parts, // Pass all parts for editing
         });
       }
     }
@@ -120,3 +136,5 @@ export default async function ChaptersPage() {
     </div>
   );
 }
+
+    

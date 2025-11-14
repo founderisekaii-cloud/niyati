@@ -30,4 +30,7 @@ export interface ChapterGroup {
   status: 'public' | 'private' | 'protected';
   price: number;
   docIds?: string[]; // Add docIds for batch operations
+  parts?: Chapter[]; // Include full part data for editing
 }
+
+    

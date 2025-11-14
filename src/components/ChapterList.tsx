@@ -5,7 +5,7 @@ import type { Chapter, ChapterGroup } from '@/lib/types';
 import ChapterCard from '@/components/ChapterCard';
 import { useAdmin } from '@/hooks/useAdmin';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Loader2, RefreshCw } from 'lucide-react';
+import { PlusCircle, Loader2, RefreshCw, Upload } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -18,7 +18,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -31,6 +31,7 @@ import {
   query,
   where,
   getDocs,
+  writeBatch,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
@@ -68,16 +69,15 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
   const { isAdmin } = useAdmin();
   const [chapters, setChapters] = useState(initialChapters);
   
-  // State for Create/Edit Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'new' | 'edit'>('new');
   const [editingChapter, setEditingChapter] = useState<Partial<Chapter> | null>(null);
 
-  // Form state
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const [previewData, setPreviewData] = useState<Partial<ChapterFormData> | null>(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
     register,
@@ -99,6 +99,7 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
 
   const status = watch('status');
   const formContent = watch('content');
+  const currentCoverImage = watch('coverImage');
 
   const openNewChapterDialog = () => {
     resetForm();
@@ -205,17 +206,31 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
     setIsPreviewLoading(true);
     toast({ description: "AI is creating a new image..." });
      try {
-        // We can reuse the existing flow but only use the image generation part
-        const enrichedData = await enrichChapterContent({ fullContent: currentSummary }); // Use summary as prompt source
+        const enrichedData = await enrichChapterContent({ fullContent: `Generate an image for this summary: ${currentSummary}` });
         setValue('coverImage', enrichedData.coverImage);
-        setPreviewData(prev => ({...prev, coverImage: enrichedData.coverImage}));
-        toast({ title: "Image Regenerated!" });
      } catch (error: any) {
         console.error("Error regenerating image:", error);
         toast({ title: 'Image Generation Failed', description: error.message, variant: 'destructive'});
      } finally {
         setIsPreviewLoading(false);
      }
+  }
+
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) { // 2MB limit
+        toast({ title: "File too large", description: "Please upload an image smaller than 2MB.", variant: "destructive"});
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+        const base64String = reader.result as string;
+        setValue('coverImage', base64String);
+    };
+    reader.readAsDataURL(file);
   }
 
 
@@ -251,7 +266,6 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
         toast({ title: 'Success!', description: `Chapter "${chapterPayload.title}" (Part ${chapterPayload.partNumber}) has been added.` });
       }
       
-      // Full reload to ensure all data is fresh from the server
       window.location.reload();
 
     } catch (error: any) {
@@ -266,14 +280,30 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
     }
   };
 
-  const handleDeleteChapterGroup = (season: number, chapter: number) => {
-    setChapters(prev => prev.filter(c => !(c.seasonNumber === season && c.chapterNumber === chapter)));
+  const handleDeleteChapterGroup = async (chapterGroup: ChapterGroup) => {
+     if (!chapterGroup.docIds || chapterGroup.docIds.length === 0) {
+        toast({title: "Error", description: "No document IDs associated with this chapter group.", variant: "destructive"});
+        return;
+    }
+    if (window.confirm(`Are you sure you want to delete all ${chapterGroup.partCount} parts of S${chapterGroup.seasonNumber} C${chapterGroup.chapterNumber}? This cannot be undone.`)) {
+        const batch = writeBatch(db);
+        chapterGroup.docIds.forEach(id => {
+            batch.delete(doc(db, 'chapters', id));
+        });
+        try {
+            await batch.commit();
+            toast({ title: "Success", description: "Chapter group deleted successfully."});
+            setChapters(prev => prev.filter(c => !(c.seasonNumber === chapterGroup.seasonNumber && c.chapterNumber === chapterGroup.chapterNumber)));
+        } catch (error: any) {
+            console.error(error);
+            toast({title: "Error", description: `Failed to delete chapter group: ${error.message}`, variant: "destructive"});
+        }
+    }
   }
 
   const renderForm = () => (
       <form onSubmit={handleSubmit(handleFinalSubmit)} className="space-y-4">
         {!previewData ? (
-             // STEP 1: Initial user input form
              <div className="space-y-4 animate-in fade-in-0">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
@@ -325,33 +355,46 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
                 </div>
              </div>
         ) : (
-             // STEP 2: Review and Edit form
              <div className="space-y-6 animate-in fade-in-0">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="md:col-span-1 space-y-2">
-                        <Label>Cover Image (AI Generated)</Label>
+                        <Label>Cover Image Preview</Label>
                          <div className="relative">
-                            <Image src={watch('coverImage') || '/placeholder.svg'} alt="Generated cover" width={200} height={200} className="rounded-md border aspect-square object-cover w-full" />
-                            <Button type="button" size="icon" variant="outline" className="absolute top-2 right-2" onClick={handleRegenerateImage} disabled={isPreviewLoading}>
-                                {isPreviewLoading ? <Loader2 className="h-4 w-4 animate-spin"/> : <RefreshCw className="h-4 w-4" />}
+                            <Image src={currentCoverImage || '/placeholder.svg'} alt="Generated cover" width={200} height={200} className="rounded-md border aspect-square object-cover w-full" />
+                         </div>
+                         <div className="flex gap-2">
+                            <Button type="button" size="sm" variant="outline" className="w-full" onClick={handleRegenerateImage} disabled={isPreviewLoading}>
+                                {isPreviewLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <RefreshCw className="mr-2 h-4 w-4" />}
+                                AI
                             </Button>
-                        </div>
+                             <Button type="button" size="sm" variant="outline" className="w-full" onClick={() => fileInputRef.current?.click()}>
+                                <Upload className="mr-2 h-4 w-4"/>
+                                Upload
+                            </Button>
+                         </div>
+                         <Input 
+                            type="file" 
+                            className="hidden" 
+                            ref={fileInputRef} 
+                            onChange={handleImageUpload}
+                            accept="image/png, image/jpeg, image/webp"
+                         />
                         <Input {...register('coverImage')} className="hidden" />
                     </div>
                     <div className="md:col-span-2 space-y-4">
                          <div className="space-y-2">
-                            <Label htmlFor="title">Title (AI Extracted)</Label>
+                            <Label htmlFor="title">Title (AI Extracted/Editable)</Label>
                             <Input id="title" {...register('title')} />
                         </div>
                          <div className="space-y-2">
-                            <Label htmlFor="subtitle">Subtitle (AI Extracted)</Label>
+                            <Label htmlFor="subtitle">Subtitle (AI Extracted/Editable)</Label>
                             <Input id="subtitle" {...register('subtitle')} />
                         </div>
                     </div>
                 </div>
 
                 <div className="space-y-2">
-                    <Label htmlFor="summary">Description / Summary (AI Generated)</Label>
+                    <Label htmlFor="summary">Description / Summary (AI Generated/Editable)</Label>
                     <Textarea id="summary" {...register('summary')} rows={4} />
                 </div>
                 <div className="space-y-2">
@@ -419,8 +462,8 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
         <ChapterCard 
             key={`${chapter.seasonNumber}-${chapter.chapterNumber}`} 
             chapterGroup={chapter}
-            onDelete={handleDeleteChapterGroup} 
-            onEditRequest={(part) => openEditChapterDialog(part)}
+            onDelete={() => handleDeleteChapterGroup(chapter)} 
+            onEditRequest={openEditChapterDialog}
         />
       ))}
     </div>

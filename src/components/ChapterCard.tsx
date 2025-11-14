@@ -6,7 +6,6 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { BookOpen, Heart, MessageCircle, List, Eye, Sparkles, Edit, Trash, MoreVertical } from 'lucide-react';
-import { useTranslation } from '@/hooks/useTranslation';
 import { useAdmin } from '@/hooks/useAdmin';
 import {
   DropdownMenu,
@@ -15,14 +14,10 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import { useToast } from '@/hooks/use-toast';
-import { writeBatch, doc, getDocs, collection, query, where } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { useState } from 'react';
 
 type ChapterCardProps = {
   chapterGroup: ChapterGroup;
-  onDelete: (season: number, chapter: number) => void;
+  onDelete: () => void;
   onEditRequest: (chapter: Chapter) => void;
 };
 
@@ -35,9 +30,7 @@ const MetaItem = ({ icon: Icon, label, value }: { icon: React.ElementType, label
 
 
 export default function ChapterCard({ chapterGroup, onDelete, onEditRequest }: ChapterCardProps) {
-  const { t } = useTranslation();
   const { isAdmin } = useAdmin();
-  const { toast } = useToast();
   const chapterUrl = `/chapters/${chapterGroup.seasonNumber}/${chapterGroup.chapterNumber}`;
 
   const getPriceDisplay = () => {
@@ -47,48 +40,15 @@ export default function ChapterCard({ chapterGroup, onDelete, onEditRequest }: C
     return "Free";
   }
 
-  const handleDelete = async () => {
-    if (!chapterGroup.docIds || chapterGroup.docIds.length === 0) {
-        toast({title: "Error", description: "No document IDs associated with this chapter group.", variant: "destructive"});
-        return;
-    }
-    if (window.confirm(`Are you sure you want to delete all ${chapterGroup.partCount} parts of S${chapterGroup.seasonNumber} C${chapterGroup.chapterNumber}? This cannot be undone.`)) {
-        const batch = writeBatch(db);
-        chapterGroup.docIds.forEach(id => {
-            batch.delete(doc(db, 'chapters', id));
-        });
-        try {
-            await batch.commit();
-            toast({ title: "Success", description: "Chapter group deleted successfully."});
-            onDelete(chapterGroup.seasonNumber, chapterGroup.chapterNumber);
-        } catch (error: any) {
-            console.error(error);
-            toast({title: "Error", description: `Failed to delete chapter group: ${error.message}`, variant: "destructive"});
-        }
+  const handleEdit = () => {
+    // We assume the first part holds the canonical details for the group
+    if (chapterGroup.parts && chapterGroup.parts[0]) {
+      onEditRequest(chapterGroup.parts[0]);
+    } else {
+      console.error("Cannot edit: part 1 data is missing from chapter group.");
     }
   }
 
-  const handleEditPart1 = async () => {
-    if (!chapterGroup.docIds) return;
-    try {
-        const q = query(
-            collection(db, 'chapters'),
-            where('seasonNumber', '==', chapterGroup.seasonNumber),
-            where('chapterNumber', '==', chapterGroup.chapterNumber),
-            where('partNumber', '==', 1),
-        );
-        const snapshot = await getDocs(q);
-        if (snapshot.empty) {
-            toast({ title: "Error", description: "Could not find Part 1 to edit.", variant: "destructive" });
-            return;
-        }
-        const doc = snapshot.docs[0];
-        const chapterData = { docId: doc.id, ...doc.data() } as Chapter;
-        onEditRequest(chapterData);
-    } catch(e: any) {
-        toast({ title: "Error", description: `Could not fetch part 1: ${e.message}`, variant: "destructive"});
-    }
-  }
 
   return (
     <div className="flex flex-col rounded-lg bg-card text-card-foreground border shadow-sm overflow-hidden w-full transition-shadow hover:shadow-lg">
@@ -147,12 +107,12 @@ export default function ChapterCard({ chapterGroup, onDelete, onEditRequest }: C
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={handleEditPart1}>
+                        <DropdownMenuItem onClick={handleEdit}>
                             <Edit className="mr-2 h-4 w-4" />
                             <span>Edit Details (from Part 1)</span>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={handleDelete} className="text-destructive">
+                        <DropdownMenuItem onClick={onDelete} className="text-destructive">
                             <Trash className="mr-2 h-4 w-4" />
                             <span>Delete Chapter Group</span>
                         </DropdownMenuItem>
