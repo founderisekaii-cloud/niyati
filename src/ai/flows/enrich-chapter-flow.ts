@@ -35,9 +35,13 @@ const generationPrompt = ai.definePrompt({
     input: { schema: EnrichChapterInputSchema },
     output: { schema: z.object({
         title: z.string().describe("Extract the chapter title from the text in English. If no clear title is present, create a concise, compelling one based on the content."),
-        subtitle: z.string().describe("Extract the single quote or tagline sentence that appears immediately after the title. If not present, leave it blank."),
+        subtitle: z
+            .string()
+            .describe(
+            "Extract the single quote or tagline sentence that appears immediately after the title. If not present, leave it blank."
+            ),
         summary: z.string().describe("Generate a compelling, 3-sentence summary in English, suitable for a chapter listing page. It should be engaging and concise."),
-        cleanedContent: z.string().describe("Return the main body of the chapter content. IMPORTANT: If `hasMetadataHeaders` is true, you MUST remove the primary title, the subtitle, and any other introductory headings (like 'Niyati', 'Season X', etc.). If `isFormatted` is true, you MUST return the content with its original line breaks and paragraph structure intact."),
+        cleanedContent: z.string().describe("Return the main body of the chapter content. IMPORTANT: Follow the rules for header removal and formatting preservation precisely."),
     })},
     prompt: `You are an expert editor. Your task is to process a chapter's text and return structured data.
 
@@ -52,11 +56,14 @@ Here are your instructions. Follow them precisely.
 3.  **Summary Generation (Always Perform):**
     *   Read the entire \`fullContent\` and write a compelling, 3-sentence summary in English.
 
-4.  **Content Cleaning (This is conditional):**
-    *   **IF \`hasMetadataHeaders\` is TRUE:** You MUST remove the story name (e.g., "Niyati"), the season/chapter line (e.g., "Season X – Chapter Y"), the main title, and the subtitle from the beginning of the content.
-    *   **IF \`hasMetadataHeaders\` is FALSE:** You MUST NOT remove any text.
-    *   **IF \`isFormatted\` is TRUE:** This is a strict rule. You MUST preserve the original line breaks and paragraph spacing of the content exactly as provided. Do not add, remove, or alter whitespace.
-    *   **IF \`isFormatted\` is FALSE:** You may re-format the text for better readability (e.g., standard paragraph spacing).
+4.  **Content Processing (This is the most critical part):**
+    *   **Step A: Header Removal (Conditional):**
+        *   IF \`hasMetadataHeaders\` is TRUE: You MUST remove the story name (e.g., "Niyati"), the season/chapter line (e.g., "Season X – Chapter Y"), the main title, and the subtitle from the beginning of the content.
+        *   IF \`hasMetadataHeaders\` is FALSE: You MUST NOT remove any text.
+
+    *   **Step B: Formatting Preservation (Conditional):**
+        *   IF \`isFormatted\` is TRUE: This is a strict rule. After performing header removal (if applicable), you MUST preserve the original line breaks and paragraph spacing of the *remaining* content exactly as provided. Do not add, remove, or alter whitespace or combine paragraphs.
+        *   IF \`isFormatted\` is FALSE: You may re-format the text for better readability (e.g., standard paragraph spacing).
 
 Combine these rules. For example, if \`hasMetadataHeaders\` is true AND \`isFormatted\` is true, you will remove the headers but leave the rest of the text's formatting untouched.
 
@@ -87,41 +94,57 @@ const enrichChapterFlow = ai.defineFlow(
   },
   async (input) => {
     
-    let title = 'Untitled';
-    let subtitle = '';
-    let summary = '';
-    let cleanedContent = input.fullContent;
-    let coverImage = '';
+    try {
+        let title = 'Untitled';
+        let subtitle = '';
+        let summary = '';
+        let cleanedContent = input.fullContent;
+        let coverImage = '';
 
-    // If content is already formatted and has no headers, we only need a summary.
-    if (input.isFormatted && !input.hasMetadataHeaders) {
-        const summaryResult = await summaryOnlyPrompt({ fullContent: input.fullContent });
-        summary = summaryResult.output?.summary || "Summary could not be generated.";
-    } else {
-        // Otherwise, run the full enrichment and cleaning process.
-        const textGenResult = await generationPrompt(input);
-        const output = textGenResult.output;
-        if (!output) {
-            throw new Error("Failed to generate all required text fields from AI.");
+        if (input.isFormatted && !input.hasMetadataHeaders) {
+            const summaryResult = await summaryOnlyPrompt({ fullContent: input.fullContent });
+            summary = summaryResult.output?.summary || "Summary could not be generated.";
+            
+            // For formatted, no-header content, we just need the title and subtitle.
+            // A simpler regex-like approach can be safer than full AI processing.
+            const lines = input.fullContent.split('\n');
+            title = lines[0] || 'Untitled';
+            subtitle = lines[1] && lines[1].startsWith('"') ? lines[1] : '';
+
+        } else {
+            const textGenResult = await generationPrompt(input);
+            const output = textGenResult.output;
+            if (!output) {
+                throw new Error("Failed to generate all required text fields from AI.");
+            }
+            title = output.title;
+            subtitle = output.subtitle;
+            summary = output.summary;
+            cleanedContent = output.cleanedContent;
         }
-        title = output.title;
-        subtitle = output.subtitle;
-        summary = output.summary;
-        cleanedContent = output.cleanedContent;
-    }
-    
-    // Always use a placeholder image to avoid billing issues and give predictable results.
-    const seed = (title || 'chapter').replace(/\s+/g, '-').toLowerCase();
-    coverImage = `https://picsum.photos/seed/${seed}/400/400`;
+        
+        const seed = (title || 'chapter').replace(/\s+/g, '-').toLowerCase();
+        coverImage = `https://picsum.photos/seed/${seed}/400/400`;
 
-    // Step 3: Return all content
-    return {
-      title,
-      subtitle,
-      summary,
-      cleanedContent,
-      coverImage,
-    };
+        return {
+          title,
+          subtitle,
+          summary,
+          cleanedContent,
+          coverImage,
+        };
+    } catch (error: any) {
+        console.error("Error in enrichChapterFlow:", error);
+        // Graceful fallback: return original content and sensible defaults
+        const seed = ('chapter').replace(/\s+/g, '-').toLowerCase();
+        return {
+            title: 'AI Processing Failed',
+            subtitle: '',
+            summary: 'Could not generate summary due to an error. Please try again or enter manually.',
+            cleanedContent: input.fullContent, // IMPORTANT: Return original content on failure
+            coverImage: `https://picsum.photos/seed/${seed}/400/400`
+        };
+    }
   }
 );
 
@@ -130,3 +153,5 @@ const enrichChapterFlow = ai.defineFlow(
 export async function enrichChapterContent(input: EnrichChapterInput): Promise<EnrichChapterOutput> {
   return await enrichChapterFlow(input);
 }
+
+    
