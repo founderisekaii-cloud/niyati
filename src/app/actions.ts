@@ -364,4 +364,3 @@ export async function toggleLikeChapter(chapterId: string, userId: string, chapt
     throw new Error('Failed to update like status.');
   }
 }
-

@@ -729,14 +729,3 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
     </div>
   );
 }
-
-
-    
-
-    
-
-
-
-    
-
-
