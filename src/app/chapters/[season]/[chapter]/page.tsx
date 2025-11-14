@@ -2,11 +2,11 @@
 
 'use client';
 
-import { notFound } from 'next/navigation';
-import { collection, getDocs, query, where, deleteDoc, doc, addDoc, serverTimestamp, updateDoc, orderBy } from 'firebase/firestore';
+import { notFound, usePathname } from 'next/navigation';
+import { collection, getDocs, query, where, deleteDoc, doc, addDoc, serverTimestamp, updateDoc, orderBy, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Chapter } from '@/lib/types';
-import { useEffect, useState, use } from 'react';
+import { useEffect, useState, use, useTransition } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { NiyatiVerseLogo } from '@/components/icons';
 import { Button } from '@/components/ui/button';
@@ -49,7 +49,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { enrichChapterContent, type EnrichChapterInput } from '@/ai/flows/enrich-chapter-flow';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { SchedulePublicationDialog } from '@/components/ChapterList';
-import { scheduleChapterPublication } from '@/app/actions';
+import { scheduleChapterPublication, toggleLikeChapter } from '@/app/actions';
 
 
 type ChapterPartsPageProps = {
@@ -59,10 +59,10 @@ type ChapterPartsPageProps = {
   };
 };
 
-const MetaItem = ({ icon: Icon, label, value, onClick }: { icon: React.ElementType, label: string, value: string | number, onClick?: () => void }) => (
-    <Button variant="ghost" size="sm" className="flex items-center gap-1.5 text-muted-foreground" title={label} onClick={onClick}>
+const MetaItem = ({ icon: Icon, label, value, children, ...props }: { icon: React.ElementType, label: string, value?: string | number, children?: React.ReactNode, [key: string]: any }) => (
+    <Button variant="ghost" size="sm" className="flex items-center gap-1.5 text-muted-foreground" title={label} {...props}>
         <Icon className="size-4 text-primary/80" />
-        <span className="text-sm font-medium">{value}</span>
+        {children || <span className="text-sm font-medium">{value}</span>}
     </Button>
 );
 
@@ -75,6 +75,9 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
   const { isAdmin } = useAdmin();
   const { toast } = useToast();
   const [isPartsOpen, setIsPartsOpen] = useState(true);
+  const pathname = usePathname();
+  const [isLikePending, startLikeTransition] = useTransition();
+  const [userLikes, setUserLikes] = useState<Record<string, boolean>>({});
 
   // State for the "Add Next Part" dialog
   const [isAddPartModalOpen, setAddPartModalOpen] = useState(false);
@@ -157,6 +160,15 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
             summary: combinedSummary,
             coverImage: part1.coverImage || `https://picsum.photos/seed/${seasonNum}-${chapterNum}/400/400`
         });
+        
+        if (user) {
+          const likes: Record<string, boolean> = {};
+          for (const part of partsData) {
+            const likeDoc = await getDoc(doc(db, 'chapters', part.docId!, 'likes', user.uid));
+            likes[part.docId!] = likeDoc.exists();
+          }
+          setUserLikes(likes);
+        }
       }
     } catch (error: any) {
       console.error("Failed to fetch chapter parts:", error);
@@ -170,7 +182,7 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
 
   useEffect(() => {
     getChapterParts();
-  }, [seasonNum, chapterNum]);
+  }, [seasonNum, chapterNum, user]);
 
   const resetAddPartForm = () => {
     setAddPartContent('');
@@ -347,10 +359,19 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
     return notFound();
   }
 
-  const handleFeatureComingSoon = () => {
-    toast({
-        title: "Coming Soon!",
-        description: "This feature is under development. Thank you for your patience!",
+  const handleLikeClick = (part: Chapter) => {
+    if (!user) {
+      toast({ title: 'Login Required', description: 'Please log in to like this chapter.', variant: 'destructive' });
+      return;
+    }
+    if (!part.docId) return;
+
+    startLikeTransition(async () => {
+      try {
+        await toggleLikeChapter(part.docId!, user.uid, pathname);
+      } catch (error: any) {
+        toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      }
     });
   };
 
@@ -426,7 +447,7 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
         case 'private': // private is now a draft status, but accessible if published
             return <Button asChild><Link href={partUrl}>Read Part</Link></Button>
         case 'protected':
-             return <Button onClick={handleFeatureComingSoon}><DollarSign className="mr-2"/>Unlock (₹{part.price})</Button>
+             return <Button onClick={() => toast({ title: 'Coming Soon!', description: 'Payment system is under development.'})}><DollarSign className="mr-2"/>Unlock (₹{part.price})</Button>
         default:
             return null;
     }
@@ -554,6 +575,7 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
                     <div className="space-y-3">
                         {parts.map(part => {
                           const isPublished = part.publishedAt && new Date(part.publishedAt) <= new Date();
+                          const isLiked = userLikes[part.docId!] || false;
                           return (
                             <Card key={part.docId} className="flex flex-col md:flex-row items-start p-4">
                                 <div className="flex-grow mb-4 md:mb-0">
@@ -565,9 +587,12 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
                                     {part.summary && <p className="text-sm text-muted-foreground mt-2 italic line-clamp-2">"{part.summary}"</p>}
                                 </div>
                                 <div className="flex items-center gap-1 mx-auto md:mx-0 md:ml-4 flex-shrink-0">
-                                    <MetaItem icon={Heart} label="Likes" value={part.likes || 0} onClick={handleFeatureComingSoon}/>
-                                    <MetaItem icon={MessageCircle} label="Comments" value={part.comments || 0} onClick={handleFeatureComingSoon}/>
-                                    <MetaItem icon={Eye} label="Views" value={part.views || 0} onClick={handleFeatureComingSoon}/>
+                                    <MetaItem icon={Heart} label="Likes" onClick={() => handleLikeClick(part)} disabled={isLikePending}>
+                                       <Heart className={`size-4 ${isLiked ? 'text-red-500 fill-current' : 'text-primary/80'}`} />
+                                       <span className="text-sm font-medium">{part.likes || 0}</span>
+                                    </MetaItem>
+                                    <MetaItem icon={MessageCircle} label="Comments" value={part.comments || 0} onClick={() => toast({ title: 'Coming Soon!'})} />
+                                    <MetaItem icon={Eye} label="Views" value={part.views || 0} onClick={() => toast({ title: 'Coming Soon!'})}/>
                                     <MetaItem icon={Sparkles} label="Price" value={part.status === 'protected' ? `₹${part.price}` : 'Free'} />
                                 </div>
                                 <div className="ml-auto mt-4 md:mt-0 md:ml-6 flex-shrink-0 flex items-center gap-2 self-center">
@@ -705,3 +730,4 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
 
 
     
+

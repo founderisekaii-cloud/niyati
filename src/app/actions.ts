@@ -7,7 +7,8 @@ import { z } from 'zod';
 import { PDFDocument, rgb, StandardFonts, degrees } from 'pdf-lib';
 import { Chapter, ChapterGroup } from '@/lib/types';
 import { db } from '@/lib/firebase';
-import { writeBatch, doc, Timestamp, collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { writeBatch, doc, Timestamp, collection, addDoc, serverTimestamp, runTransaction, increment } from 'firebase/firestore';
+import { revalidatePath } from 'next/cache';
 
 const paymentSchema = z.object({
   chapterId: z.string(),
@@ -334,3 +335,33 @@ export async function handleSubscription(
     };
   }
 }
+
+export async function toggleLikeChapter(chapterId: string, userId: string, chapterPath: string) {
+  if (!userId) {
+    throw new Error('You must be logged in to like a chapter.');
+  }
+
+  const chapterRef = doc(db, 'chapters', chapterId);
+  const likeRef = doc(db, 'chapters', chapterId, 'likes', userId);
+
+  try {
+    await runTransaction(db, async (transaction) => {
+      const likeDoc = await transaction.get(likeRef);
+      if (likeDoc.exists()) {
+        // User has already liked, so unlike it
+        transaction.delete(likeRef);
+        transaction.update(chapterRef, { likes: increment(-1) });
+      } else {
+        // User has not liked yet, so like it
+        transaction.set(likeRef, { userId: userId, createdAt: serverTimestamp() });
+        transaction.update(chapterRef, { likes: increment(1) });
+      }
+    });
+    // Revalidate the path to update the UI
+    revalidatePath(chapterPath);
+  } catch (error) {
+    console.error("Transaction failed: ", error);
+    throw new Error('Failed to update like status.');
+  }
+}
+

@@ -78,6 +78,8 @@ export default function AnnouncementsPage() {
                 title: "Announcement Sent (Simulated)",
                 description: "Your message has been queued for delivery to all subscribers.",
             });
+            // Reset form
+            event.currentTarget.reset();
         } else {
              toast({
                 title: "Error",
@@ -104,7 +106,7 @@ export default function AnnouncementsPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="subject">Subject</Label>
-              <Input id="subject" name="subject" placeholder="e.g., New Chapter Released!" />
+              <Input id="subject" name="subject" required placeholder="e.g., New Chapter Released!" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="message">Message</Label>
@@ -112,6 +114,7 @@ export default function AnnouncementsPage() {
                 id="message" 
                 name="message" 
                 rows={10} 
+                required
                 placeholder="Write your announcement here. You can use HTML for formatting emails."
               />
             </div>

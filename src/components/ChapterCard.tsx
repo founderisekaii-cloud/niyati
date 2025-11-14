@@ -149,7 +149,7 @@ export default function ChapterCard({ chapterGroup, onDelete, onEditRequest, onP
 
       <div className="flex items-center justify-between mt-auto bg-muted/30 border-t px-4 sm:px-6 py-3">
          <div className="flex items-center gap-1 text-muted-foreground">
-            <MetaItem icon={Heart} label="Likes" value={chapterGroup.likes || 0} onClick={handleFeatureComingSoon} />
+            <MetaItem icon={Heart} label="Likes" value={chapterGroup.likes || 0} onClick={() => toast({title: "Likes", description: "Like a specific part inside the chapter view."})} />
             <MetaItem icon={MessageCircle} label="Comments" value={chapterGroup.comments || 0} onClick={handleFeatureComingSoon} />
             <MetaItem icon={Eye} label="Views" value={chapterGroup.views || 0} onClick={handleFeatureComingSoon} />
             <MetaItem icon={List} label="Parts" value={chapterGroup.partCount} />
