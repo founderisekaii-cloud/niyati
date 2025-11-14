@@ -369,6 +369,14 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
     startLikeTransition(async () => {
       try {
         await toggleLikeChapter(part.docId!, user.uid, pathname);
+        // Optimistic update of UI
+        setUserLikes(prev => ({...prev, [part.docId!]: !prev[part.docId!]}));
+        setParts(prevParts => prevParts.map(p => {
+          if (p.docId === part.docId) {
+            return {...p, likes: p.likes + (userLikes[part.docId!] ? -1 : 1)};
+          }
+          return p;
+        }));
       } catch (error: any) {
         toast({ title: 'Error', description: error.message, variant: 'destructive' });
       }
@@ -588,7 +596,7 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
                                 </div>
                                 <div className="flex items-center gap-1 mx-auto md:mx-0 md:ml-4 flex-shrink-0">
                                     <MetaItem icon={Heart} label="Likes" onClick={() => handleLikeClick(part)} disabled={isLikePending}>
-                                       <Heart className={`size-4 ${isLiked ? 'text-red-500 fill-current' : 'text-primary/80'}`} />
+                                       <Heart className={`size-4 transition-colors ${isLiked ? 'text-red-500 fill-current' : 'text-primary/80'}`} />
                                        <span className="text-sm font-medium">{part.likes || 0}</span>
                                     </MetaItem>
                                     <MetaItem icon={MessageCircle} label="Comments" value={part.comments || 0} onClick={() => toast({ title: 'Coming Soon!'})} />
@@ -730,4 +738,5 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
 
 
     
+
 
