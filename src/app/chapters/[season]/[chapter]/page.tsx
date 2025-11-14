@@ -1,8 +1,9 @@
 
+
 'use client';
 
 import { notFound } from 'next/navigation';
-import { collection, getDocs, query, where, deleteDoc, doc, addDoc, serverTimestamp, updateDoc, writeBatch } from 'firebase/firestore';
+import { collection, getDocs, query, where, deleteDoc, doc, addDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Chapter } from '@/lib/types';
 import { useEffect, useState, use } from 'react';
@@ -81,6 +82,14 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
   const [addPartIsLast, setAddPartIsLast] = useState(false);
   const [addPartIsRaw, setAddPartIsRaw] = useState(false);
   const [addPartHasMetadata, setAddPartHasMetadata] = useState(false);
+  
+  // State for the "Edit Part" dialog
+  const [isEditPartModalOpen, setIsEditPartModalOpen] = useState(false);
+  const [editPartLoading, setEditPartLoading] = useState(false);
+  const [editingPart, setEditingPart] = useState<Chapter | null>(null);
+  const [editPartPreview, setEditPartPreview] = useState<{ summary: string; cleanedContent: string; } | null>(null);
+  const [editPartContent, setEditPartContent] = useState('');
+  const [editPartIsLast, setEditPartIsLast] = useState(false);
 
   const resolvedParams = use(params);
   const seasonNum = parseInt(resolvedParams.season, 10);
@@ -161,6 +170,21 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
     setAddPartIsRaw(false);
     setAddPartHasMetadata(false);
   }
+  
+  const openEditDialog = (part: Chapter) => {
+    setEditingPart(part);
+    setEditPartContent(part.content);
+    setEditPartIsLast(part.isLastPart || false);
+    setEditPartPreview({ summary: part.summary, cleanedContent: part.content });
+    setIsEditPartModalOpen(true);
+  }
+
+  const resetEditPartForm = () => {
+    setEditingPart(null);
+    setEditPartContent('');
+    setEditPartPreview(null);
+    setEditPartIsLast(false);
+  }
 
   const handleAddPartPreview = async () => {
     if (!addPartContent) {
@@ -191,6 +215,36 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
         setAddPartLoading(false);
     }
   };
+  
+  const handleEditPartPreview = async () => {
+    if (!editPartContent) {
+        toast({ title: "Content required", description: "Please provide content for the part.", variant: "destructive" });
+        return;
+    }
+    setEditPartLoading(true);
+    try {
+        // For edits, we assume the content is already formatted and headers are removed.
+        const input: EnrichChapterInput = {
+            fullContent: editPartContent,
+            isFormatted: true,
+            hasMetadataHeaders: false 
+        };
+        
+        const enrichedData = await enrichChapterContent(input);
+
+        setEditPartPreview({
+            summary: enrichedData.summary,
+            cleanedContent: enrichedData.cleanedContent,
+        });
+        
+        toast({ title: "Preview Refreshed!", description: "Review the new summary and content." });
+    } catch (error: any) {
+        toast({ title: "AI Preview Failed", description: error.message, variant: "destructive" });
+    } finally {
+        setEditPartLoading(false);
+    }
+  };
+
 
   const handleAddPartSubmit = async () => {
       if (!addPartPreview || parts.length === 0) {
@@ -202,7 +256,7 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
           const part1 = parts[0];
           const nextPartNumber = parts.length + 1;
 
-          const newPartPayload = {
+          const newPartPayload: Partial<Chapter> = {
               seasonNumber: part1.seasonNumber,
               chapterNumber: part1.chapterNumber,
               partNumber: nextPartNumber,
@@ -215,7 +269,7 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
               status: part1.status, // Copied from part 1
               price: part1.price, // Copied from part 1
               isLastPart: addPartIsLast,
-              releaseDate: serverTimestamp(),
+              releaseDate: serverTimestamp() as any,
           };
 
           await addDoc(collection(db, 'chapters'), newPartPayload);
@@ -229,6 +283,36 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
       } finally {
           setAddPartLoading(false);
       }
+  }
+
+  const handleEditPartSubmit = async () => {
+    if (!editingPart || !editPartPreview) {
+        toast({ title: "Cannot Submit", description: "No part selected for editing or preview is missing.", variant: "destructive"});
+        return;
+    }
+    setEditPartLoading(true);
+    try {
+        const docRef = doc(db, 'chapters', editingPart.docId!);
+        
+        const updatedPayload = {
+            summary: editPartPreview.summary,
+            content: editPartPreview.cleanedContent,
+            wordCount: editPartPreview.cleanedContent.split(/\s+/).length,
+            isLastPart: editPartIsLast,
+        };
+
+        await updateDoc(docRef, updatedPayload);
+
+        toast({ title: "Success!", description: `Part ${editingPart.partNumber} has been updated.` });
+        setIsEditPartModalOpen(false);
+        resetEditPartForm();
+        getChapterParts(); // Refresh the list.
+
+    } catch (error: any) {
+        toast({ title: "Update Failed", description: error.message, variant: "destructive" });
+    } finally {
+        setEditPartLoading(false);
+    }
   }
 
 
@@ -428,9 +512,9 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
-                                                <DropdownMenuItem disabled>
+                                                <DropdownMenuItem onClick={() => openEditDialog(part)}>
                                                     <Edit className="mr-2 h-4 w-4" />
-                                                    <span>Edit Part (Coming Soon)</span>
+                                                    <span>Edit Part</span>
                                                 </DropdownMenuItem>
                                                 <DropdownMenuItem onClick={() => handleDeletePart(part)} className="text-destructive">
                                                     <Trash className="mr-2 h-4 w-4" />
@@ -448,6 +532,67 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
                 )}
             </CollapsibleContent>
         </Collapsible>
+
+         {/* Edit Part Dialog */}
+        <Dialog open={isEditPartModalOpen} onOpenChange={(isOpen) => {
+            setIsEditPartModalOpen(isOpen);
+            if (!isOpen) resetEditPartForm();
+        }}>
+            <DialogContent className="max-w-3xl">
+                <DialogHeader>
+                    <DialogTitle>Edit Part {editingPart?.partNumber} of Chapter {chapterNum}</DialogTitle>
+                </DialogHeader>
+                {editingPart && (
+                    <>
+                         <div className="space-y-4 py-4">
+                             <div className="space-y-2">
+                                <Label htmlFor="editPartContent">Part Content</Label>
+                                <Textarea id="editPartContent" value={editPartContent} onChange={(e) => {
+                                    setEditPartContent(e.target.value);
+                                    // Invalidate preview if content changes
+                                    if(editPartPreview?.cleanedContent !== e.target.value) {
+                                       setEditPartPreview(null);
+                                    }
+                                }} rows={12} />
+                            </div>
+                             {editPartPreview && (
+                                <div className="space-y-4 py-4 animate-in fade-in-0">
+                                    <div className="space-y-2">
+                                        <Label>AI Generated Summary</Label>
+                                        <Textarea value={editPartPreview.summary} onChange={(e) => setEditPartPreview({...editPartPreview, summary: e.target.value})} rows={3} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Content Preview</Label>
+                                        <Textarea value={editPartPreview.cleanedContent} rows={8} readOnly className="bg-muted/50" />
+                                    </div>
+                                </div>
+                            )}
+                            <div className="flex items-center space-x-2">
+                                <Checkbox id="edit-is-last-part" checked={editPartIsLast} onCheckedChange={(c) => setEditPartIsLast(c as boolean)} />
+                                <Label htmlFor="edit-is-last-part">Is this the final part of the chapter?</Label>
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
+                            {!editPartPreview ? (
+                                <Button onClick={handleEditPartPreview} disabled={editPartLoading}>
+                                    {editPartLoading && <Loader2 className="mr-2 animate-spin"/>}
+                                    Refresh Summary with AI
+                                </Button>
+                            ) : (
+                                <Button onClick={handleEditPartSubmit} disabled={editPartLoading}>
+                                    {editPartLoading && <Loader2 className="mr-2 animate-spin"/>}
+                                    Save Changes
+                                </Button>
+                            )}
+                        </DialogFooter>
+                    </>
+                )}
+            </DialogContent>
+        </Dialog>
     </div>
   );
 }
+
+
+    
