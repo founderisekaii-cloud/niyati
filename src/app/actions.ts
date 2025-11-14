@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { PDFDocument, rgb, StandardFonts, degrees } from 'pdf-lib';
 import { Chapter, ChapterGroup } from '@/lib/types';
 import { db } from '@/lib/firebase';
-import { writeBatch, doc, Timestamp } from 'firebase/firestore';
+import { writeBatch, doc, Timestamp, collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 const paymentSchema = z.object({
   chapterId: z.string(),
@@ -104,7 +104,7 @@ export async function generatePdf(chapterData: ChapterPdfData): Promise<string> 
 
     const { title, subtitle, seasonNumber, chapterNumber, partNumber, content } = chapterData;
     // Correctly process HTML tags to preserve paragraphs and line breaks, without removing special characters.
-    const cleanContent = content.replace(/<br\s*\/?>/gi, '\n').replace(/<p>/gi, '').replace(/<\/p>/gi, '\n');
+    const cleanContent = content.replace(/<br\s*\/?>/gi, '\n').replace(/<p>/gi, '').replace(/<\/p>/gi, '\n\n');
 
     let page = pdfDoc.addPage();
     const { width, height } = page.getSize();
@@ -257,7 +257,7 @@ export async function generatePdf(chapterData: ChapterPdfData): Promise<string> 
           }
       }
       page.drawText(line, { x: margin, y, font: timesRomanFont, size: bodySize, color: bodyColor });
-      y -= lineHeight * 2; // Add extra space after each paragraph
+      y -= lineHeight; // Keep paragraph spacing consistent
     }
 
     const pdfBytes = await pdfDoc.save();
@@ -278,4 +278,49 @@ export async function scheduleChapterPublication(docIds: string[], publishAt: Da
     });
 
     await batch.commit();
+}
+
+const subscribeSchema = z.object({
+  email: z.string().email('Please enter a valid email address.'),
+});
+
+export async function handleSubscription(
+  prevState: any,
+  formData: FormData
+): Promise<{ message: string; error?: boolean }> {
+  const validatedFields = subscribeSchema.safeParse({
+    email: formData.get('email'),
+  });
+
+  if (!validatedFields.success) {
+    return {
+      message: validatedFields.error.flatten().fieldErrors.email?.[0] || 'Invalid input.',
+      error: true,
+    };
+  }
+  
+  const { email } = validatedFields.data;
+
+  try {
+    await addDoc(collection(db, 'subscriptions'), {
+      email: email,
+      subscribedAt: serverTimestamp(),
+    });
+    return {
+      message: `Thank you! ${email} has been added to our mailing list.`,
+    };
+  } catch (error: any) {
+    console.error('Subscription error:', error);
+    // Avoid exposing detailed internal errors to the user
+    if (error.code === 'permission-denied') {
+        return {
+            message: "You don't have permission to perform this action.",
+            error: true
+        }
+    }
+    return {
+      message: 'An unexpected error occurred. Please try again later.',
+      error: true,
+    };
+  }
 }
