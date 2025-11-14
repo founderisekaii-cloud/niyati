@@ -2,14 +2,14 @@
 'use client';
 
 import { notFound } from 'next/navigation';
-import { collection, getDocs, query, where, deleteDoc, doc } from 'firebase/firestore';
+import { collection, getDocs, query, where, deleteDoc, doc, addDoc, serverTimestamp, updateDoc, writeBatch } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { Chapter } from '@/lib/types';
+import type { Chapter, ChapterGroup } from '@/lib/types';
 import { useEffect, useState, use } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { NiyatiVerseLogo } from '@/components/icons';
 import { Button } from '@/components/ui/button';
-import { BookOpen, Lock, DollarSign, List, Heart, MessageCircle, Eye, Sparkles, Edit, Trash, MoreVertical } from 'lucide-react';
+import { BookOpen, Lock, DollarSign, List, Heart, MessageCircle, Eye, Sparkles, Edit, Trash, MoreVertical, PlusCircle, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -33,6 +33,21 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogClose,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { enrichChapterContent } from '@/ai/flows/enrich-chapter-flow';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+
 
 type ChapterPartsPageProps = {
   params: {
@@ -58,9 +73,21 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
   const { toast } = useToast();
   const [isPartsOpen, setIsPartsOpen] = useState(true);
 
+  // State for the "Add Next Part" dialog
+  const [isAddPartModalOpen, setAddPartModalOpen] = useState(false);
+  const [addPartLoading, setAddPartLoading] = useState(false);
+  const [addPartPreview, setAddPartPreview] = useState<{ summary: string; cleanedContent: string; } | null>(null);
+  const [addPartContent, setAddPartContent] = useState('');
+  const [addPartIsLast, setAddPartIsLast] = useState(false);
+  const [addPartContentType, setAddPartContentType] = useState<'raw' | 'formatted'>('raw');
+  const [addPartHasMetadata, setAddPartHasMetadata] = useState(false);
+
+
   const resolvedParams = use(params);
   const seasonNum = parseInt(resolvedParams.season, 10);
   const chapterNum = parseInt(resolvedParams.chapter, 10);
+
+  const isLastPartUploaded = parts.length > 0 && parts[parts.length - 1].isLastPart;
 
   const getChapterParts = async () => {
     if (isNaN(seasonNum) || isNaN(chapterNum)) {
@@ -96,7 +123,8 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
               partNumber: data.partNumber,
               status: data.status || 'private',
               price: data.price || 0,
-              coverImage: data.coverImage
+              coverImage: data.coverImage,
+              isLastPart: data.isLastPart || false,
             }
         });
         
@@ -104,10 +132,12 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
         
         setParts(partsData);
         const part1 = partsData[0];
+        const combinedSummary = partsData.map(p => p.summary).join(' ');
+
         setChapterDetails({
             title: part1.title,
             subtitle: part1.subtitle || '',
-            summary: part1.summary,
+            summary: combinedSummary,
             coverImage: part1.coverImage || `https://placehold.co/400x400/1A1A2E/FFD700?text=S${seasonNum}\\nC${chapterNum}`
         });
       }
@@ -123,6 +153,89 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
   useEffect(() => {
     getChapterParts();
   }, [seasonNum, chapterNum, resolvedParams]);
+
+  const resetAddPartForm = () => {
+    setAddPartContent('');
+    setAddPartPreview(null);
+    setAddPartIsLast(false);
+    setAddPartContentType('raw');
+    setAddPartHasMetadata(false);
+  }
+
+  const handleAddPartPreview = async () => {
+    if (!addPartContent) {
+        toast({ title: "Content required", description: "Please paste the content for the new part.", variant: "destructive" });
+        return;
+    }
+    setAddPartLoading(true);
+    try {
+        let contentToProcess = addPartContent;
+        // The enrich flow is designed to clean content, which is what we want.
+        // For formatting, we'll tell the AI in the prompt.
+        let promptHint = addPartContentType === 'raw' 
+            ? "Format this raw text into clean paragraphs. If it contains story name, title, or chapter headings, remove them."
+            : "Clean this pre-formatted text, removing any story name, title, or chapter headings at the start.";
+
+        const enrichedData = await enrichChapterContent({ 
+            fullContent: contentToProcess,
+            // The flow doesn't directly use this, but it's good practice.
+            // The real logic is in the prompt modification which enrichChapterContent does.
+        });
+        
+        setAddPartPreview({
+            summary: enrichedData.summary,
+            cleanedContent: enrichedData.cleanedContent
+        });
+        
+        toast({ title: "Preview Ready!", description: "Review the generated summary and cleaned content." });
+
+    } catch (error: any) {
+        toast({ title: "AI Preview Failed", description: error.message, variant: "destructive" });
+        setAddPartPreview(null);
+    } finally {
+        setAddPartLoading(false);
+    }
+  };
+
+  const handleAddPartSubmit = async () => {
+      if (!addPartPreview || parts.length === 0) {
+          toast({ title: "Cannot Submit", description: "Please generate a preview first.", variant: "destructive"});
+          return;
+      }
+      setAddPartLoading(true);
+      try {
+          const part1 = parts[0];
+          const nextPartNumber = parts.length + 1;
+
+          const newPartPayload = {
+              seasonNumber: part1.seasonNumber,
+              chapterNumber: part1.chapterNumber,
+              partNumber: nextPartNumber,
+              title: part1.title,
+              subtitle: part1.subtitle,
+              coverImage: part1.coverImage,
+              summary: addPartPreview.summary,
+              content: addPartPreview.cleanedContent,
+              wordCount: addPartPreview.cleanedContent.split(/\s+/).length,
+              status: part1.status,
+              price: part1.price,
+              isLastPart: addPartIsLast,
+              releaseDate: serverTimestamp(),
+          };
+
+          await addDoc(collection(db, 'chapters'), newPartPayload);
+
+          toast({ title: "Success!", description: `Part ${nextPartNumber} has been added.` });
+          setAddPartModalOpen(false);
+          resetAddPartForm();
+          getChapterParts(); // Refresh the list.
+      } catch (error: any) {
+          toast({ title: "Submission Failed", description: error.message, variant: "destructive" });
+      } finally {
+          setAddPartLoading(false);
+      }
+  }
+
 
   if (loading || authLoading) {
     return (
@@ -201,8 +314,8 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
                         <p className="text-muted-foreground line-clamp-6">{chapterDetails.summary}</p>
                     </CardContent>
                     <CardFooter className="p-0 mt-4">
-                         <Button variant="outline" asChild>
-                            <Link href={`${chapterDetails.title.toLowerCase().replace(/\s+/g, '-')}`}>
+                         <Button asChild>
+                            <Link href={`/chapters/${seasonNum}/${chapterNum}/all`}>
                                 Read Full Chapter
                             </Link>
                          </Button>
@@ -212,27 +325,105 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
         </Card>
         
         <Collapsible open={isPartsOpen} onOpenChange={setIsPartsOpen} className="space-y-4">
-            <CollapsibleTrigger asChild>
-                <Button variant="outline" className="w-full">
-                    <List className="mr-2" /> {isPartsOpen ? 'Hide Parts' : 'Show Parts'}
-                </Button>
-            </CollapsibleTrigger>
+            <div className="flex justify-between items-center">
+                <CollapsibleTrigger asChild>
+                    <Button variant="outline">
+                        <List className="mr-2" /> {isPartsOpen ? 'Hide Parts' : `Show ${parts.length} Parts`}
+                    </Button>
+                </CollapsibleTrigger>
+
+                {isAdmin && !isLastPartUploaded && parts.length > 0 && (
+                     <Dialog open={isAddPartModalOpen} onOpenChange={(isOpen) => {
+                        setAddPartModalOpen(isOpen);
+                        if (!isOpen) resetAddPartForm();
+                     }}>
+                        <DialogTrigger asChild>
+                            <Button>
+                                <PlusCircle className="mr-2" /> Add Next Part
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-3xl">
+                            <DialogHeader>
+                                <DialogTitle>Add Part {parts.length + 1} to Chapter {chapterNum}</DialogTitle>
+                            </DialogHeader>
+                            {!addPartPreview ? (
+                                <div className="space-y-4 py-4">
+                                     <div className="space-y-2">
+                                        <Label htmlFor="partContent">Part Content</Label>
+                                        <Textarea id="partContent" value={addPartContent} onChange={(e) => setAddPartContent(e.target.value)} rows={12} placeholder="Paste the content for the next part here." />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Content Type</Label>
+                                        <RadioGroup defaultValue="raw" value={addPartContentType} onValueChange={(v: 'raw' | 'formatted') => setAddPartContentType(v)}>
+                                            <div className="flex items-center space-x-2">
+                                                <RadioGroupItem value="raw" id="r-raw" />
+                                                <Label htmlFor="r-raw">Raw (Needs AI formatting)</Label>
+                                            </div>
+                                             <div className="flex items-center space-x-2">
+                                                <RadioGroupItem value="formatted" id="r-formatted" />
+                                                <Label htmlFor="r-formatted">Formatted (Already structured)</Label>
+                                            </div>
+                                        </RadioGroup>
+                                    </div>
+                                     <div className="flex items-center space-x-2">
+                                        <Checkbox id="has-metadata" checked={addPartHasMetadata} onCheckedChange={(c) => setAddPartHasMetadata(c as boolean)} />
+                                        <Label htmlFor="has-metadata">Content includes Title/Story Name headers (AI will remove them).</Label>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="space-y-4 py-4 animate-in fade-in-0">
+                                    <div className="space-y-2">
+                                        <Label>AI Generated Summary</Label>
+                                        <Textarea value={addPartPreview.summary} rows={3} readOnly className="bg-muted/50" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>AI Cleaned & Formatted Content</Label>
+                                        <Textarea value={addPartPreview.cleanedContent} rows={8} readOnly className="bg-muted/50" />
+                                    </div>
+                                </div>
+                            )}
+                            <div className="flex items-center space-x-2">
+                                <Checkbox id="is-last-part" checked={addPartIsLast} onCheckedChange={(c) => setAddPartIsLast(c as boolean)} />
+                                <Label htmlFor="is-last-part">Is this the final part of the chapter?</Label>
+                            </div>
+                            <DialogFooter>
+                                <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
+                                {!addPartPreview ? (
+                                    <Button onClick={handleAddPartPreview} disabled={addPartLoading}>
+                                        {addPartLoading && <Loader2 className="mr-2 animate-spin"/>}
+                                        Preview with AI
+                                    </Button>
+                                ) : (
+                                    <>
+                                        <Button variant="ghost" onClick={() => setAddPartPreview(null)}>Back to Edit</Button>
+                                        <Button onClick={handleAddPartSubmit} disabled={addPartLoading}>
+                                            {addPartLoading && <Loader2 className="mr-2 animate-spin"/>}
+                                            Submit Part
+                                        </Button>
+                                    </>
+                                )}
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+                )}
+            </div>
             <CollapsibleContent className="space-y-4 animate-in fade-in-0">
                  {parts.length > 0 ? (
                     <div className="space-y-3">
                         {parts.map(part => (
-                            <Card key={part.docId} className="flex flex-col md:flex-row items-center justify-between p-4">
+                            <Card key={part.docId} className="flex flex-col md:flex-row items-start p-4">
                                 <div className="flex-grow mb-4 md:mb-0">
                                     <h4 className="text-lg font-bold">Part {part.partNumber}</h4>
-                                    <p className="text-sm text-muted-foreground">{part.wordCount.toLocaleString()} words</p>
+                                    <p className="text-sm text-muted-foreground mt-1">{part.wordCount.toLocaleString()} words</p>
+                                    {part.summary && <p className="text-sm text-muted-foreground mt-2 italic line-clamp-2">"{part.summary}"</p>}
                                 </div>
-                                <div className="flex items-center gap-4 mx-auto md:mx-0">
+                                <div className="flex items-center gap-4 mx-auto md:mx-0 md:ml-4 flex-shrink-0">
                                     <MetaItem icon={Heart} label="Likes" value={0} />
                                     <MetaItem icon={MessageCircle} label="Comments" value={0} />
                                     <MetaItem icon={Eye} label="Views" value={0} />
                                     <MetaItem icon={Sparkles} label="Price" value={part.status === 'protected' ? `₹${part.price}` : 'Free'} />
                                 </div>
-                                <div className="ml-auto mt-4 md:mt-0 md:ml-6 flex-shrink-0 flex items-center gap-2">
+                                <div className="ml-auto mt-4 md:mt-0 md:ml-6 flex-shrink-0 flex items-center gap-2 self-center">
                                     {renderPartAction(part)}
                                     {isAdmin && (
                                         <DropdownMenu>
@@ -242,9 +433,9 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
-                                                <DropdownMenuItem onClick={() => alert('Edit part coming soon!')}>
+                                                <DropdownMenuItem disabled>
                                                     <Edit className="mr-2 h-4 w-4" />
-                                                    <span>Edit Part</span>
+                                                    <span>Edit Part (Coming Soon)</span>
                                                 </DropdownMenuItem>
                                                 <DropdownMenuItem onClick={() => handleDeletePart(part)} className="text-destructive">
                                                     <Trash className="mr-2 h-4 w-4" />
@@ -265,5 +456,3 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
     </div>
   );
 }
-
-    

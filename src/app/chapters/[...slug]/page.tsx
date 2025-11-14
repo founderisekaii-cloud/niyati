@@ -3,7 +3,7 @@
 
 import { notFound } from 'next/navigation';
 import ReaderView from '@/components/ReaderView';
-import { collection, getDocs, query, where, limit } from 'firebase/firestore';
+import { collection, getDocs, query, where, limit, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Chapter } from '@/lib/types';
 import { useEffect, useState, use } from 'react';
@@ -18,72 +18,89 @@ type ChapterPageProps = {
 };
 
 export default function ChapterPage({ params }: ChapterPageProps) {
-  const [chapter, setChapter] = useState<Chapter | null>(null);
+  const [chapters, setChapters] = useState<Chapter[]>([]);
   const [loading, setLoading] = useState(true);
   const { user, loading: authLoading } = useAuth();
   
   const resolvedParams = use(params);
   const { slug } = resolvedParams;
 
+  const isFullChapterRead = slug.length === 3 && slug[2] === 'all';
+  const isSinglePartRead = slug.length === 3 && slug[2] !== 'all';
 
-  if (!slug || slug.length !== 3) {
-    // This page is now ONLY for reading a specific part.
-    // If slug is not [season, chapter, part], it's an invalid URL for this page.
+  if (!isFullChapterRead && !isSinglePartRead) {
     notFound();
     return null;
   }
-
-  const [season, chapterNum, part] = slug.map(Number);
+  
+  const season = parseInt(slug[0], 10);
+  const chapterNum = parseInt(slug[1], 10);
+  const part = isSinglePartRead ? parseInt(slug[2], 10) : null;
 
   useEffect(() => {
-    async function getChapter() {
-      if (isNaN(season) || isNaN(chapterNum) || isNaN(part)) {
+    async function getChapterData() {
+      if (isNaN(season) || isNaN(chapterNum)) {
         setLoading(false);
         return;
       }
-
+      
       try {
         const chaptersCol = collection(db, 'chapters');
-        const q = query(
-          chaptersCol, 
-          where('seasonNumber', '==', season), 
-          where('chapterNumber', '==', chapterNum),
-          where('partNumber', '==', part),
-          limit(1)
-        );
+        let q;
+        if(isFullChapterRead) {
+            // Fetch all parts for the full chapter view
+            q = query(
+              chaptersCol, 
+              where('seasonNumber', '==', season), 
+              where('chapterNumber', '==', chapterNum),
+              orderBy('partNumber', 'asc')
+            );
+        } else {
+            // Fetch a single part
+            q = query(
+              chaptersCol, 
+              where('seasonNumber', '==', season), 
+              where('chapterNumber', '==', chapterNum),
+              where('partNumber', '==', part),
+              limit(1)
+            );
+        }
+        
         const snapshot = await getDocs(q);
 
         if (snapshot.empty) {
-          setChapter(null);
+          setChapters([]);
         } else {
-          const docData = snapshot.docs[0].data();
-          const chapterData: Chapter = {
-            docId: snapshot.docs[0].id,
-            title: docData.title,
-            subtitle: docData.subtitle,
-            summary: docData.summary,
-            wordCount: docData.wordCount,
-            releaseDate: docData.releaseDate.toDate().toISOString(),
-            content: docData.content,
-            seasonNumber: docData.seasonNumber,
-            chapterNumber: docData.chapterNumber,
-            partNumber: docData.partNumber,
-            status: docData.status || 'private',
-            price: docData.price || 0,
-            coverImage: docData.coverImage
-          };
-          setChapter(chapterData);
+          const chapterDocs: Chapter[] = snapshot.docs.map(doc => {
+              const docData = doc.data();
+              return {
+                docId: doc.id,
+                title: docData.title,
+                subtitle: docData.subtitle,
+                summary: docData.summary,
+                wordCount: docData.wordCount,
+                releaseDate: docData.releaseDate.toDate().toISOString(),
+                content: docData.content,
+                seasonNumber: docData.seasonNumber,
+                chapterNumber: docData.chapterNumber,
+                partNumber: docData.partNumber,
+                status: docData.status || 'private',
+                price: docData.price || 0,
+                coverImage: docData.coverImage
+              };
+          });
+          setChapters(chapterDocs);
         }
       } catch (error) {
-        console.error("Failed to fetch chapter:", error);
-        setChapter(null);
+        console.error("Failed to fetch chapter(s):", error);
+        setChapters([]);
       } finally {
         setLoading(false);
       }
     }
 
-    getChapter();
-  }, [slug, season, chapterNum, part]);
+    getChapterData();
+  }, [slug, season, chapterNum, part, isFullChapterRead]);
 
 
   if (loading || authLoading) {
@@ -97,30 +114,30 @@ export default function ChapterPage({ params }: ChapterPageProps) {
     );
   }
 
-  if (!chapter) {
+  if (chapters.length === 0) {
     notFound();
     return null;
   }
+  
+  const firstChapterPart = chapters[0];
 
   const hasAccess = () => {
-    if (chapter.status === 'public') {
+    if (firstChapterPart.status === 'public') {
       return true;
     }
-    if (chapter.status === 'private' && user) {
+    if (firstChapterPart.status === 'private' && user) {
       return true;
     }
-    // For 'protected' status, access is currently always false
-    // as payment logic is not yet implemented.
-    if (chapter.status === 'protected') {
-       // In the future, this will check for purchase.
+    if (firstChapterPart.status === 'protected') {
        return false;
     }
     return false;
   };
   
   if (!hasAccess()) {
-    return <ChapterActionCard chapter={chapter} user={user} />;
+    // Show the action card for the first part to control access
+    return <ChapterActionCard chapter={firstChapterPart} user={user} />;
   }
   
-  return <ReaderView chapter={chapter} />;
+  return <ReaderView chapters={chapters} />;
 }

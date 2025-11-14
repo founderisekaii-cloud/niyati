@@ -1,8 +1,7 @@
 
 'use client';
 
-// This section imports all the tools and components we need for this page.
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect } from 'react';
 import type { Chapter } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { FileText, Palette, Loader2, LogIn, Text } from 'lucide-react';
@@ -28,66 +27,53 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useTranslation } from '@/hooks/useTranslation';
 
-// This defines what information the ReaderView component needs to work.
 type ReaderViewProps = {
-  chapter: Chapter;
+  chapters: Chapter[];
 };
 
-// This defines the possible themes for the reader.
 type Theme = 'system' | 'sepia' | 'dark';
 const themes: Theme[] = ['system', 'sepia', 'dark'];
 
-// This defines the possible font sizes.
 type FontSize = 'sm' | 'base' | 'lg' | 'xl';
 const fontSizes: FontSize[] = ['sm', 'base', 'lg', 'xl'];
 
-// This is the main component for the entire reader page.
-export default function ReaderView({ chapter }: ReaderViewProps) {
+export default function ReaderView({ chapters }: ReaderViewProps) {
   const [theme, setTheme] = useState<Theme>('system');
   const [fontSize, setFontSize] = useState<FontSize>('lg');
   
-  // Get user authentication state.
   const { user, loading: authLoading } = useAuth();
   const { t } = useTranslation();
 
-  // State for PDF generation and viewing
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
   const { toast } = useToast();
 
-  // This uses the LanguageContext to know which language ('en', 'hi', 'mr') is currently selected.
   const { language } = useLanguage();
+  
+  const firstChapter = chapters[0];
+  const totalWordCount = chapters.reduce((total, chap) => total + chap.wordCount, 0);
 
-  // This 'useEffect' hook runs code only once when the component first loads on the screen.
   useEffect(() => {
-    // This is a security feature. It prevents users from right-clicking to copy text.
     const handleContextmenu = (e: MouseEvent) => {
       e.preventDefault();
     };
     document.addEventListener('contextmenu', handleContextmenu);
 
-    // This is a cleanup function. When the user leaves the page, it removes the right-click blocker.
     return () => document.removeEventListener('contextmenu', handleContextmenu);
-  }, []); // The empty array [] means this effect runs only one time.
+  }, []);
 
-
-  // This function decides which chapter content to show based on the selected language, and formats it.
-  const getFormattedContent = () => {
-    // Content is always in English from the database
+  const getFormattedContentForChapter = (chapter: Chapter) => {
     return chapter.content.split('\n').filter(p => p.trim() !== '').map(p => `<p>${p}</p>`).join('');
   };
-  
+
   const getTranslatedTitle = () => {
-      // For now, we just return the english title as we don't have translations for it
-      // In a real scenario, you might use a translation key like `t(chapter.titleKey)`
-      return chapter.title;
+      return firstChapter.title;
   }
   
   const getTranslatedSubtitle = () => {
-      return chapter.subtitle;
+      return firstChapter.subtitle;
   }
-
 
   const handleViewPdf = async () => {
     if (!user) {
@@ -96,14 +82,18 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
     }
     setIsGeneratingPdf(true);
     toast({ description: "Generating your secure PDF..." });
+    
+    // For now, only generate PDF for the first part if multiple are present
+    const chapterToPdf = firstChapter;
+    
     try {
         const pdfData = await generatePdf({
-            title: chapter.title,
-            subtitle: chapter.subtitle || '',
-            seasonNumber: chapter.seasonNumber,
-            chapterNumber: chapter.chapterNumber,
-            partNumber: chapter.partNumber,
-            content: chapter.content
+            title: chapterToPdf.title,
+            subtitle: chapterToPdf.subtitle || '',
+            seasonNumber: chapterToPdf.seasonNumber,
+            chapterNumber: chapterToPdf.chapterNumber,
+            partNumber: chapterToPdf.partNumber,
+            content: chapterToPdf.content
         });
         const blob = new Blob([Buffer.from(pdfData, 'base64')], { type: 'application/pdf' });
         const url = URL.createObjectURL(blob);
@@ -124,7 +114,6 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
     setTheme(themes[nextIndex]);
   };
   
-  // This is the main structure of the page, written in JSX (which looks like HTML).
   return (
     <>
     <div
@@ -134,7 +123,6 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
         theme === 'sepia' && 'sepia-theme-override'
       )}
       style={{
-        // When theme is 'system', we don't apply any inline styles, letting the global theme take over.
         backgroundColor: theme === 'system' ? 'transparent' : undefined
       }}
     >
@@ -175,42 +163,45 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
              Niyati
            </h2>
            <p className="text-xl font-headline text-blue-600 dark:text-blue-400">
-             Season {chapter.seasonNumber} | Chapter {chapter.chapterNumber}
+             Season {firstChapter.seasonNumber} | Chapter {firstChapter.chapterNumber}
            </p>
           <h1 className="text-4xl font-bold font-headline text-green-600 dark:text-green-400">
             {getTranslatedTitle()}
           </h1>
-          {chapter.subtitle && (
+          {firstChapter.subtitle && (
             <p className="text-lg font-serif italic" style={{ color: '#FFD700' }}>
               "{getTranslatedSubtitle()}"
             </p>
           )}
           <p className="text-sm text-muted-foreground pt-2">
-            {chapter.wordCount.toLocaleString()} words
+            {totalWordCount.toLocaleString()} words
           </p>
         </header>
 
         <Separator className="my-8 bg-border/50" />
         
-        <div className="text-center my-8">
-            <h3 className="text-2xl font-bold font-headline tracking-widest" style={{ color: '#E573E5' }}>
-                PART {chapter.partNumber}
-            </h3>
-        </div>
+        {chapters.map((chapter, index) => (
+             <div key={chapter.docId || index}>
+                <div className="text-center my-8">
+                    <h3 className="text-2xl font-bold font-headline tracking-widest" style={{ color: '#E573E5' }}>
+                        PART {chapter.partNumber}
+                    </h3>
+                </div>
 
-
-        <article
-          className={cn(
-            "prose max-w-none",
-            'text-muted-foreground',
-            `prose-size-${fontSize}`,
-            'font-serif',
-            theme === 'system' ? 'dark:prose-invert' : '',
-            'prose-p:mb-6'
-          )}
-          dangerouslySetInnerHTML={{ __html: getFormattedContent() }}
-        />
-
+                <article
+                  className={cn(
+                    "prose max-w-none",
+                    'text-muted-foreground',
+                    `prose-size-${fontSize}`,
+                    'font-serif',
+                    theme === 'system' ? 'dark:prose-invert' : '',
+                    'prose-p:mb-6'
+                  )}
+                  dangerouslySetInnerHTML={{ __html: getFormattedContentForChapter(chapter) }}
+                />
+                 {index < chapters.length - 1 && <Separator className="my-12 bg-border/50" />}
+            </div>
+        ))}
         
       </div>
        <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
@@ -283,7 +274,7 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
             <DialogHeader className="p-4 border-b">
                 <DialogTitle>PDF Viewer</DialogTitle>
                 <DialogDescription>
-                    {chapter.title} - Reading in secure mode.
+                    {firstChapter.title} - Reading in secure mode.
                 </DialogDescription>
             </DialogHeader>
             <div className="flex-grow">
@@ -291,7 +282,7 @@ export default function ReaderView({ chapter }: ReaderViewProps) {
                     <iframe
                         src={pdfUrl}
                         className="w-full h-full border-0"
-                        title={`PDF Viewer - ${chapter.title}`}
+                        title={`PDF Viewer - ${firstChapter.title}`}
                     />
                  )}
             </div>
