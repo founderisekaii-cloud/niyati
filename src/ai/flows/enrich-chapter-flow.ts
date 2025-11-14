@@ -35,30 +35,33 @@ const generationPrompt = ai.definePrompt({
     input: { schema: EnrichChapterInputSchema },
     output: { schema: z.object({
         title: z.string().describe("Extract the chapter title from the text in English. If no clear title is present, create a concise, compelling one based on the content."),
-        subtitle: z.string().describe("Extract the single quote or tagline sentence that appears immediately after the title. If not present, leave blank."),
+        subtitle: z.string().describe("Extract the single quote or tagline sentence that appears immediately after the title. If not present, leave it blank."),
         summary: z.string().describe("Generate a compelling, 3-sentence summary in English, suitable for a chapter listing page. It should be engaging and concise."),
-        cleanedContent: z.string().describe("Return the main body of the chapter content. IMPORTANT: If `hasMetadataHeaders` is true, you MUST remove the primary title, the subtitle, and any other introductory headings (like 'Niyati', 'Season X', etc.). If `hasMetadataHeaders` is false, you MUST return the content EXACTLY as it was provided, without altering any formatting, line breaks, or paragraph structure."),
+        cleanedContent: z.string().describe("Return the main body of the chapter content. IMPORTANT: If `hasMetadataHeaders` is true, you MUST remove the primary title, the subtitle, and any other introductory headings (like 'Niyati', 'Season X', etc.). If `isFormatted` is true, you MUST return the content with its original line breaks and paragraph structure intact."),
     })},
-    prompt: `You are a master storyteller and editor. Your primary task is to process a raw chapter text and extract or generate specific pieces of metadata.
+    prompt: `You are an expert editor. Your task is to process a chapter's text and return structured data.
 
-    The user will provide the full, unformatted text of a chapter. It typically starts with the story name ("Niyati"), followed by the season/chapter ("Season X – Chapter Y"), then a title for the chapter (e.g., "LET'S BEGIN THE STORY"), and then an italicized subtitle/quote (e.g., "Sometimes what we think..."). The rest is the story content.
+Here are your instructions. Follow them precisely.
 
-    You have two instructions based on the user's input: 'isFormatted' and 'hasMetadataHeaders'.
+1.  **Analyze the Input:** The user will provide chapter text in \`fullContent\` and two boolean flags: \`isFormatted\` and \`hasMetadataHeaders\`.
 
-    1.  **Summary Generation (Always perform this):**
-        - Generate a compelling, 3-sentence summary of the entire chapter's content.
+2.  **Metadata Extraction (Always Perform):**
+    *   **Title:** Find the main title of the chapter (e.g., "LET'S BEGIN THE STORY"). Extract it. If no clear title exists, create a suitable one based on the content.
+    *   **Subtitle:** Find the italicized quote or tagline sentence that appears immediately after the title. Extract it. If there isn't one, return an empty string.
 
-    2.  **Title/Subtitle Extraction (Always perform this):**
-        - Extract the main title of the chapter (e.g., "LET’S BEGIN THE STORY"). If not found, create one.
-        - Extract the italicized quote or tagline that comes directly after the title. If not found, leave it blank.
+3.  **Summary Generation (Always Perform):**
+    *   Read the entire \`fullContent\` and write a compelling, 3-sentence summary in English.
 
-    3.  **Content Cleaning (Conditional):**
-        - **IF \`hasMetadataHeaders\` is TRUE:** Return ONLY the main body of the story. You MUST remove the story name ("Niyati"), the season/chapter line, the main title, and the subtitle if they are present at the beginning.
-        - **IF \`hasMetadataHeaders\` is FALSE:** Return the content EXACTLY as it was provided, without any changes to formatting or paragraph structure.
-        - **IF \`isFormatted\` is TRUE:** This is a strict instruction. Do NOT change any line breaks, paragraph spacing, or formatting of the original content. Your only job might be to remove headers if requested.
+4.  **Content Cleaning (This is conditional):**
+    *   **IF \`hasMetadataHeaders\` is TRUE:** You MUST remove the story name (e.g., "Niyati"), the season/chapter line (e.g., "Season X – Chapter Y"), the main title, and the subtitle from the beginning of the content.
+    *   **IF \`hasMetadataHeaders\` is FALSE:** You MUST NOT remove any text.
+    *   **IF \`isFormatted\` is TRUE:** This is a strict rule. You MUST preserve the original line breaks and paragraph spacing of the content exactly as provided. Do not add, remove, or alter whitespace.
+    *   **IF \`isFormatted\` is FALSE:** You may re-format the text for better readability (e.g., standard paragraph spacing).
 
-    Full Chapter Content:
-    {{{fullContent}}}
+Combine these rules. For example, if \`hasMetadataHeaders\` is true AND \`isFormatted\` is true, you will remove the headers but leave the rest of the text's formatting untouched.
+
+Full Chapter Content:
+{{{fullContent}}}
     `,
 });
 
