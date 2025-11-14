@@ -47,7 +47,7 @@ async function getGroupedChapters(): Promise<ChapterGroup[]> {
     const chapterMap = new Map<string, ChapterGroup & { parts: Chapter[], docIds: string[] }>();
 
     chapterSnapshot.docs.forEach(doc => {
-      const data = doc.data() as Omit<Chapter, 'docId'>;
+      const data = doc.data();
       const groupId = `s${data.seasonNumber}c${data.chapterNumber}`;
 
       if (!chapterMap.has(groupId)) {
@@ -67,7 +67,14 @@ async function getGroupedChapters(): Promise<ChapterGroup[]> {
       }
       
       const group = chapterMap.get(groupId)!;
-      group.parts.push({ ...data, docId: doc.id });
+      
+      const chapterPart: Chapter = {
+        ...data,
+        docId: doc.id,
+        releaseDate: data.releaseDate?.toDate().toISOString() || new Date().toISOString(),
+      } as Chapter;
+
+      group.parts.push(chapterPart);
       group.docIds.push(doc.id);
     });
 
