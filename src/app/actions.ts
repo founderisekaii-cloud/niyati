@@ -92,7 +92,7 @@ type ChapterPdfData = {
     subtitle: string;
     seasonNumber: number;
     chapterNumber: number;
-    partNumber: number;
+    partNumber: number | null; // Use null for "Full Chapter"
     content: string;
 };
 
@@ -103,7 +103,7 @@ export async function generatePdf(chapterData: ChapterPdfData): Promise<string> 
     const timesRomanBoldFont = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
 
     const { title, subtitle, seasonNumber, chapterNumber, partNumber, content } = chapterData;
-    const cleanContent = content.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]*>?/gm, '').replace(/[^\x00-\x7F]/g, "");
+    const cleanContent = content.replace(/<br\s*\/?>/gi, '\n').replace(/<p>.*?<\/p>/g, '$&\n').replace(/<[^>]*>?/gm, '').replace(/[^\x00-\x7F]/g, "");
 
     let page = pdfDoc.addPage();
     const { width, height } = page.getSize();
@@ -211,7 +211,7 @@ export async function generatePdf(chapterData: ChapterPdfData): Promise<string> 
     y -= 40;
 
     // Draw Part Number (Pink)
-    const partText = `PART ${partNumber}`;
+    const partText = partNumber === null ? 'Full Chapter' : `PART ${partNumber}`;
     const partWidth = timesRomanBoldFont.widthOfTextAtSize(partText, 20);
     page.drawText(partText, {
         x: width / 2 - partWidth / 2,
