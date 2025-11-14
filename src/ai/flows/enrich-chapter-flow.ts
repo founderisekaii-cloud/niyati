@@ -99,45 +99,34 @@ const enrichChapterFlow = ai.defineFlow(
     let cleanedContent = input.fullContent;
 
     try {
-      if (input.isFormatted && !input.hasMetadataHeaders) {
-        // This case is simple enough that we don't need a fallback.
-        // It's for pre-formatted content where we only extract summary.
-        const summaryResult = await summaryOnlyPrompt({ fullContent: input.fullContent });
-        summary = summaryResult.output?.summary || "Summary could not be generated.";
-        const lines = input.fullContent.split('\n');
-        title = lines[0] || 'Untitled';
-        subtitle = lines[1] && lines[1].startsWith('"') ? lines[1] : '';
-
-      } else {
-        // This is the main, complex case that needs a fallback.
         let textGenResult;
-        try {
-          // Attempt 1: Use the default model (Gemini)
-          console.log("Attempting chapter enrichment with default model (Gemini)...");
-          textGenResult = await generationPrompt(input);
-        } catch (geminiError: any) {
-          // Attempt 2: Fallback to OpenAI if Gemini fails
-          console.warn("Gemini model failed:", geminiError.message, "Switching to OpenAI fallback.");
-          textGenResult = await generate({
-            prompt: generationPrompt.prompt,
-            model: 'openai/gpt-4o', // Explicitly use an OpenAI model
-            input: input,
-            output: generationPrompt.output,
-          });
+        if (input.isFormatted && !input.hasMetadataHeaders) {
+            // This case is simple enough that we don't need a fallback.
+            // It's for pre-formatted content where we only extract summary.
+            const summaryResult = await summaryOnlyPrompt({ fullContent: input.fullContent });
+            summary = summaryResult.output?.summary || "Summary could not be generated.";
+            const lines = input.fullContent.split('\n');
+            title = lines[0] || 'Untitled';
+            subtitle = lines[1] && lines[1].startsWith('"') ? lines[1] : '';
+
+        } else {
+            // This is the main, complex case that uses the primary AI provider.
+            console.log("Attempting chapter enrichment with default model...");
+            textGenResult = await generationPrompt(input);
+            
+            const output = textGenResult.output;
+            if (!output) {
+                throw new Error("Failed to generate all required text fields from AI.");
+            }
+            title = output.title;
+            subtitle = output.subtitle;
+            summary = output.summary;
+            cleanedContent = output.cleanedContent;
         }
 
-        const output = textGenResult.output;
-        if (!output) {
-            throw new Error("Failed to generate all required text fields from AI.");
-        }
-        title = output.title;
-        subtitle = output.subtitle;
-        summary = output.summary;
-        cleanedContent = output.cleanedContent;
-      }
     } catch (error: any) {
-        console.error("Error in enrichChapterFlow (after fallback attempt):", error);
-        // Graceful fallback if both AI providers fail: return original content and sensible defaults
+        console.error("Error in enrichChapterFlow:", error);
+        // Graceful fallback if AI provider fails: return original content and sensible defaults
         return {
             title: 'AI Processing Failed',
             subtitle: '',
