@@ -21,7 +21,7 @@ async function getGroupedChapters(): Promise<ChapterGroup[]> {
           title: "The Awakening",
           subtitle: "Every end is a new beginning.",
           summary: "This is a sample chapter to demonstrate the layout and functionality. In a world governed by a cosmic, karma-based operating system, a young man named Kael begins to exhibit abilities that defy the predictions of the Niyati OS, drawing the attention of powerful forces and setting in motion events that could either reboot the system or shatter it forever.",
-          coverImage: "https://picsum.photos/seed/s0c0/400/400",
+          coverImage: "https://placehold.co/400x400/1A1A2E/FFD700?text=S0\\nC0",
           status: 'public',
           price: 0,
           parts: [{
@@ -37,7 +37,7 @@ async function getGroupedChapters(): Promise<ChapterGroup[]> {
             partNumber: 1,
             status: 'public',
             price: 0,
-            coverImage: "https://picsum.photos/seed/s0c0/400/400",
+            coverImage: "https://placehold.co/400x400/1A1A2E/FFD700?text=S0\\nC0",
           }]
         }
       ];
@@ -90,7 +90,7 @@ async function getGroupedChapters(): Promise<ChapterGroup[]> {
           title: part1.title,
           subtitle: part1.subtitle,
           summary: part1.summary,
-          coverImage: part1.coverImage || `https://picsum.photos/seed/s${group.seasonNumber}c${group.chapterNumber}/400/400`,
+          coverImage: part1.coverImage || `https://placehold.co/400x400/1A1A2E/FFD700?text=S${group.seasonNumber}\\nC${group.chapterNumber}`,
           partCount: group.parts.length,
           status: part1.status,
           price: part1.price,
@@ -120,7 +120,7 @@ async function getGroupedChapters(): Promise<ChapterGroup[]> {
           title: "The Awakening (Error)",
           subtitle: "Could not load chapters from the database.",
           summary: "There was an error fetching the chapter list from the server. This is a sample card displayed as a fallback. Please check the console for more details.",
-          coverImage: "https://picsum.photos/seed/error/400/400",
+          coverImage: "https://placehold.co/400x400/1A1A2E/FFD700?text=Error",
           status: 'public',
           price: 0,
         }

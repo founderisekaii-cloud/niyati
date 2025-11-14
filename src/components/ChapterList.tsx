@@ -33,8 +33,7 @@ import {
   getDocs,
   writeBatch,
 } from 'firebase/firestore';
-import { db, storage } from '@/lib/firebase';
-import { ref as storageRef, uploadString, getDownloadURL } from 'firebase/storage';
+import { db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { enrichChapterContent } from '@/ai/flows/enrich-chapter-flow';
 import {
@@ -61,7 +60,7 @@ const chapterSchema = z.object({
   title: z.string().optional(),
   subtitle: z.string().optional(),
   summary: z.string().optional(),
-  coverImage: z.string().optional(),
+  coverImage: z.string().url().optional().or(z.literal('')),
 });
 
 type ChapterFormData = z.infer<typeof chapterSchema>;
@@ -78,7 +77,6 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
   const { toast } = useToast();
   const [previewData, setPreviewData] = useState<Partial<ChapterFormData> | null>(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
     register,
@@ -149,13 +147,14 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
           let finalTitle, finalSubtitle, finalSummary, finalCoverImage, finalCleanedContent;
 
           if (formData.partNumber === 1 || modalMode === 'edit') {
-              toast({ description: "AI is generating title, summary, and cover image..." });
+              toast({ description: "AI is generating title, summary..." });
               const enrichedData = await enrichChapterContent({ fullContent: formData.content || '' });
               finalTitle = enrichedData.title;
               finalSubtitle = enrichedData.subtitle;
               finalSummary = enrichedData.summary;
-              finalCoverImage = enrichedData.coverImage;
               finalCleanedContent = enrichedData.cleanedContent;
+              // Generate placeholder image URL instead of AI image
+              finalCoverImage = `https://placehold.co/400x400/1A1A2E/FFD700?text=S${formData.seasonNumber}\\nC${formData.chapterNumber}`;
           } else {
               toast({ description: `Fetching details from Part 1...` });
               const q = query(
@@ -198,43 +197,6 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
       }
   }
 
-  const handleRegenerateImage = async () => {
-    const currentSummary = watch('summary');
-    if (!currentSummary) {
-        toast({ title: "Cannot Regenerate", description: "A summary is required to generate an image.", variant: "destructive" });
-        return;
-    }
-    setIsPreviewLoading(true);
-    toast({ description: "AI is creating a new image..." });
-     try {
-        const enrichedData = await enrichChapterContent({ fullContent: `Generate an image for this summary: ${currentSummary}` });
-        setValue('coverImage', enrichedData.coverImage);
-     } catch (error: any) {
-        console.error("Error regenerating image:", error);
-        toast({ title: 'Image Generation Failed', description: error.message, variant: 'destructive'});
-     } finally {
-        setIsPreviewLoading(false);
-     }
-  }
-
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    if (file.size > 2 * 1024 * 1024) { // 2MB limit
-        toast({ title: "File too large", description: "Please upload an image smaller than 2MB.", variant: "destructive"});
-        return;
-    }
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-        const base64String = reader.result as string;
-        setValue('coverImage', base64String);
-    };
-    reader.readAsDataURL(file);
-  }
-
-
   const handleFinalSubmit = async (data: ChapterFormData) => {
     if (!previewData) {
         toast({ title: "Cannot Submit", description: "Please generate a preview before submitting.", variant: "destructive"});
@@ -243,18 +205,6 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
 
     setLoading(true);
     try {
-      let coverImageUrl = data.coverImage || '';
-
-      // Check if the cover image is a new base64 upload
-      if (coverImageUrl.startsWith('data:image')) {
-        toast({ description: "Uploading cover image to storage..." });
-        const imagePath = `chapters/s${data.seasonNumber}c${data.chapterNumber}/cover.jpg`;
-        const imageRef = storageRef(storage, imagePath);
-        const uploadResult = await uploadString(imageRef, coverImageUrl, 'data_url');
-        coverImageUrl = await getDownloadURL(uploadResult.ref);
-        toast({ title: "Image uploaded!" });
-      }
-
       const chapterPayload = {
         seasonNumber: data.seasonNumber,
         chapterNumber: data.chapterNumber,
@@ -265,7 +215,7 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
         title: data.title || 'Untitled',
         subtitle: data.subtitle || '',
         summary: data.summary || '',
-        coverImage: coverImageUrl,
+        coverImage: data.coverImage || `https://placehold.co/400x400/1A1A2E/FFD700?text=S${data.seasonNumber}\\nC${data.chapterNumber}`,
         wordCount: data.content?.split(/\s+/).length || 0,
         releaseDate: serverTimestamp(),
       };
@@ -369,40 +319,22 @@ export default function ChapterList({ initialChapters }: ChapterListProps) {
              </div>
         ) : (
              <div className="space-y-6 animate-in fade-in-0">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="md:col-span-1 space-y-2">
-                        <Label>Cover Image Preview</Label>
-                         <div className="relative">
-                            <Image src={currentCoverImage || '/placeholder.svg'} alt="Generated cover" width={200} height={200} className="rounded-md border aspect-square object-cover w-full" />
-                         </div>
-                         <div className="flex gap-2">
-                            <Button type="button" size="sm" variant="outline" className="w-full" onClick={handleRegenerateImage} disabled={isPreviewLoading}>
-                                {isPreviewLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <RefreshCw className="mr-2 h-4 w-4" />}
-                                AI
-                            </Button>
-                             <Button type="button" size="sm" variant="outline" className="w-full" onClick={() => fileInputRef.current?.click()}>
-                                <Upload className="mr-2 h-4 w-4"/>
-                                Upload
-                            </Button>
-                         </div>
-                         <Input 
-                            type="file" 
-                            className="hidden" 
-                            ref={fileInputRef} 
-                            onChange={handleImageUpload}
-                            accept="image/png, image/jpeg, image/webp"
-                         />
-                        <Input {...register('coverImage')} className="hidden" />
+                <div className="space-y-2">
+                    <Label htmlFor="coverImage">Cover Image URL (Google Drive Link)</Label>
+                    <Input id="coverImage" {...register('coverImage')} placeholder="Paste a public Google Drive image link here..." />
+                     {errors.coverImage && <p className="text-sm text-destructive">{errors.coverImage.message}</p>}
+                    <p className="text-xs text-muted-foreground">
+                        If left blank, a placeholder with the season/chapter number will be used.
+                    </p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     <div className="space-y-2">
+                        <Label htmlFor="title">Title (AI Extracted/Editable)</Label>
+                        <Input id="title" {...register('title')} />
                     </div>
-                    <div className="md:col-span-2 space-y-4">
-                         <div className="space-y-2">
-                            <Label htmlFor="title">Title (AI Extracted/Editable)</Label>
-                            <Input id="title" {...register('title')} />
-                        </div>
-                         <div className="space-y-2">
-                            <Label htmlFor="subtitle">Subtitle (AI Extracted/Editable)</Label>
-                            <Input id="subtitle" {...register('subtitle')} />
-                        </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="subtitle">Subtitle (AI Extracted/Editable)</Label>
+                        <Input id="subtitle" {...register('subtitle')} />
                     </div>
                 </div>
 

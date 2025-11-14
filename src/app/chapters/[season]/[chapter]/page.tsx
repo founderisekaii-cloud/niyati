@@ -108,7 +108,7 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
             title: part1.title,
             subtitle: part1.subtitle || '',
             summary: part1.summary,
-            coverImage: part1.coverImage || `https://picsum.photos/seed/s${seasonNum}c${chapterNum}/400/400`
+            coverImage: part1.coverImage || `https://placehold.co/400x400/1A1A2E/FFD700?text=S${seasonNum}\\nC${chapterNum}`
         });
       }
     } catch (error) {
@@ -183,6 +183,7 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-6">
                 <div className="md:col-span-1">
                      <Image 
+                        unoptimized
                         src={chapterDetails.coverImage} 
                         alt={chapterDetails.title} 
                         width={400} 

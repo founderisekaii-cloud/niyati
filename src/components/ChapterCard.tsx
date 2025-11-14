@@ -57,6 +57,7 @@ export default function ChapterCard({ chapterGroup, onDelete, onEditRequest }: C
         <div className="w-full sm:w-1/4 aspect-[1/1] flex-shrink-0">
            <Link href={chapterUrl}>
             <Image
+              unoptimized
               src={chapterGroup.coverImage}
               alt={`Cover for ${chapterGroup.title}`}
               width={400}
@@ -124,5 +125,3 @@ export default function ChapterCard({ chapterGroup, onDelete, onEditRequest }: C
     </div>
   );
 }
-
-    
