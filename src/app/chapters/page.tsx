@@ -136,7 +136,7 @@ export default async function ChaptersPage() {
       <div className="text-center">
         <h1 className="text-4xl font-bold font-headline text-primary">All Chapters</h1>
         <p className="mt-2 text-lg text-muted-foreground">
-          Follow the journey of Kael, Lyra, and the cosmic intelligence, Niyati.
+          Delve into a reality where every choice is a line of code, and destiny itself is learning.
         </p>
       </div>
       <ChapterList initialChapters={chapters} />
