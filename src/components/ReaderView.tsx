@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import type { Chapter } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { FileText, Palette, Loader2, LogIn, Text } from 'lucide-react';
@@ -52,7 +52,14 @@ export default function ReaderView({ chapters }: ReaderViewProps) {
   const { language } = useLanguage();
   
   const firstChapter = chapters[0];
+  const isFullChapterView = chapters.length > 1;
   const totalWordCount = chapters.reduce((total, chap) => total + chap.wordCount, 0);
+
+  const fullChapterContent = useMemo(() => {
+    return chapters
+      .map(chapter => chapter.content.replace(/\n/g, '<br />'))
+      .join(isFullChapterView ? '<br /><br />' : '');
+  }, [chapters, isFullChapterView]);
 
   useEffect(() => {
     const handleContextmenu = (e: MouseEvent) => {
@@ -62,11 +69,6 @@ export default function ReaderView({ chapters }: ReaderViewProps) {
 
     return () => document.removeEventListener('contextmenu', handleContextmenu);
   }, []);
-
-  const getFormattedContentForChapter = (chapter: Chapter) => {
-    // Replace newline characters with <br /> tags to preserve paragraph breaks
-    return chapter.content.replace(/\n/g, '<br />');
-  };
 
   const getTranslatedTitle = () => {
       return firstChapter.title;
@@ -84,17 +86,17 @@ export default function ReaderView({ chapters }: ReaderViewProps) {
     setIsGeneratingPdf(true);
     toast({ description: "Generating your secure PDF..." });
     
-    // For now, only generate PDF for the first part if multiple are present
-    const chapterToPdf = firstChapter;
+    // Combine content from all parts for the PDF
+    const combinedContent = chapters.map(c => c.content).join('\n\n---\n\n');
     
     try {
         const pdfData = await generatePdf({
-            title: chapterToPdf.title,
-            subtitle: chapterToPdf.subtitle || '',
-            seasonNumber: chapterToPdf.seasonNumber,
-            chapterNumber: chapterToPdf.chapterNumber,
-            partNumber: chapterToPdf.partNumber,
-            content: chapterToPdf.content
+            title: firstChapter.title,
+            subtitle: firstChapter.subtitle || '',
+            seasonNumber: firstChapter.seasonNumber,
+            chapterNumber: firstChapter.chapterNumber,
+            partNumber: firstChapter.partNumber, // Or indicate multiple parts
+            content: combinedContent
         });
         const blob = new Blob([Buffer.from(pdfData, 'base64')], { type: 'application/pdf' });
         const url = URL.createObjectURL(blob);
@@ -143,19 +145,21 @@ export default function ReaderView({ chapters }: ReaderViewProps) {
         .dark .dark-theme-override .prose { color: #E0E0E0; }
         
         .dark-theme-override .prose p, .dark-theme-override h1, .dark-theme-override h2,
-        .dark-theme-override .prose-headings, .dark-theme-override .prose-body, .dark-theme-override .prose article { color: #E0E0E0 !important; }
+        .dark-theme-override .prose-headings, .dark-theme-override .prose-body, .dark-theme-override .prose article,
+        .dark-theme-override .prose blockquote { color: #E0E0E0 !important; }
         
         .sepia-theme-override .prose p, .sepia-theme-override h1, .sepia-theme-override h2,
-        .sepia-theme-override .prose-headings, .sepia-theme-override .prose-body, .sepia-theme-override .prose article { color: #5b4636 !important; }
+        .sepia-theme-override .prose-headings, .sepia-theme-override .prose-body, .sepia-theme-override .prose article,
+        .sepia-theme-override .prose blockquote { color: #5b4636 !important; }
 
         .prose.font-serif {
             font-family: 'Alegreya', serif !important;
         }
 
-        .prose.prose-size-sm p, .prose.prose-size-sm article { font-size: 0.8rem; line-height: 1.6; }
-        .prose.prose-size-base p, .prose.prose-size-base article { font-size: 1rem; line-height: 1.7; }
-        .prose.prose-size-lg p, .prose.prose-size-lg article { font-size: 1.15rem; line-height: 1.8; }
-        .prose.prose-size-xl p, .prose.prose-size-xl article { font-size: 1.3rem; line-height: 1.9; }
+        .prose-size-sm p, .prose-size-sm article, .prose-size-sm { font-size: 0.8rem !important; line-height: 1.6 !important; }
+        .prose-size-base p, .prose-size-base article, .prose-size-base { font-size: 1rem !important; line-height: 1.7 !important; }
+        .prose-size-lg p, .prose-size-lg article, .prose-size-lg { font-size: 1.15rem !important; line-height: 1.8 !important; }
+        .prose-size-xl p, .prose-size-xl article, .prose-size-xl { font-size: 1.3rem !important; line-height: 1.9 !important; }
 
       `}</style>
       <div className="relative z-10">
@@ -183,11 +187,13 @@ export default function ReaderView({ chapters }: ReaderViewProps) {
         
         {chapters.map((chapter, index) => (
              <div key={chapter.docId || index}>
-                <div className="text-center my-8">
-                    <h3 className="text-2xl font-bold font-headline tracking-widest" style={{ color: '#E573E5' }}>
-                        PART {chapter.partNumber}
-                    </h3>
-                </div>
+                {!isFullChapterView && (
+                    <div className="text-center my-8">
+                        <h3 className="text-2xl font-bold font-headline tracking-widest" style={{ color: '#E573E5' }}>
+                            PART {chapter.partNumber}
+                        </h3>
+                    </div>
+                )}
 
                 <article
                   className={cn(
@@ -197,9 +203,9 @@ export default function ReaderView({ chapters }: ReaderViewProps) {
                     'font-serif',
                     theme === 'system' ? 'dark:prose-invert' : '',
                   )}
-                  dangerouslySetInnerHTML={{ __html: getFormattedContentForChapter(chapter) }}
+                  dangerouslySetInnerHTML={{ __html: chapter.content.replace(/\n/g, '<br />') }}
                 />
-                 {index < chapters.length - 1 && <Separator className="my-12 bg-border/50" />}
+                 {(isFullChapterView && index < chapters.length - 1) && <div className="my-8" />}
             </div>
         ))}
         
@@ -229,7 +235,7 @@ export default function ReaderView({ chapters }: ReaderViewProps) {
               <DropdownMenuContent align="end">
                 <DropdownMenuRadioGroup value={fontSize} onValueChange={(value) => setFontSize(value as FontSize)}>
                   <DropdownMenuRadioItem value="sm">Small</DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="base">Base</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="base">Normal</DropdownMenuRadioItem>
                   <DropdownMenuRadioItem value="lg">Large</DropdownMenuRadioItem>
                   <DropdownMenuRadioItem value="xl">Extra Large</DropdownMenuRadioItem>
                 </DropdownMenuRadioGroup>

@@ -45,7 +45,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { enrichChapterContent } from '@/ai/flows/enrich-chapter-flow';
+import { enrichChapterContent, type EnrichChapterInput } from '@/ai/flows/enrich-chapter-flow';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 
@@ -79,7 +79,7 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
   const [addPartPreview, setAddPartPreview] = useState<{ summary: string; cleanedContent: string; } | null>(null);
   const [addPartContent, setAddPartContent] = useState('');
   const [addPartIsLast, setAddPartIsLast] = useState(false);
-  const [addPartContentType, setAddPartContentType] = useState<'raw' | 'formatted'>('formatted');
+  const [addPartIsRaw, setAddPartIsRaw] = useState(false);
   const [addPartHasMetadata, setAddPartHasMetadata] = useState(false);
 
   const resolvedParams = use(params);
@@ -132,7 +132,7 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
         
         setParts(partsData);
         const part1 = partsData[0];
-        const combinedSummary = partsData.map(p => p.summary).join(' ');
+        const combinedSummary = partsData.map(p => p.summary).filter(Boolean).join(' ');
 
         setChapterDetails({
             title: part1.title,
@@ -158,7 +158,7 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
     setAddPartContent('');
     setAddPartPreview(null);
     setAddPartIsLast(false);
-    setAddPartContentType('formatted');
+    setAddPartIsRaw(false);
     setAddPartHasMetadata(false);
   }
 
@@ -169,32 +169,17 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
     }
     setAddPartLoading(true);
     try {
-        let contentToProcess = addPartContent;
-        
-        if (addPartContentType === 'formatted' && !addPartHasMetadata) {
-            // No AI processing needed, just generate a simple summary
-            setAddPartPreview({
-                summary: "Content for this part.",
-                cleanedContent: contentToProcess,
-            });
-            toast({ title: "Preview Ready!", description: "Content is ready for submission." });
-            return;
-        }
-
-        let promptContent = contentToProcess;
-        if(addPartContentType === 'formatted') {
-            promptContent = `[FORMATTED_CONTENT_FLAG] ${contentToProcess}`;
+        const input: EnrichChapterInput = {
+            fullContent: addPartContent,
+            isFormatted: !addPartIsRaw,
+            hasMetadataHeaders: addPartHasMetadata
         }
         
-        const enrichedData = await enrichChapterContent({ 
-            fullContent: promptContent,
-        });
+        const enrichedData = await enrichChapterContent(input);
 
-        const finalContent = addPartHasMetadata ? enrichedData.cleanedContent : contentToProcess;
-        
         setAddPartPreview({
             summary: enrichedData.summary,
-            cleanedContent: finalContent
+            cleanedContent: enrichedData.cleanedContent,
         });
         
         toast({ title: "Preview Ready!", description: "Review the generated summary and cleaned content." });
@@ -221,14 +206,14 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
               seasonNumber: part1.seasonNumber,
               chapterNumber: part1.chapterNumber,
               partNumber: nextPartNumber,
-              title: part1.title,
-              subtitle: part1.subtitle,
-              coverImage: part1.coverImage,
-              summary: addPartPreview.summary,
-              content: addPartPreview.cleanedContent,
+              title: part1.title, // Copied from part 1
+              subtitle: part1.subtitle, // Copied from part 1
+              coverImage: part1.coverImage, // Copied from part 1
+              summary: addPartPreview.summary, // Generated for this part
+              content: addPartPreview.cleanedContent, // Processed content
               wordCount: addPartPreview.cleanedContent.split(/\s+/).length,
-              status: part1.status,
-              price: part1.price,
+              status: part1.status, // Copied from part 1
+              price: part1.price, // Copied from part 1
               isLastPart: addPartIsLast,
               releaseDate: serverTimestamp(),
           };
@@ -364,7 +349,7 @@ export default function ChapterPartsPage({ params }: ChapterPartsPageProps) {
                                     </div>
                                     <div className="space-y-2">
                                         <Label>Content Type</Label>
-                                        <RadioGroup defaultValue="formatted" value={addPartContentType} onValueChange={(v: 'raw' | 'formatted') => setAddPartContentType(v)}>
+                                        <RadioGroup value={addPartIsRaw ? 'raw' : 'formatted'} onValueChange={(v) => setAddPartIsRaw(v === 'raw')}>
                                             <div className="flex items-center space-x-2">
                                                 <RadioGroupItem value="raw" id="r-raw" />
                                                 <Label htmlFor="r-raw">Raw (Needs AI formatting)</Label>
