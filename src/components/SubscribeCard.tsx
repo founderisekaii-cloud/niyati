@@ -35,12 +35,6 @@ export default function SubscribeCard() {
     }
   }, [formState, toast]);
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const formData = new FormData(event.currentTarget);
-    formAction(formData);
-  };
-
   return (
     <Card className="mt-12">
       <CardHeader className="text-center">
@@ -53,7 +47,7 @@ export default function SubscribeCard() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="w-full max-w-lg mx-auto space-y-4">
+        <form action={formAction} className="w-full max-w-lg mx-auto space-y-4">
           <div className="relative">
              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
              <Input 
